@@ -184,7 +184,7 @@ export const usersService = {
       .returning()
 
     // Log audit
-    await logAudit(ctx, 'User', id, 'UPDATE', input)
+    await logAudit(ctx, 'User', id, 'UPDATE', input as Record<string, unknown>)
 
     return {
       id: userRecord.id,

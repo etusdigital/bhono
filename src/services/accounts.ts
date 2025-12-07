@@ -181,7 +181,7 @@ export const accountsService = {
       .where(eq(accounts.id, id))
       .returning()
 
-    await logAudit(ctx, 'Account', id, 'UPDATE', input)
+    await logAudit(ctx, 'Account', id, 'UPDATE', input as Record<string, unknown>)
 
     return {
       id: accountRecord.id,
