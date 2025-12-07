@@ -15,17 +15,26 @@ api.use('/*', accountMiddleware)
 api.route('/users', users)
 api.route('/accounts', accounts)
 
+// Register security scheme component
+api.openAPIRegistry.registerComponent('securitySchemes', 'Bearer', {
+  type: 'http',
+  scheme: 'bearer',
+  bearerFormat: 'JWT',
+  description: 'JWT authentication token',
+})
+
 // OpenAPI documentation
 api.doc('/doc', {
   openapi: '3.0.0',
   info: {
     title: 'Hono Boilerplate API',
     version: '1.0.0',
-    description: 'Multi-tenant API with role-based access control',
+    description: 'Multi-tenant API with role-based access control. Requires Authorization header with Bearer token and account-id header for multi-tenancy.',
   },
   servers: [
     { url: 'http://localhost:3000', description: 'Development server' },
   ],
+  security: [{ Bearer: [] }],
 })
 
 // Swagger UI

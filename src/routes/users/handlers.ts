@@ -1,6 +1,8 @@
 import type { HonoEnv, ServiceContext } from '../../types'
 import { usersService } from '../../services'
 
+// Note: Handler types are inferred from route definitions by @hono/zod-openapi
+// Using 'any' is the standard pattern for openapi handlers
 export async function listUsersHandler(c: any) {
   const query = c.req.valid('query')
   const accountId = c.get('accountId')

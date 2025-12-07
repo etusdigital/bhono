@@ -2,8 +2,12 @@ import { serve } from '@hono/node-server'
 import { createApp } from './app'
 import { api } from './routes'
 import { env } from './env'
+import { requestContext } from './middleware/request-context'
 
 const app = createApp()
+
+// Global middleware - applies to ALL routes including health check
+app.use('*', requestContext)
 
 // Mount API routes
 app.route('/api', api)
