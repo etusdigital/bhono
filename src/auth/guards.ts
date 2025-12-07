@@ -39,8 +39,8 @@ export const requireRole = (minRole: Role, additionalRoles: Role[] = []) => {
       })
     }
 
-    // Check if user has minimum role
-    if (!hasMinimumRole(userRole, minRole, additionalRoles)) {
+    // Check if user has minimum role (userRole is guaranteed to be Role here)
+    if (!hasMinimumRole(userRole as Role, minRole, additionalRoles)) {
       throw new HTTPException(403, {
         message: `Forbidden: Requires ${minRole} role or higher`,
       })
@@ -80,8 +80,8 @@ export const requirePermission = (permission: Permission) => {
       })
     }
 
-    // Check if user's role has the required permission
-    if (!hasPermission(userRole, permission)) {
+    // Check if user's role has the required permission (userRole is guaranteed to be Role here)
+    if (!hasPermission(userRole as Role, permission)) {
       throw new HTTPException(403, {
         message: `Forbidden: Requires ${permission} permission`,
       })
