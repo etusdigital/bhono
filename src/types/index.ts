@@ -1,5 +1,4 @@
-// Temporary type until auth/roles is implemented
-type Role = string
+import type { Role } from '../auth/roles'
 
 export interface User {
   id: string
