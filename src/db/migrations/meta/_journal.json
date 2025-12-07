@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1765083412880,
+      "tag": "0000_lively_silver_centurion",
+      "breakpoints": true
+    }
+  ]
+}
