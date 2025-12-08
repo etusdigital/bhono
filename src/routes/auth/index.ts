@@ -1,0 +1,32 @@
+// src/routes/auth/index.ts
+import { OpenAPIHono } from '@hono/zod-openapi'
+import type { HonoEnv } from '../../types'
+import { jwtAuth } from '../../middleware'
+import {
+  loginRoute,
+  callbackRoute,
+  refreshRoute,
+  logoutRoute,
+  meRoute,
+} from './routes'
+import {
+  loginHandler,
+  callbackHandler,
+  refreshHandler,
+  logoutHandler,
+  meHandler,
+} from './handlers'
+
+const auth = new OpenAPIHono<HonoEnv>()
+
+// Public routes (no auth required)
+auth.openapi(loginRoute, loginHandler)
+auth.openapi(callbackRoute, callbackHandler)
+auth.openapi(refreshRoute, refreshHandler)
+auth.openapi(logoutRoute, logoutHandler)
+
+// Protected route (requires JWT)
+auth.use(meRoute.path, jwtAuth)
+auth.openapi(meRoute, meHandler)
+
+export { auth }
