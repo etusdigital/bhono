@@ -4,6 +4,7 @@ import { db } from '../db/client'
 import { users, accounts, userAccounts, refreshTokens } from '../db/schema'
 import { createAccessToken, generateRefreshToken, hashToken, getRefreshTokenExpiry } from '../lib/tokens'
 import { UnauthorizedError } from '../lib/errors'
+import { logAuthEvent, type AuthEventContext } from '../lib/audit'
 import type { GoogleUserInfo, AuthTokens } from '../types/auth'
 import type { User } from '../types'
 
@@ -11,10 +12,13 @@ interface AuthResult {
   user: User
   tokens: AuthTokens
   refreshToken: string
+  isNewUser: boolean
 }
 
 export const authService = {
-  async findOrCreateUser(googleUser: GoogleUserInfo): Promise<AuthResult> {
+  async findOrCreateUser(googleUser: GoogleUserInfo, ctx: AuthEventContext): Promise<AuthResult> {
+    let isNewUser = false
+
     // Try to find existing user by googleId
     let [userRecord] = await db
       .select()
@@ -41,6 +45,8 @@ export const authService = {
           .returning()
       }
     } else {
+      isNewUser = true
+
       // Create new user
       ;[userRecord] = await db
         .insert(users)
@@ -67,6 +73,13 @@ export const authService = {
         accountId: accountRecord.id,
         role: 'EDITOR',
       })
+
+      // Log signup event
+      await logAuthEvent(ctx, 'SIGNUP', userRecord.id, {
+        email: userRecord.email,
+        provider: 'google',
+        accountId: accountRecord.id,
+      })
     }
 
     // Generate tokens
@@ -79,6 +92,13 @@ export const authService = {
       userId: userRecord.id,
       tokenHash,
       expiresAt: getRefreshTokenExpiry(),
+    })
+
+    // Log login event
+    await logAuthEvent(ctx, 'LOGIN', userRecord.id, {
+      email: userRecord.email,
+      provider: 'google',
+      isNewUser,
     })
 
     return {
@@ -98,10 +118,11 @@ export const authService = {
         expiresIn: 60 * 15, // 15 minutes in seconds
       },
       refreshToken,
+      isNewUser,
     }
   },
 
-  async refreshAccessToken(refreshToken: string): Promise<AuthTokens> {
+  async refreshAccessToken(refreshToken: string, ctx: AuthEventContext): Promise<AuthTokens> {
     const tokenHash = await hashToken(refreshToken)
 
     // Find valid refresh token
@@ -135,19 +156,29 @@ export const authService = {
     // Generate new access token
     const accessToken = await createAccessToken(userRecord.id, userRecord.email)
 
+    // Log token refresh event
+    await logAuthEvent(ctx, 'TOKEN_REFRESH', userRecord.id, {
+      email: userRecord.email,
+    })
+
     return {
       accessToken,
       expiresIn: 60 * 15,
     }
   },
 
-  async revokeRefreshToken(refreshToken: string): Promise<void> {
+  async revokeRefreshToken(refreshToken: string, ctx: AuthEventContext, userId: string | null): Promise<void> {
     const tokenHash = await hashToken(refreshToken)
 
     await db
       .update(refreshTokens)
       .set({ revokedAt: new Date() })
       .where(eq(refreshTokens.tokenHash, tokenHash))
+
+    // Log logout event if userId provided
+    if (userId) {
+      await logAuthEvent(ctx, 'LOGOUT', userId, {})
+    }
   },
 
   async revokeAllUserTokens(userId: string): Promise<void> {
