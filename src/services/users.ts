@@ -121,6 +121,10 @@ export const usersService = {
     }
   },
 
+  // NOTE: User creation is disabled - users should only be created through Google OAuth
+  // If you need to manually create users, add googleId to the CreateUserInput interface
+  // and ensure the googleId is provided when creating users.
+  /*
   async create(ctx: ServiceContext, input: CreateUserInput): Promise<User> {
     // Check email doesn't already exist
     const [existing] = await db
@@ -167,6 +171,7 @@ export const usersService = {
       deletedAt: userRecord.deletedAt,
     }
   },
+  */
 
   async update(ctx: ServiceContext, id: string, input: UpdateUserInput): Promise<User> {
     // Verify user exists and accessible

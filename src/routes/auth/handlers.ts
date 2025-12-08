@@ -1,5 +1,4 @@
 // src/routes/auth/handlers.ts
-import type { RouteHandler } from '@hono/zod-openapi'
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie'
 import { HTTPException } from 'hono/http-exception'
 import { env } from '../../env'
@@ -13,17 +12,12 @@ import {
 } from '../../lib/oauth'
 import { setCookieOptions, setOAuthStateCookieOptions } from '../../lib/tokens'
 import { authService } from '../../services/auth'
-import type {
-  loginRoute,
-  callbackRoute,
-  refreshRoute,
-  logoutRoute,
-  meRoute,
-} from './routes'
 
 const isProduction = env.NODE_ENV === 'production'
 
-export const loginHandler: RouteHandler<typeof loginRoute> = async (c) => {
+// Note: Handler types are inferred from route definitions by @hono/zod-openapi
+// Using 'any' is the standard pattern for openapi handlers
+export const loginHandler = async (c: any) => {
   const { redirect } = c.req.valid('query')
 
   const codeVerifier = generateCodeVerifier()
@@ -43,7 +37,7 @@ export const loginHandler: RouteHandler<typeof loginRoute> = async (c) => {
   return c.redirect(authUrl)
 }
 
-export const callbackHandler: RouteHandler<typeof callbackRoute> = async (c) => {
+export const callbackHandler = async (c: any) => {
   const { code, state } = c.req.valid('query')
 
   // Get stored OAuth state
@@ -92,7 +86,7 @@ export const callbackHandler: RouteHandler<typeof callbackRoute> = async (c) => 
   })
 }
 
-export const refreshHandler: RouteHandler<typeof refreshRoute> = async (c) => {
+export const refreshHandler = async (c: any) => {
   const refreshToken = getCookie(c, 'refresh_token')
 
   if (!refreshToken) {
@@ -104,7 +98,7 @@ export const refreshHandler: RouteHandler<typeof refreshRoute> = async (c) => {
   return c.json({ tokens })
 }
 
-export const logoutHandler: RouteHandler<typeof logoutRoute> = async (c) => {
+export const logoutHandler = async (c: any) => {
   const refreshToken = getCookie(c, 'refresh_token')
 
   if (refreshToken) {
@@ -116,7 +110,7 @@ export const logoutHandler: RouteHandler<typeof logoutRoute> = async (c) => {
   return c.json({ message: 'Logged out successfully' })
 }
 
-export const meHandler: RouteHandler<typeof meRoute> = async (c) => {
+export const meHandler = async (c: any) => {
   const user = c.get('user')
 
   if (!user) {

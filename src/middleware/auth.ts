@@ -36,7 +36,7 @@ export const jwtAuth = createMiddleware<HonoEnv>(async (c, next) => {
   // Verify JWT
   let payload: JWTPayload
   try {
-    payload = (await verify(token, env.JWT_SECRET)) as JWTPayload
+    payload = (await verify(token, env.JWT_SECRET)) as unknown as JWTPayload
   } catch (error) {
     throw new HTTPException(401, {
       message: 'Invalid or expired token',

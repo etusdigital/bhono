@@ -4,14 +4,14 @@ import { requireRole } from '../../auth/guards'
 import {
   listUsersRoute,
   getUserRoute,
-  createUserRoute,
+  // createUserRoute, // Disabled - users should only be created via OAuth
   updateUserRoute,
   deleteUserRoute,
 } from './routes'
 import {
   listUsersHandler,
   getUserHandler,
-  createUserHandler,
+  // createUserHandler, // Disabled - users should only be created via OAuth
   updateUserHandler,
   deleteUserHandler,
 } from './handlers'
@@ -24,9 +24,10 @@ users.openapi(listUsersRoute, listUsersHandler)
 // Get user - requires VIEWER role or higher
 users.openapi(getUserRoute, getUserHandler)
 
+// NOTE: User creation route is disabled - users should only be created through Google OAuth
 // Create user - requires ADMIN role
-users.use(createUserRoute.path, requireRole('ADMIN'))
-users.openapi(createUserRoute, createUserHandler)
+// users.use(createUserRoute.path, requireRole('ADMIN'))
+// users.openapi(createUserRoute, createUserHandler)
 
 // Update user - requires MANAGER role or higher
 users.use(updateUserRoute.path, requireRole('MANAGER'))

@@ -23,6 +23,7 @@ async function seed() {
     .values({
       email: 'admin@example.com',
       name: 'Super Admin',
+      googleId: 'google-seed-admin-001',
       isSuperAdmin: true,
       status: 'active',
     })
@@ -32,18 +33,19 @@ async function seed() {
 
   // 3. Create test users with different roles
   const testUsers = [
-    { email: 'manager@example.com', name: 'Manager User', role: 'MANAGER' as const },
-    { email: 'editor@example.com', name: 'Editor User', role: 'EDITOR' as const },
-    { email: 'author@example.com', name: 'Author User', role: 'AUTHOR' as const },
-    { email: 'viewer@example.com', name: 'Viewer User', role: 'VIEWER' as const },
+    { email: 'manager@example.com', name: 'Manager User', role: 'MANAGER' as const, googleId: 'google-seed-manager-002' },
+    { email: 'editor@example.com', name: 'Editor User', role: 'EDITOR' as const, googleId: 'google-seed-editor-003' },
+    { email: 'author@example.com', name: 'Author User', role: 'AUTHOR' as const, googleId: 'google-seed-author-004' },
+    { email: 'viewer@example.com', name: 'Viewer User', role: 'VIEWER' as const, googleId: 'google-seed-viewer-005' },
   ]
 
-  for (const { email, name, role } of testUsers) {
+  for (const { email, name, role, googleId } of testUsers) {
     const [user] = await db
       .insert(users)
       .values({
         email,
         name,
+        googleId,
         status: 'active',
       })
       .returning()

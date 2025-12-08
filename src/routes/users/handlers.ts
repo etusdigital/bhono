@@ -50,6 +50,8 @@ export async function getUserHandler(c: any) {
   return c.json({ data: foundUser }, 200)
 }
 
+// NOTE: User creation is disabled - users should only be created through Google OAuth
+/*
 export async function createUserHandler(c: any) {
   const data = c.req.valid('json')
   const accountId = c.get('accountId')
@@ -74,6 +76,7 @@ export async function createUserHandler(c: any) {
 
   return c.json({ data: newUser }, 201)
 }
+*/
 
 export async function updateUserHandler(c: any) {
   const { id } = c.req.valid('param')

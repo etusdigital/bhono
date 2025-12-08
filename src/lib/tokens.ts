@@ -1,11 +1,10 @@
 // src/lib/tokens.ts
 import { sign } from 'hono/jwt'
 import { env } from '../env'
-import type { JWTPayload } from '../types/auth'
 
 export async function createAccessToken(userId: string, email: string): Promise<string> {
   const now = Math.floor(Date.now() / 1000)
-  const payload: JWTPayload = {
+  const payload = {
     sub: userId,
     email,
     iat: now,
