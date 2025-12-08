@@ -12,8 +12,18 @@ import {
 } from '../../lib/oauth'
 import { setCookieOptions, setOAuthStateCookieOptions } from '../../lib/tokens'
 import { authService } from '../../services/auth'
+import type { AuthEventContext } from '../../lib/audit'
 
 const isProduction = env.NODE_ENV === 'production'
+
+// Helper to extract auth context from Hono context
+function getAuthContext(c: any): AuthEventContext {
+  return {
+    transactionId: c.get('transactionId') || crypto.randomUUID(),
+    ip: c.get('ip') || 'unknown',
+    userAgent: c.get('userAgent') || 'unknown',
+  }
+}
 
 // Note: Handler types are inferred from route definitions by @hono/zod-openapi
 // Using 'any' is the standard pattern for openapi handlers
@@ -39,6 +49,7 @@ export const loginHandler = async (c: any) => {
 
 export const callbackHandler = async (c: any) => {
   const { code, state } = c.req.valid('query')
+  const ctx = getAuthContext(c)
 
   // Get stored OAuth state
   const oauthCookie = getCookie(c, 'oauth_state')
@@ -68,7 +79,7 @@ export const callbackHandler = async (c: any) => {
   const googleUser = decodeIdToken(tokens.id_token)
 
   // Find or create user
-  const result = await authService.findOrCreateUser(googleUser)
+  const result = await authService.findOrCreateUser(googleUser, ctx)
 
   // Set refresh token cookie
   setCookie(c, 'refresh_token', result.refreshToken, setCookieOptions(isProduction))
@@ -93,16 +104,19 @@ export const refreshHandler = async (c: any) => {
     throw new HTTPException(401, { message: 'No refresh token' })
   }
 
-  const tokens = await authService.refreshAccessToken(refreshToken)
+  const ctx = getAuthContext(c)
+  const tokens = await authService.refreshAccessToken(refreshToken, ctx)
 
   return c.json({ tokens })
 }
 
 export const logoutHandler = async (c: any) => {
+  const ctx = getAuthContext(c)
+  const user = c.get('user')
   const refreshToken = getCookie(c, 'refresh_token')
 
   if (refreshToken) {
-    await authService.revokeRefreshToken(refreshToken)
+    await authService.revokeRefreshToken(refreshToken, ctx, user?.id || null)
   }
 
   deleteCookie(c, 'refresh_token')
