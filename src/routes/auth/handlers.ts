@@ -82,6 +82,17 @@ export const callbackHandler = async (c: any) => {
   // Find or create user
   const result = await authService.findOrCreateUser(googleUser, ctx)
 
+  // Check for pending invitation
+  const pendingInvitation = getCookie(c, 'pending_invitation')
+  if (pendingInvitation) {
+    deleteCookie(c, 'pending_invitation')
+
+    const invitation = await invitationsService.getByToken(pendingInvitation)
+    if (invitation) {
+      await invitationsService.accept(invitation.id, result.user.id, ctx)
+    }
+  }
+
   // Set refresh token cookie
   setCookie(c, 'refresh_token', result.refreshToken, setCookieOptions(isProduction))
 
