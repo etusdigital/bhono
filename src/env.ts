@@ -21,6 +21,13 @@ const envSchema = z.object({
   // Refresh Token
   REFRESH_TOKEN_EXPIRY_DAYS: z.coerce.number().default(30),
 
+  // SendGrid (for invitations)
+  SENDGRID_API_KEY: z.string().min(1),
+  SENDGRID_FROM_EMAIL: z.string().email(),
+
+  // App URL (for invitation links)
+  APP_URL: z.string().url().default('http://localhost:3000'),
+
   // Optional
   CORS_ORIGINS: z.string().default('*'),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
