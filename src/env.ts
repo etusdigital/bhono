@@ -11,6 +11,15 @@ const envSchema = z.object({
 
   // JWT (required for auth)
   JWT_SECRET: z.string().min(32).default('development-secret-key-min-32-chars'),
+  JWT_EXPIRY_MINUTES: z.coerce.number().default(15),
+
+  // Google OAuth
+  GOOGLE_CLIENT_ID: z.string().min(1),
+  GOOGLE_CLIENT_SECRET: z.string().min(1),
+  GOOGLE_REDIRECT_URI: z.string().url().default('http://localhost:3000/auth/callback'),
+
+  // Refresh Token
+  REFRESH_TOKEN_EXPIRY_DAYS: z.coerce.number().default(30),
 
   // Optional
   CORS_ORIGINS: z.string().default('*'),
