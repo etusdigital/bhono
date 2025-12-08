@@ -6,8 +6,10 @@ export const users = sqliteTable('users', {
   id: text('id')
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
-  email: text('email').notNull().unique(),
+  googleId: text('google_id').notNull().unique(),
+  email: text('email').notNull(),
   name: text('name').notNull(),
+  avatarUrl: text('avatar_url'),
   status: text('status', { enum: ['active', 'inactive'] })
     .default('active')
     .notNull(),
