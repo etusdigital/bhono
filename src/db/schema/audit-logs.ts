@@ -13,7 +13,9 @@ export const auditLogs = sqliteTable('audit_logs', {
   userId: text('user_id').references(() => users.id),
   entity: text('entity').notNull(),
   entityId: text('entity_id').notNull(),
-  action: text('action', { enum: ['INSERT', 'UPDATE', 'DELETE'] }).notNull(),
+  action: text('action', {
+    enum: ['INSERT', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'SIGNUP', 'TOKEN_REFRESH', 'LOGIN_FAILED']
+  }).notNull(),
   changes: text('changes', { mode: 'json' }).$type<Record<string, unknown>>(),
   ipAddress: text('ip_address'),
   userAgent: text('user_agent'),

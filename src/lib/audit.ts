@@ -2,7 +2,7 @@ import { db } from '../db/client'
 import { auditLogs } from '../db/schema'
 import type { ServiceContext } from '../types'
 
-export type AuditAction = 'INSERT' | 'UPDATE' | 'DELETE'
+export type AuditAction = 'INSERT' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'SIGNUP' | 'TOKEN_REFRESH' | 'LOGIN_FAILED'
 
 export async function logAudit(
   ctx: ServiceContext,
