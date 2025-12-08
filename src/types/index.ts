@@ -46,6 +46,7 @@ export interface AuditLog {
 export interface ServiceContext {
   accountId: string
   user: User
+  userRole?: Role | null
   transactionId: string
   ip: string
   userAgent: string

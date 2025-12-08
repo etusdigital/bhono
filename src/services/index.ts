@@ -2,3 +2,4 @@
 export { usersService } from './users'
 export { accountsService } from './accounts'
 export { authService } from './auth'
+export { invitationsService } from './invitations'
