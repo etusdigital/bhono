@@ -8,6 +8,7 @@ import {
   refreshRoute,
   logoutRoute,
   meRoute,
+  inviteRoute,
 } from './routes'
 import {
   loginHandler,
@@ -15,6 +16,7 @@ import {
   refreshHandler,
   logoutHandler,
   meHandler,
+  inviteHandler,
 } from './handlers'
 
 const auth = new OpenAPIHono<HonoEnv>()
@@ -24,6 +26,7 @@ auth.openapi(loginRoute, loginHandler)
 auth.openapi(callbackRoute, callbackHandler)
 auth.openapi(refreshRoute, refreshHandler)
 auth.openapi(logoutRoute, logoutHandler)
+auth.openapi(inviteRoute, inviteHandler)
 
 // Protected route (requires JWT)
 auth.use(meRoute.path, jwtAuth)

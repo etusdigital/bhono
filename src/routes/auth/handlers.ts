@@ -12,6 +12,7 @@ import {
 } from '../../lib/oauth'
 import { setCookieOptions, setOAuthStateCookieOptions } from '../../lib/tokens'
 import { authService } from '../../services/auth'
+import { invitationsService } from '../../services/invitations'
 import type { AuthEventContext } from '../../lib/audit'
 
 const isProduction = env.NODE_ENV === 'production'
@@ -132,4 +133,27 @@ export const meHandler = async (c: any) => {
   }
 
   return c.json({ user })
+}
+
+export const inviteHandler = async (c: any) => {
+  const { token } = c.req.valid('param')
+
+  // Validate invitation
+  const invitation = await invitationsService.getByToken(token)
+
+  if (!invitation) {
+    throw new HTTPException(400, { message: 'Invalid or expired invitation' })
+  }
+
+  // Store invitation token in cookie
+  setCookie(c, 'pending_invitation', token, {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: 'Lax',
+    path: '/',
+    maxAge: 60 * 60, // 1 hour
+  })
+
+  // Redirect to login
+  return c.redirect('/auth/login')
 }

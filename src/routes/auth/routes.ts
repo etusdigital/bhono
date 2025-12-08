@@ -120,3 +120,25 @@ export const meRoute = createRoute({
     },
   },
 })
+
+export const inviteRoute = createRoute({
+  method: 'get',
+  path: '/invite/{token}',
+  tags: ['Auth'],
+  summary: 'Accept invitation',
+  description: 'Validates invitation token and redirects to OAuth login',
+  request: {
+    params: z.object({
+      token: z.string().openapi({ description: 'Invitation token' }),
+    }),
+  },
+  responses: {
+    302: {
+      description: 'Redirect to login',
+    },
+    400: {
+      description: 'Invalid or expired invitation',
+      content: { 'application/json': { schema: AuthErrorSchema } },
+    },
+  },
+})
