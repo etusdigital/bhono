@@ -41,3 +41,31 @@ export function createChangeDiff(
 
   return changes
 }
+
+// Auth event context - doesn't require full ServiceContext
+export interface AuthEventContext {
+  transactionId: string
+  ip: string
+  userAgent: string
+}
+
+export type AuthAction = 'LOGIN' | 'LOGOUT' | 'SIGNUP' | 'TOKEN_REFRESH' | 'LOGIN_FAILED'
+
+export async function logAuthEvent(
+  ctx: AuthEventContext,
+  action: AuthAction,
+  userId: string | null,
+  details: Record<string, unknown>
+): Promise<void> {
+  await db.insert(auditLogs).values({
+    transactionId: ctx.transactionId,
+    accountId: null, // Auth events are account-agnostic
+    userId,
+    entity: 'Auth',
+    entityId: userId || 'anonymous',
+    action,
+    changes: details,
+    ipAddress: ctx.ip,
+    userAgent: ctx.userAgent,
+  })
+}
