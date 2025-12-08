@@ -4,6 +4,7 @@ import type { HonoEnv } from '../types'
 import { jwtAuth, accountMiddleware } from '../middleware'
 import { users } from './users'
 import { accounts } from './accounts'
+import { invitationsRouter } from './invitations'
 
 const api = new OpenAPIHono<HonoEnv>()
 
@@ -14,6 +15,7 @@ api.use('/*', accountMiddleware)
 // Mount routers
 api.route('/users', users)
 api.route('/accounts', accounts)
+api.route('/invitations', invitationsRouter)
 
 // Register security scheme component
 api.openAPIRegistry.registerComponent('securitySchemes', 'Bearer', {
