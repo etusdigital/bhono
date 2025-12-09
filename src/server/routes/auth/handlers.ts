@@ -1,7 +1,6 @@
 // src/routes/auth/handlers.ts
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie'
 import { HTTPException } from 'hono/http-exception'
-import { env } from '../../env'
 import {
   generateCodeVerifier,
   generateCodeChallenge,
@@ -15,8 +14,6 @@ import { authService } from '../../services/auth'
 import { invitationsService } from '../../services/invitations'
 import type { AuthEventContext } from '../../lib/audit'
 
-const isProduction = env.NODE_ENV === 'production'
-
 // Helper to extract auth context from Hono context
 function getAuthContext(c: any): AuthEventContext {
   return {
@@ -29,7 +26,10 @@ function getAuthContext(c: any): AuthEventContext {
 // Note: Handler types are inferred from route definitions by @hono/zod-openapi
 // Using 'any' is the standard pattern for openapi handlers
 export const loginHandler = async (c: any) => {
+  const env = c.env
   const { redirect } = c.req.valid('query')
+
+  const isProduction = env.NODE_ENV === 'production'
 
   const codeVerifier = generateCodeVerifier()
   const codeChallenge = await generateCodeChallenge(codeVerifier)
@@ -44,13 +44,17 @@ export const loginHandler = async (c: any) => {
 
   setCookie(c, 'oauth_state', oauthData, setOAuthStateCookieOptions(isProduction))
 
-  const authUrl = buildGoogleAuthUrl(state, codeChallenge)
+  const authUrl = buildGoogleAuthUrl(env, state, codeChallenge)
   return c.redirect(authUrl)
 }
 
 export const callbackHandler = async (c: any) => {
+  const db = c.get('db')
+  const env = c.env
   const { code, state } = c.req.valid('query')
   const ctx = getAuthContext(c)
+
+  const isProduction = env.NODE_ENV === 'production'
 
   // Get stored OAuth state
   const oauthCookie = getCookie(c, 'oauth_state')
@@ -74,27 +78,27 @@ export const callbackHandler = async (c: any) => {
   deleteCookie(c, 'oauth_state')
 
   // Exchange code for tokens
-  const tokens = await exchangeCodeForTokens(code, oauthData.codeVerifier)
+  const tokens = await exchangeCodeForTokens(env, code, oauthData.codeVerifier)
 
   // Decode ID token to get user info
   const googleUser = decodeIdToken(tokens.id_token)
 
   // Find or create user
-  const result = await authService.findOrCreateUser(googleUser, ctx)
+  const result = await authService.findOrCreateUser(db, googleUser, ctx)
 
   // Check for pending invitation
   const pendingInvitation = getCookie(c, 'pending_invitation')
   if (pendingInvitation) {
     deleteCookie(c, 'pending_invitation')
 
-    const invitation = await invitationsService.getByToken(pendingInvitation)
+    const invitation = await invitationsService.getByToken(db, pendingInvitation)
     if (invitation) {
-      await invitationsService.accept(invitation.id, result.user.id, ctx)
+      await invitationsService.accept(db, invitation.id, result.user.id, ctx)
     }
   }
 
   // Set refresh token cookie
-  setCookie(c, 'refresh_token', result.refreshToken, setCookieOptions(isProduction))
+  setCookie(c, 'refresh_token', result.refreshToken, setCookieOptions(env, isProduction))
 
   // If redirect URL provided, redirect with token in query (for SPA)
   if (oauthData.redirect) {
@@ -110,6 +114,7 @@ export const callbackHandler = async (c: any) => {
 }
 
 export const refreshHandler = async (c: any) => {
+  const db = c.get('db')
   const refreshToken = getCookie(c, 'refresh_token')
 
   if (!refreshToken) {
@@ -117,18 +122,19 @@ export const refreshHandler = async (c: any) => {
   }
 
   const ctx = getAuthContext(c)
-  const tokens = await authService.refreshAccessToken(refreshToken, ctx)
+  const tokens = await authService.refreshAccessToken(db, refreshToken, ctx)
 
   return c.json({ tokens })
 }
 
 export const logoutHandler = async (c: any) => {
+  const db = c.get('db')
   const ctx = getAuthContext(c)
   const user = c.get('user')
   const refreshToken = getCookie(c, 'refresh_token')
 
   if (refreshToken) {
-    await authService.revokeRefreshToken(refreshToken, ctx, user?.id || null)
+    await authService.revokeRefreshToken(db, refreshToken, ctx, user?.id || null)
   }
 
   deleteCookie(c, 'refresh_token')
@@ -147,10 +153,14 @@ export const meHandler = async (c: any) => {
 }
 
 export const inviteHandler = async (c: any) => {
+  const db = c.get('db')
+  const env = c.env
   const { token } = c.req.valid('param')
 
+  const isProduction = env.NODE_ENV === 'production'
+
   // Validate invitation
-  const invitation = await invitationsService.getByToken(token)
+  const invitation = await invitationsService.getByToken(db, token)
 
   if (!invitation) {
     throw new HTTPException(400, { message: 'Invalid or expired invitation' })
