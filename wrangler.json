@@ -25,6 +25,7 @@
   },
   "vars": {
     "ENVIRONMENT": "development",
-    "APP_URL": "http://localhost:3000"
+    "APP_URL": "http://localhost:3000",
+    "GOOGLE_REDIRECT_URI": "http://localhost:3000/auth/callback"
   }
 }
