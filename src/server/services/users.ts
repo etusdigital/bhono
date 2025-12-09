@@ -158,7 +158,7 @@ export const usersService = {
     })
 
     // Log audit
-    await logAudit(ctx, 'User', userRecord.id, 'INSERT', userRecord)
+    await logAudit(db, ctx, 'User', userRecord.id, 'INSERT', userRecord)
 
     return {
       id: userRecord.id,
@@ -190,7 +190,7 @@ export const usersService = {
       .returning()
 
     // Log audit
-    await logAudit(ctx, 'User', id, 'UPDATE', input as Record<string, unknown>)
+    await logAudit(db, ctx, 'User', id, 'UPDATE', input as Record<string, unknown>)
 
     return {
       id: userRecord.id,
@@ -221,6 +221,6 @@ export const usersService = {
       .where(eq(users.id, id))
 
     // Log audit
-    await logAudit(ctx, 'User', id, 'DELETE', { deleted: true })
+    await logAudit(db, ctx, 'User', id, 'DELETE', { deleted: true })
   },
 }

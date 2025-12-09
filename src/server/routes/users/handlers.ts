@@ -5,6 +5,7 @@ import { usersService } from '../../services'
 // Using 'any' is the standard pattern for openapi handlers
 export async function listUsersHandler(c: any) {
   const query = c.req.valid('query')
+  const db = c.get('db')
   const accountId = c.get('accountId')
   const user = c.get('user')!
   const transactionId = c.get('transactionId')
@@ -19,7 +20,7 @@ export async function listUsersHandler(c: any) {
     userAgent,
   }
 
-  const result = await usersService.findAll(ctx, {
+  const result = await usersService.findAll(db, ctx, {
     page: query.page,
     limit: query.limit,
     sortBy: query.sortBy,
@@ -32,6 +33,7 @@ export async function listUsersHandler(c: any) {
 
 export async function getUserHandler(c: any) {
   const { id } = c.req.valid('param')
+  const db = c.get('db')
   const accountId = c.get('accountId')
   const user = c.get('user')!
   const transactionId = c.get('transactionId')
@@ -46,7 +48,7 @@ export async function getUserHandler(c: any) {
     userAgent,
   }
 
-  const foundUser = await usersService.findById(ctx, id)
+  const foundUser = await usersService.findById(db, ctx, id)
   return c.json({ data: foundUser }, 200)
 }
 
@@ -81,6 +83,7 @@ export async function createUserHandler(c: any) {
 export async function updateUserHandler(c: any) {
   const { id } = c.req.valid('param')
   const data = c.req.valid('json')
+  const db = c.get('db')
   const accountId = c.get('accountId')
   const user = c.get('user')!
   const transactionId = c.get('transactionId')
@@ -95,7 +98,7 @@ export async function updateUserHandler(c: any) {
     userAgent,
   }
 
-  const updatedUser = await usersService.update(ctx, id, {
+  const updatedUser = await usersService.update(db, ctx, id, {
     name: data.name,
     status: data.status,
   })
@@ -105,6 +108,7 @@ export async function updateUserHandler(c: any) {
 
 export async function deleteUserHandler(c: any) {
   const { id } = c.req.valid('param')
+  const db = c.get('db')
   const accountId = c.get('accountId')
   const user = c.get('user')!
   const transactionId = c.get('transactionId')
@@ -119,6 +123,6 @@ export async function deleteUserHandler(c: any) {
     userAgent,
   }
 
-  await usersService.delete(ctx, id)
+  await usersService.delete(db, ctx, id)
   return c.body(null, 204)
 }

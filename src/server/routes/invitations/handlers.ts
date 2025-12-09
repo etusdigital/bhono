@@ -15,26 +15,30 @@ function getServiceContext(c: any): ServiceContext {
 
 export const createInvitationHandler = async (c: any) => {
   const body = c.req.valid('json')
+  const db = c.get('db')
+  const env = c.env
   const ctx = getServiceContext(c)
 
-  const result = await invitationsService.create(ctx, body)
+  const result = await invitationsService.create(db, env, ctx, body)
 
   return c.json(result, 200)
 }
 
 export const listInvitationsHandler = async (c: any) => {
+  const db = c.get('db')
   const ctx = getServiceContext(c)
 
-  const invitations = await invitationsService.list(ctx)
+  const invitations = await invitationsService.list(db, ctx)
 
   return c.json({ data: invitations }, 200)
 }
 
 export const revokeInvitationHandler = async (c: any) => {
   const { id } = c.req.valid('param')
+  const db = c.get('db')
   const ctx = getServiceContext(c)
 
-  await invitationsService.revoke(ctx, id)
+  await invitationsService.revoke(db, ctx, id)
 
   return c.body(null, 204)
 }

@@ -5,7 +5,7 @@ import { invitations, users, userAccounts, accounts } from '../db/schema'
 import { sendInvitationEmail } from '../lib/email'
 import { logAuthEvent, type AuthEventContext } from '../lib/audit'
 import { ConflictError, NotFoundError, ForbiddenError } from '../lib/errors'
-import { env } from '../env'
+import type { Env } from '../env'
 import { hasMinimumRole, type Role } from '../auth/roles'
 import type { ServiceContext } from '../types'
 
@@ -45,7 +45,7 @@ interface InvitationResult {
 }
 
 export const invitationsService = {
-  async create(db: Database, ctx: ServiceContext, input: CreateInvitationInput): Promise<InvitationResult> {
+  async create(db: Database, env: Env, ctx: ServiceContext, input: CreateInvitationInput): Promise<InvitationResult> {
     const { email, role } = input
 
     // Check inviter can assign this role (can't assign higher than own role)
@@ -140,7 +140,7 @@ export const invitationsService = {
 
     // Send email
     const inviteUrl = `${env.APP_URL}/auth/invite/${token}`
-    await sendInvitationEmail(email, ctx.user.name, account!.name, inviteUrl)
+    await sendInvitationEmail(env, email, ctx.user.name, account!.name, inviteUrl)
 
     return {
       linked: false,
@@ -278,7 +278,7 @@ export const invitationsService = {
       .where(eq(invitations.id, invitationId))
 
     // Log event
-    await logAuthEvent(ctx, 'LOGIN', userId, {
+    await logAuthEvent(db, ctx, 'LOGIN', userId, {
       invitationAccepted: true,
       accountId: invitation.accountId,
       role: invitation.role,

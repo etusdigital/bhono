@@ -5,6 +5,7 @@ import { accountsService } from '../../services'
 // Using 'any' is the standard pattern for openapi handlers
 export async function listAccountsHandler(c: any) {
   const query = c.req.valid('query')
+  const db = c.get('db')
   const accountId = c.get('accountId')
   const user = c.get('user')!
   const transactionId = c.get('transactionId')
@@ -19,7 +20,7 @@ export async function listAccountsHandler(c: any) {
     userAgent,
   }
 
-  const result = await accountsService.findAll(ctx, {
+  const result = await accountsService.findAll(db, ctx, {
     page: query.page,
     limit: query.limit,
     sortBy: query.sortBy,
@@ -32,6 +33,7 @@ export async function listAccountsHandler(c: any) {
 
 export async function getAccountHandler(c: any) {
   const { id } = c.req.valid('param')
+  const db = c.get('db')
   const accountId = c.get('accountId')
   const user = c.get('user')!
   const transactionId = c.get('transactionId')
@@ -46,12 +48,13 @@ export async function getAccountHandler(c: any) {
     userAgent,
   }
 
-  const account = await accountsService.findById(ctx, id)
+  const account = await accountsService.findById(db, ctx, id)
   return c.json({ data: account }, 200)
 }
 
 export async function createAccountHandler(c: any) {
   const data = c.req.valid('json')
+  const db = c.get('db')
   const accountId = c.get('accountId')
   const user = c.get('user')!
   const transactionId = c.get('transactionId')
@@ -66,7 +69,7 @@ export async function createAccountHandler(c: any) {
     userAgent,
   }
 
-  const newAccount = await accountsService.create(ctx, {
+  const newAccount = await accountsService.create(db, ctx, {
     name: data.name,
     description: data.description,
     domain: data.domain,
@@ -78,6 +81,7 @@ export async function createAccountHandler(c: any) {
 export async function updateAccountHandler(c: any) {
   const { id } = c.req.valid('param')
   const data = c.req.valid('json')
+  const db = c.get('db')
   const accountId = c.get('accountId')
   const user = c.get('user')!
   const transactionId = c.get('transactionId')
@@ -92,7 +96,7 @@ export async function updateAccountHandler(c: any) {
     userAgent,
   }
 
-  const updatedAccount = await accountsService.update(ctx, id, {
+  const updatedAccount = await accountsService.update(db, ctx, id, {
     name: data.name,
     description: data.description,
     domain: data.domain,
@@ -103,6 +107,7 @@ export async function updateAccountHandler(c: any) {
 
 export async function deleteAccountHandler(c: any) {
   const { id } = c.req.valid('param')
+  const db = c.get('db')
   const accountId = c.get('accountId')
   const user = c.get('user')!
   const transactionId = c.get('transactionId')
@@ -117,6 +122,6 @@ export async function deleteAccountHandler(c: any) {
     userAgent,
   }
 
-  await accountsService.delete(ctx, id)
+  await accountsService.delete(db, ctx, id)
   return c.body(null, 204)
 }

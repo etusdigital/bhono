@@ -144,7 +144,7 @@ export const accountsService = {
       })
       .returning()
 
-    await logAudit(ctx, 'Account', accountRecord.id, 'INSERT', accountRecord)
+    await logAudit(db, ctx, 'Account', accountRecord.id, 'INSERT', accountRecord)
 
     return {
       id: accountRecord.id,
@@ -182,7 +182,7 @@ export const accountsService = {
       .where(eq(accounts.id, id))
       .returning()
 
-    await logAudit(ctx, 'Account', id, 'UPDATE', input as Record<string, unknown>)
+    await logAudit(db, ctx, 'Account', id, 'UPDATE', input as Record<string, unknown>)
 
     return {
       id: accountRecord.id,
@@ -211,6 +211,6 @@ export const accountsService = {
       })
       .where(eq(accounts.id, id))
 
-    await logAudit(ctx, 'Account', id, 'DELETE', { deleted: true })
+    await logAudit(db, ctx, 'Account', id, 'DELETE', { deleted: true })
   },
 }
