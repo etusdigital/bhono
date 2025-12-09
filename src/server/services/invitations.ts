@@ -1,6 +1,6 @@
 // src/services/invitations.ts
 import { eq, and, isNull, gt } from 'drizzle-orm'
-import { db } from '../db/client'
+import type { Database } from '../db/client'
 import { invitations, users, userAccounts, accounts } from '../db/schema'
 import { sendInvitationEmail } from '../lib/email'
 import { logAuthEvent, type AuthEventContext } from '../lib/audit'
@@ -45,7 +45,7 @@ interface InvitationResult {
 }
 
 export const invitationsService = {
-  async create(ctx: ServiceContext, input: CreateInvitationInput): Promise<InvitationResult> {
+  async create(db: Database, ctx: ServiceContext, input: CreateInvitationInput): Promise<InvitationResult> {
     const { email, role } = input
 
     // Check inviter can assign this role (can't assign higher than own role)
@@ -154,7 +154,7 @@ export const invitationsService = {
     }
   },
 
-  async list(ctx: ServiceContext): Promise<Array<{
+  async list(db: Database, ctx: ServiceContext): Promise<Array<{
     id: string
     email: string
     role: Role
@@ -193,7 +193,7 @@ export const invitationsService = {
     }))
   },
 
-  async revoke(ctx: ServiceContext, id: string): Promise<void> {
+  async revoke(db: Database, ctx: ServiceContext, id: string): Promise<void> {
     const [invitation] = await db
       .select()
       .from(invitations)
@@ -213,7 +213,7 @@ export const invitationsService = {
     await db.delete(invitations).where(eq(invitations.id, id))
   },
 
-  async getByToken(token: string): Promise<{
+  async getByToken(db: Database, token: string): Promise<{
     id: string
     accountId: string
     email: string
@@ -249,6 +249,7 @@ export const invitationsService = {
   },
 
   async accept(
+    db: Database,
     invitationId: string,
     userId: string,
     ctx: AuthEventContext

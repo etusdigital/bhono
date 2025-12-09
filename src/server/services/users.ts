@@ -1,6 +1,6 @@
 // src/services/users.ts
 import { eq, and, isNull, like, sql } from 'drizzle-orm'
-import { db } from '../db/client'
+import type { Database } from '../db/client'
 import { users, userAccounts } from '../db/schema'
 import { logAudit } from '../lib/audit'
 import { createPaginationMeta, calculateOffset } from '../lib/pagination'
@@ -21,6 +21,7 @@ interface UpdateUserInput {
 
 export const usersService = {
   async findAll(
+    db: Database,
     ctx: ServiceContext,
     pagination: PaginationQuery
   ): Promise<PaginatedResponse<User>> {
@@ -79,7 +80,7 @@ export const usersService = {
     }
   },
 
-  async findById(ctx: ServiceContext, id: string): Promise<User> {
+  async findById(db: Database, ctx: ServiceContext, id: string): Promise<User> {
     const [userRecord] = await db
       .select()
       .from(users)
@@ -173,9 +174,9 @@ export const usersService = {
   },
   */
 
-  async update(ctx: ServiceContext, id: string, input: UpdateUserInput): Promise<User> {
+  async update(db: Database, ctx: ServiceContext, id: string, input: UpdateUserInput): Promise<User> {
     // Verify user exists and accessible
-    await this.findById(ctx, id)
+    await this.findById(db, ctx, id)
 
     // Update user
     const [userRecord] = await db
@@ -204,9 +205,9 @@ export const usersService = {
     }
   },
 
-  async delete(ctx: ServiceContext, id: string): Promise<void> {
+  async delete(db: Database, ctx: ServiceContext, id: string): Promise<void> {
     // Verify user exists and accessible
-    await this.findById(ctx, id)
+    await this.findById(db, ctx, id)
 
     // Soft delete
     await db

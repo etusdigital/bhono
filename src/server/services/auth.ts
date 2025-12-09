@@ -1,6 +1,6 @@
 // src/services/auth.ts
 import { eq, and, isNull, gt } from 'drizzle-orm'
-import { db } from '../db/client'
+import type { Database } from '../db/client'
 import { users, accounts, userAccounts, refreshTokens } from '../db/schema'
 import { createAccessToken, generateRefreshToken, hashToken, getRefreshTokenExpiry } from '../lib/tokens'
 import { UnauthorizedError } from '../lib/errors'
@@ -16,7 +16,7 @@ interface AuthResult {
 }
 
 export const authService = {
-  async findOrCreateUser(googleUser: GoogleUserInfo, ctx: AuthEventContext): Promise<AuthResult> {
+  async findOrCreateUser(db: Database, googleUser: GoogleUserInfo, ctx: AuthEventContext): Promise<AuthResult> {
     let isNewUser = false
 
     // Try to find existing user by googleId
@@ -122,7 +122,7 @@ export const authService = {
     }
   },
 
-  async refreshAccessToken(refreshToken: string, ctx: AuthEventContext): Promise<AuthTokens> {
+  async refreshAccessToken(db: Database, refreshToken: string, ctx: AuthEventContext): Promise<AuthTokens> {
     const tokenHash = await hashToken(refreshToken)
 
     // Find valid refresh token
@@ -167,7 +167,7 @@ export const authService = {
     }
   },
 
-  async revokeRefreshToken(refreshToken: string, ctx: AuthEventContext, userId: string | null): Promise<void> {
+  async revokeRefreshToken(db: Database, refreshToken: string, ctx: AuthEventContext, userId: string | null): Promise<void> {
     const tokenHash = await hashToken(refreshToken)
 
     await db
@@ -181,14 +181,14 @@ export const authService = {
     }
   },
 
-  async revokeAllUserTokens(userId: string): Promise<void> {
+  async revokeAllUserTokens(db: Database, userId: string): Promise<void> {
     await db
       .update(refreshTokens)
       .set({ revokedAt: new Date() })
       .where(and(eq(refreshTokens.userId, userId), isNull(refreshTokens.revokedAt)))
   },
 
-  async getCurrentUser(userId: string): Promise<User> {
+  async getCurrentUser(db: Database, userId: string): Promise<User> {
     const [userRecord] = await db
       .select()
       .from(users)

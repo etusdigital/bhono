@@ -1,6 +1,6 @@
 // src/services/accounts.ts
 import { eq, and, isNull, sql } from 'drizzle-orm'
-import { db } from '../db/client'
+import type { Database } from '../db/client'
 import { accounts, userAccounts } from '../db/schema'
 import { logAudit } from '../lib/audit'
 import { createPaginationMeta, calculateOffset } from '../lib/pagination'
@@ -21,6 +21,7 @@ interface UpdateAccountInput {
 
 export const accountsService = {
   async findAll(
+    db: Database,
     ctx: ServiceContext,
     pagination: PaginationQuery
   ): Promise<PaginatedResponse<Account>> {
@@ -75,7 +76,7 @@ export const accountsService = {
     }
   },
 
-  async findById(ctx: ServiceContext, id: string): Promise<Account> {
+  async findById(db: Database, ctx: ServiceContext, id: string): Promise<Account> {
     const [accountRecord] = await db
       .select()
       .from(accounts)
@@ -115,7 +116,7 @@ export const accountsService = {
     }
   },
 
-  async create(ctx: ServiceContext, input: CreateAccountInput): Promise<Account> {
+  async create(db: Database, ctx: ServiceContext, input: CreateAccountInput): Promise<Account> {
     // Only super-admin can create accounts
     if (!ctx.user.isSuperAdmin) {
       throw new ForbiddenError('Only super-admin can create accounts')
@@ -156,8 +157,8 @@ export const accountsService = {
     }
   },
 
-  async update(ctx: ServiceContext, id: string, input: UpdateAccountInput): Promise<Account> {
-    await this.findById(ctx, id)
+  async update(db: Database, ctx: ServiceContext, id: string, input: UpdateAccountInput): Promise<Account> {
+    await this.findById(db, ctx, id)
 
     // Check domain uniqueness if changing
     if (input.domain) {
@@ -194,13 +195,13 @@ export const accountsService = {
     }
   },
 
-  async delete(ctx: ServiceContext, id: string): Promise<void> {
+  async delete(db: Database, ctx: ServiceContext, id: string): Promise<void> {
     // Only super-admin can delete accounts
     if (!ctx.user.isSuperAdmin) {
       throw new ForbiddenError('Only super-admin can delete accounts')
     }
 
-    await this.findById(ctx, id)
+    await this.findById(db, ctx, id)
 
     await db
       .update(accounts)
