@@ -1,0 +1,30 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "hono-boilerplate",
+  "main": "./src/server/index.ts",
+  "compatibility_date": "2025-01-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "dev": {
+    "port": 3000
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "boilerplate-db",
+      "database_id": "local"
+    }
+  ],
+  "assets": {
+    "directory": "./dist/client",
+    "not_found_handling": "single-page-application",
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/api/*",
+      "/auth/*"
+    ]
+  },
+  "vars": {
+    "ENVIRONMENT": "development",
+    "APP_URL": "http://localhost:3000"
+  }
+}
