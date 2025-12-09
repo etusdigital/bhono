@@ -1,10 +1,12 @@
-// src/db/client.ts
-import { drizzle } from 'drizzle-orm/better-sqlite3'
-import Database from 'better-sqlite3'
-import { env } from '../env'
+// src/server/db/client.ts
+import { drizzle } from 'drizzle-orm/d1'
 import * as schema from './schema'
 
-const sqlite = new Database(env.DATABASE_URL)
-export const db = drizzle(sqlite, { schema })
+export function createDb(d1: D1Database) {
+  return drizzle(d1, { schema })
+}
 
-export type Database = typeof db
+export type Database = ReturnType<typeof createDb>
+
+// For use in middleware - db instance per request
+export type DbInstance = Database
