@@ -1,5 +1,5 @@
 // src/lib/email.ts
-import { env } from '../env'
+import type { Env } from '../env'
 
 interface SendEmailOptions {
   to: string
@@ -8,7 +8,7 @@ interface SendEmailOptions {
   html: string
 }
 
-async function sendEmail(options: SendEmailOptions): Promise<void> {
+async function sendEmail(env: Env, options: SendEmailOptions): Promise<void> {
   const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
     method: 'POST',
     headers: {
@@ -33,6 +33,7 @@ async function sendEmail(options: SendEmailOptions): Promise<void> {
 }
 
 export async function sendInvitationEmail(
+  env: Env,
   to: string,
   inviterName: string,
   accountName: string,
@@ -77,5 +78,5 @@ If you didn't expect this invitation, you can ignore this email.
 </html>
 `.trim()
 
-  await sendEmail({ to, subject, text, html })
+  await sendEmail(env, { to, subject, text, html })
 }

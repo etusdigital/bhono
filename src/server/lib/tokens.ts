@@ -1,8 +1,8 @@
 // src/lib/tokens.ts
 import { sign } from 'hono/jwt'
-import { env } from '../env'
+import type { Env } from '../env'
 
-export async function createAccessToken(userId: string, email: string): Promise<string> {
+export async function createAccessToken(env: Env, userId: string, email: string): Promise<string> {
   const now = Math.floor(Date.now() / 1000)
   const payload = {
     sub: userId,
@@ -30,13 +30,13 @@ export async function hashToken(token: string): Promise<string> {
     .join('')
 }
 
-export function getRefreshTokenExpiry(): Date {
+export function getRefreshTokenExpiry(env: Env): Date {
   const now = new Date()
   now.setDate(now.getDate() + env.REFRESH_TOKEN_EXPIRY_DAYS)
   return now
 }
 
-export function setCookieOptions(isProduction: boolean) {
+export function setCookieOptions(env: Env, isProduction: boolean) {
   return {
     httpOnly: true,
     secure: isProduction,

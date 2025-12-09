@@ -1,5 +1,5 @@
 // src/lib/oauth.ts
-import { env } from '../env'
+import type { Env } from '../env'
 import type { GoogleTokenResponse, GoogleUserInfo } from '../types/auth'
 
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth'
@@ -30,7 +30,7 @@ function base64UrlEncode(buffer: Uint8Array): string {
   return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 }
 
-export function buildGoogleAuthUrl(state: string, codeChallenge: string): string {
+export function buildGoogleAuthUrl(env: Env, state: string, codeChallenge: string): string {
   const params = new URLSearchParams({
     client_id: env.GOOGLE_CLIENT_ID,
     redirect_uri: env.GOOGLE_REDIRECT_URI,
@@ -46,6 +46,7 @@ export function buildGoogleAuthUrl(state: string, codeChallenge: string): string
 }
 
 export async function exchangeCodeForTokens(
+  env: Env,
   code: string,
   codeVerifier: string
 ): Promise<GoogleTokenResponse> {

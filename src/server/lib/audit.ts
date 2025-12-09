@@ -1,10 +1,11 @@
-import { db } from '../db/client'
+import type { Database } from '../db/client'
 import { auditLogs } from '../db/schema'
 import type { ServiceContext } from '../types'
 
 export type AuditAction = 'INSERT' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'SIGNUP' | 'TOKEN_REFRESH' | 'LOGIN_FAILED'
 
 export async function logAudit(
+  db: Database,
   ctx: ServiceContext,
   entity: string,
   entityId: string,
@@ -52,6 +53,7 @@ export interface AuthEventContext {
 export type AuthAction = 'LOGIN' | 'LOGOUT' | 'SIGNUP' | 'TOKEN_REFRESH' | 'LOGIN_FAILED'
 
 export async function logAuthEvent(
+  db: Database,
   ctx: AuthEventContext,
   action: AuthAction,
   userId: string | null,
