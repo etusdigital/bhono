@@ -1,30 +1,33 @@
-import { serve } from '@hono/node-server'
-import { createApp } from './app'
-import { api } from './routes'
+// src/server/index.ts
+import { Hono } from 'hono'
+import { cors } from 'hono/cors'
+import { logger } from 'hono/logger'
+import { secureHeaders } from 'hono/secure-headers'
+import type { Env } from './env'
+import { createDb } from './db/client'
 import { auth } from './routes/auth'
-import { env } from './env'
-import { requestContext } from './middleware/request-context'
+import { api } from './routes'
 
-const app = createApp()
+// Hono app with bindings
+const app = new Hono<{ Bindings: Env }>()
 
-// Global middleware - applies to ALL routes including health check
-app.use('*', requestContext)
+// Global middleware
+app.use('*', logger())
+app.use('*', secureHeaders())
+app.use('*', cors({
+  origin: (origin, c) => origin || c.env.APP_URL,
+  credentials: true,
+}))
 
-// Mount auth routes (before API routes, no JWT required for most)
+// Database middleware - create db instance per request
+app.use('*', async (c, next) => {
+  const db = createDb(c.env.DB)
+  c.set('db', db)
+  await next()
+})
+
+// Mount routes
 app.route('/auth', auth)
-
-// Mount API routes (all require JWT + account-id)
 app.route('/api', api)
 
-// Health check endpoint (no auth required)
-app.get('/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }))
-
-// Start server
-const port = env.PORT
-console.log(`🚀 Server starting on port ${port}`)
-console.log(`📚 API docs available at http://localhost:${port}/api/swagger`)
-
-serve({
-  fetch: app.fetch,
-  port,
-})
+export default app
