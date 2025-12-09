@@ -1,37 +1,39 @@
-// src/env.ts
-import { z } from 'zod'
+// src/server/env.ts
+export interface Env {
+  // D1 Database
+  DB: D1Database
 
-const envSchema = z.object({
-  // Server
-  PORT: z.coerce.number().default(3000),
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  // Static Assets
+  ASSETS: Fetcher
 
-  // Database
-  DATABASE_URL: z.string().default('db.sqlite'),
+  // Environment
+  ENVIRONMENT: string
 
-  // JWT (required for auth)
-  JWT_SECRET: z.string().min(32).default('development-secret-key-min-32-chars'),
-  JWT_EXPIRY_MINUTES: z.coerce.number().default(15),
+  // App URL
+  APP_URL: string
+
+  // JWT
+  JWT_SECRET: string
+  JWT_EXPIRY_MINUTES: string
 
   // Google OAuth
-  GOOGLE_CLIENT_ID: z.string().min(1),
-  GOOGLE_CLIENT_SECRET: z.string().min(1),
-  GOOGLE_REDIRECT_URI: z.string().url().default('http://localhost:3000/auth/callback'),
+  GOOGLE_CLIENT_ID: string
+  GOOGLE_CLIENT_SECRET: string
+  GOOGLE_REDIRECT_URI: string
 
   // Refresh Token
-  REFRESH_TOKEN_EXPIRY_DAYS: z.coerce.number().default(30),
+  REFRESH_TOKEN_EXPIRY_DAYS: string
 
-  // SendGrid (for invitations)
-  SENDGRID_API_KEY: z.string().min(1),
-  SENDGRID_FROM_EMAIL: z.string().email(),
+  // SendGrid
+  SENDGRID_API_KEY: string
+  SENDGRID_FROM_EMAIL: string
+}
 
-  // App URL (for invitation links)
-  APP_URL: z.string().url().default('http://localhost:3000'),
-
-  // Optional
-  CORS_ORIGINS: z.string().default('*'),
-  LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
-})
-
-export const env = envSchema.parse(process.env)
-export type Env = z.infer<typeof envSchema>
+// Helper to get env with defaults
+export function getEnv(env: Env) {
+  return {
+    ...env,
+    JWT_EXPIRY_MINUTES: parseInt(env.JWT_EXPIRY_MINUTES || '15', 10),
+    REFRESH_TOKEN_EXPIRY_DAYS: parseInt(env.REFRESH_TOKEN_EXPIRY_DAYS || '30', 10),
+  }
+}
