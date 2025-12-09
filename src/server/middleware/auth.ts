@@ -2,10 +2,8 @@
 import { createMiddleware } from 'hono/factory'
 import { verify } from 'hono/jwt'
 import { HTTPException } from 'hono/http-exception'
-import { db } from '../db/client'
 import { users } from '../db/schema'
 import { eq, and, isNull } from 'drizzle-orm'
-import { env } from '../env'
 import type { HonoEnv } from '../types'
 
 interface JWTPayload {
@@ -36,7 +34,7 @@ export const jwtAuth = createMiddleware<HonoEnv>(async (c, next) => {
   // Verify JWT
   let payload: JWTPayload
   try {
-    payload = (await verify(token, env.JWT_SECRET)) as unknown as JWTPayload
+    payload = (await verify(token, c.env.JWT_SECRET)) as unknown as JWTPayload
   } catch (error) {
     throw new HTTPException(401, {
       message: 'Invalid or expired token',
@@ -50,6 +48,7 @@ export const jwtAuth = createMiddleware<HonoEnv>(async (c, next) => {
   }
 
   // Look up user in database by ID (from sub claim)
+  const db = c.get('db')
   const [user] = await db
     .select()
     .from(users)

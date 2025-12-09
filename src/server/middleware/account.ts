@@ -1,7 +1,6 @@
 // src/middleware/account.ts
 import { createMiddleware } from 'hono/factory'
 import { HTTPException } from 'hono/http-exception'
-import { db } from '../db/client'
 import { userAccounts } from '../db/schema'
 import { eq, and } from 'drizzle-orm'
 import type { HonoEnv } from '../types'
@@ -36,6 +35,7 @@ export const accountMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
   }
 
   // Check user-account membership in database
+  const db = c.get('db')
   const [membership] = await db
     .select()
     .from(userAccounts)

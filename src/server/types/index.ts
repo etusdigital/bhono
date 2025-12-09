@@ -1,4 +1,5 @@
 import type { Role } from '../auth/roles'
+import type { Env } from '../env'
 
 export interface User {
   id: string
@@ -76,6 +77,7 @@ export interface PaginatedResponse<T> {
 
 // Hono Environment type
 export type HonoEnv = {
+  Bindings: Env
   Variables: {
     transactionId: string
     ip: string
@@ -84,6 +86,7 @@ export type HonoEnv = {
     accountId: string
     userRole: Role | null
     isSystemAdminAccess: boolean
+    db: any // Database instance injected by middleware
   }
 }
 
