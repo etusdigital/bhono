@@ -1,10 +1,108 @@
-/* src/client/index.css */
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", sans-serif;
+  /* Shadcn-inspired neutral palette */
+  --color-background: oklch(1 0 0);
+  --color-foreground: oklch(0.145 0 0);
+
+  --color-card: oklch(1 0 0);
+  --color-card-foreground: oklch(0.145 0 0);
+
+  --color-popover: oklch(1 0 0);
+  --color-popover-foreground: oklch(0.145 0 0);
+
+  --color-primary: oklch(0.205 0 0);
+  --color-primary-foreground: oklch(0.985 0 0);
+
+  --color-secondary: oklch(0.97 0 0);
+  --color-secondary-foreground: oklch(0.205 0 0);
+
+  --color-muted: oklch(0.97 0 0);
+  --color-muted-foreground: oklch(0.556 0 0);
+
+  --color-accent: oklch(0.97 0 0);
+  --color-accent-foreground: oklch(0.205 0 0);
+
+  --color-destructive: oklch(0.577 0.245 27.325);
+  --color-destructive-foreground: oklch(0.985 0 0);
+
+  --color-border: oklch(0.922 0 0);
+  --color-input: oklch(0.922 0 0);
+  --color-ring: oklch(0.708 0 0);
+
+  /* Typography */
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
+
+  /* Radius */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  @theme {
+    --color-background: oklch(0.145 0 0);
+    --color-foreground: oklch(0.985 0 0);
+
+    --color-card: oklch(0.145 0 0);
+    --color-card-foreground: oklch(0.985 0 0);
+
+    --color-popover: oklch(0.145 0 0);
+    --color-popover-foreground: oklch(0.985 0 0);
+
+    --color-primary: oklch(0.985 0 0);
+    --color-primary-foreground: oklch(0.205 0 0);
+
+    --color-secondary: oklch(0.269 0 0);
+    --color-secondary-foreground: oklch(0.985 0 0);
+
+    --color-muted: oklch(0.269 0 0);
+    --color-muted-foreground: oklch(0.708 0 0);
+
+    --color-accent: oklch(0.269 0 0);
+    --color-accent-foreground: oklch(0.985 0 0);
+
+    --color-destructive: oklch(0.396 0.141 25.723);
+    --color-destructive-foreground: oklch(0.985 0 0);
+
+    --color-border: oklch(0.269 0 0);
+    --color-input: oklch(0.269 0 0);
+    --color-ring: oklch(0.439 0 0);
+  }
+}
+
+/* Base styles */
+* {
+  border-color: var(--color-border);
 }
 
 body {
   font-family: var(--font-sans);
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-feature-settings: "rlig" 1, "calt" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Smooth transitions */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+}
+
+/* Selection */
+::selection {
+  background-color: var(--color-primary);
+  color: var(--color-primary-foreground);
 }
