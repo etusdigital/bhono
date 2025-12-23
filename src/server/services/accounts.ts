@@ -2,7 +2,7 @@
 import { eq, and, isNull, sql } from 'drizzle-orm'
 import type { Database } from '../db/client'
 import { accounts, userAccounts } from '../db/schema'
-import { logAudit } from '../lib/audit'
+import { auditedInsert, auditedUpdate, auditedDelete } from '../lib/audited-db'
 import { createPaginationMeta, calculateOffset } from '../lib/pagination'
 import { NotFoundError, ConflictError, ForbiddenError } from '../lib/errors'
 import type { ServiceContext, PaginationQuery, PaginatedResponse, Account } from '../types'
@@ -135,16 +135,17 @@ export const accountsService = {
       }
     }
 
-    const [accountRecord] = await db
-      .insert(accounts)
-      .values({
+    // Create account with audit
+    const [accountRecord] = await auditedInsert(
+      db,
+      ctx,
+      accounts,
+      {
         name: input.name,
         description: input.description || null,
         domain: input.domain || null,
-      })
-      .returning()
-
-    await logAudit(db, ctx, 'Account', accountRecord.id, 'INSERT', accountRecord)
+      }
+    )
 
     return {
       id: accountRecord.id,
@@ -173,16 +174,17 @@ export const accountsService = {
       }
     }
 
-    const [accountRecord] = await db
-      .update(accounts)
-      .set({
+    // Update account with audit
+    const [accountRecord] = await auditedUpdate(
+      db,
+      ctx,
+      accounts,
+      {
         ...input,
         updatedAt: new Date().toISOString(),
-      })
-      .where(eq(accounts.id, id))
-      .returning()
-
-    await logAudit(db, ctx, 'Account', id, 'UPDATE', input as Record<string, unknown>)
+      },
+      eq(accounts.id, id)
+    )
 
     return {
       id: accountRecord.id,
@@ -203,14 +205,7 @@ export const accountsService = {
 
     await this.findById(db, ctx, id)
 
-    await db
-      .update(accounts)
-      .set({
-        deletedAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      })
-      .where(eq(accounts.id, id))
-
-    await logAudit(db, ctx, 'Account', id, 'DELETE', { deleted: true })
+    // Soft delete with audit
+    await auditedDelete(db, ctx, accounts, eq(accounts.id, id))
   },
 }

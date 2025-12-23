@@ -3,6 +3,7 @@ import { eq, and, isNull, like, sql } from 'drizzle-orm'
 import type { Database } from '../db/client'
 import { users, userAccounts } from '../db/schema'
 import { logAudit } from '../lib/audit'
+import { auditedUpdate, auditedDelete } from '../lib/audited-db'
 import { createPaginationMeta, calculateOffset } from '../lib/pagination'
 import { NotFoundError, ConflictError } from '../lib/errors'
 import type { ServiceContext, PaginationQuery, PaginatedResponse, User } from '../types'
@@ -178,19 +179,18 @@ export const usersService = {
     // Verify user exists and accessible
     await this.findById(db, ctx, id)
 
-    // Update user
-    const [userRecord] = await db
-      .update(users)
-      .set({
+    // Update user with audit
+    const [userRecord] = await auditedUpdate(
+      db,
+      ctx,
+      users,
+      {
         ...input,
         updatedAt: new Date().toISOString(),
         updatedById: ctx.user.id,
-      })
-      .where(eq(users.id, id))
-      .returning()
-
-    // Log audit
-    await logAudit(db, ctx, 'User', id, 'UPDATE', input as Record<string, unknown>)
+      },
+      eq(users.id, id)
+    )
 
     return {
       id: userRecord.id,
@@ -209,18 +209,90 @@ export const usersService = {
     // Verify user exists and accessible
     await this.findById(db, ctx, id)
 
-    // Soft delete
-    await db
-      .update(users)
-      .set({
-        deletedAt: new Date().toISOString(),
-        deletedById: ctx.user.id,
-        updatedAt: new Date().toISOString(),
-        updatedById: ctx.user.id,
-      })
-      .where(eq(users.id, id))
+    // Soft delete with audit
+    await auditedDelete(db, ctx, users, eq(users.id, id))
+  },
 
-    // Log audit
-    await logAudit(db, ctx, 'User', id, 'DELETE', { deleted: true })
+  // Bulk User-Account Operations
+  async createUserAccounts(
+    db: Database,
+    ctx: ServiceContext,
+    items: Array<{ userId: string; accountId: string; role: Role }>
+  ): Promise<{ success: boolean; count: number }> {
+    let count = 0
+
+    for (const item of items) {
+      // Check if relationship already exists
+      const [existing] = await db
+        .select()
+        .from(userAccounts)
+        .where(
+          and(
+            eq(userAccounts.userId, item.userId),
+            eq(userAccounts.accountId, item.accountId)
+          )
+        )
+        .limit(1)
+
+      if (existing) {
+        // Update existing role
+        await db
+          .update(userAccounts)
+          .set({ role: item.role })
+          .where(
+            and(
+              eq(userAccounts.userId, item.userId),
+              eq(userAccounts.accountId, item.accountId)
+            )
+          )
+      } else {
+        // Create new relationship
+        await db.insert(userAccounts).values({
+          userId: item.userId,
+          accountId: item.accountId,
+          role: item.role,
+        })
+      }
+
+      count++
+
+      // Log audit
+      await logAudit(db, ctx, 'UserAccount', `${item.userId}-${item.accountId}`, 'INSERT', {
+        userId: item.userId,
+        accountId: item.accountId,
+        role: item.role,
+      })
+    }
+
+    return { success: true, count }
+  },
+
+  async deleteUserAccounts(
+    db: Database,
+    ctx: ServiceContext,
+    items: Array<{ userId: string; accountId: string; role: Role }>
+  ): Promise<{ success: boolean; count: number }> {
+    let count = 0
+
+    for (const item of items) {
+      const result = await db
+        .delete(userAccounts)
+        .where(
+          and(
+            eq(userAccounts.userId, item.userId),
+            eq(userAccounts.accountId, item.accountId)
+          )
+        )
+
+      count++
+
+      // Log audit
+      await logAudit(db, ctx, 'UserAccount', `${item.userId}-${item.accountId}`, 'DELETE', {
+        userId: item.userId,
+        accountId: item.accountId,
+      })
+    }
+
+    return { success: true, count }
   },
 }
