@@ -126,3 +126,46 @@ export async function deleteUserHandler(c: any) {
   await usersService.delete(db, ctx, id)
   return c.body(null, 204)
 }
+
+// Bulk User-Account Operations
+export async function createBulkUserAccountsHandler(c: any) {
+  const data = c.req.valid('json')
+  const db = c.get('db')
+  const accountId = c.get('accountId')
+  const user = c.get('user')!
+  const transactionId = c.get('transactionId')
+  const ip = c.get('ip')
+  const userAgent = c.get('userAgent')
+
+  const ctx: ServiceContext = {
+    accountId,
+    user,
+    transactionId,
+    ip,
+    userAgent,
+  }
+
+  const result = await usersService.createUserAccounts(db, ctx, data)
+  return c.json(result, 201)
+}
+
+export async function deleteBulkUserAccountsHandler(c: any) {
+  const data = c.req.valid('json')
+  const db = c.get('db')
+  const accountId = c.get('accountId')
+  const user = c.get('user')!
+  const transactionId = c.get('transactionId')
+  const ip = c.get('ip')
+  const userAgent = c.get('userAgent')
+
+  const ctx: ServiceContext = {
+    accountId,
+    user,
+    transactionId,
+    ip,
+    userAgent,
+  }
+
+  const result = await usersService.deleteUserAccounts(db, ctx, data)
+  return c.json(result, 200)
+}

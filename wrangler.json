@@ -1,6 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "hono-boilerplate",
+  "account_id": "10ca68c044521baa536840a17160933b",
   "main": "./src/server/index.ts",
   "compatibility_date": "2025-01-01",
   "compatibility_flags": ["nodejs_compat"],
@@ -11,7 +12,19 @@
     {
       "binding": "DB",
       "database_name": "boilerplate-db",
-      "database_id": "local"
+      "database_id": "a9de77f8-3189-41d9-84dd-a38d3c9c27bd"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "R2_BUCKET",
+      "bucket_name": "boilerplate-storage"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "SESSIONS",
+      "id": "3dea2b79495f490ca088a18c6bab6b38"
     }
   ],
   "assets": {
@@ -24,8 +37,9 @@
     ]
   },
   "vars": {
-    "ENVIRONMENT": "development",
-    "APP_URL": "http://localhost:3000",
-    "GOOGLE_REDIRECT_URI": "http://localhost:3000/auth/callback"
+    "ENVIRONMENT": "production",
+    "APP_URL": "https://hono-boilerplate.a3s.workers.dev",
+    "GOOGLE_REDIRECT_URI": "https://hono-boilerplate.a3s.workers.dev/auth/callback",
+    "R2_PUBLIC_URL": "https://pub-your-bucket-id.r2.dev"
   }
 }

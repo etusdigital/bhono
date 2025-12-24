@@ -4,6 +4,8 @@ import {
   PaginatedUsersSchema,
   CreateUserSchema,
   UpdateUserSchema,
+  BulkUserAccountsInputSchema,
+  BulkOperationSuccessSchema,
 } from './schemas'
 import {
   ErrorResponseSchema,
@@ -152,6 +154,77 @@ export const deleteUserRoute = createRoute({
     },
     404: {
       description: 'User not found',
+      content: { 'application/json': { schema: ErrorResponseSchema } },
+    },
+  },
+})
+
+// Bulk User-Account Operations
+export const createBulkUserAccountsRoute = createRoute({
+  method: 'post',
+  path: '/accounts',
+  tags: ['Users'],
+  summary: 'Create user-account relationships in bulk',
+  description: 'Assigns multiple users to accounts with specified roles. Requires MANAGER role or higher.',
+  request: {
+    body: {
+      content: { 'application/json': { schema: BulkUserAccountsInputSchema } },
+    },
+  },
+  responses: {
+    201: {
+      description: 'User accounts created successfully',
+      content: {
+        'application/json': {
+          schema: BulkOperationSuccessSchema,
+        },
+      },
+    },
+    400: {
+      description: 'Invalid input',
+      content: { 'application/json': { schema: ErrorResponseSchema } },
+    },
+    401: {
+      description: 'Unauthorized',
+      content: { 'application/json': { schema: ErrorResponseSchema } },
+    },
+    403: {
+      description: 'Forbidden - requires MANAGER role or higher',
+      content: { 'application/json': { schema: ErrorResponseSchema } },
+    },
+  },
+})
+
+export const deleteBulkUserAccountsRoute = createRoute({
+  method: 'delete',
+  path: '/accounts',
+  tags: ['Users'],
+  summary: 'Delete user-account relationships in bulk',
+  description: 'Removes multiple users from accounts. Requires MANAGER role or higher.',
+  request: {
+    body: {
+      content: { 'application/json': { schema: BulkUserAccountsInputSchema } },
+    },
+  },
+  responses: {
+    200: {
+      description: 'User accounts deleted successfully',
+      content: {
+        'application/json': {
+          schema: BulkOperationSuccessSchema,
+        },
+      },
+    },
+    400: {
+      description: 'Invalid input',
+      content: { 'application/json': { schema: ErrorResponseSchema } },
+    },
+    401: {
+      description: 'Unauthorized',
+      content: { 'application/json': { schema: ErrorResponseSchema } },
+    },
+    403: {
+      description: 'Forbidden - requires MANAGER role or higher',
       content: { 'application/json': { schema: ErrorResponseSchema } },
     },
   },

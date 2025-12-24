@@ -7,6 +7,8 @@ import {
   // createUserRoute, // Disabled - users should only be created via OAuth
   updateUserRoute,
   deleteUserRoute,
+  createBulkUserAccountsRoute,
+  deleteBulkUserAccountsRoute,
 } from './routes'
 import {
   listUsersHandler,
@@ -14,6 +16,8 @@ import {
   // createUserHandler, // Disabled - users should only be created via OAuth
   updateUserHandler,
   deleteUserHandler,
+  createBulkUserAccountsHandler,
+  deleteBulkUserAccountsHandler,
 } from './handlers'
 
 const users = new OpenAPIHono<HonoEnv>()
@@ -36,5 +40,14 @@ users.openapi(updateUserRoute, updateUserHandler)
 // Delete user - requires ADMIN role
 users.use(deleteUserRoute.path, requireRole('ADMIN'))
 users.openapi(deleteUserRoute, deleteUserHandler)
+
+// Bulk User-Account Operations
+// Create user-account relationships - requires MANAGER role or higher
+users.use(createBulkUserAccountsRoute.path, requireRole('MANAGER'))
+users.openapi(createBulkUserAccountsRoute, createBulkUserAccountsHandler)
+
+// Delete user-account relationships - requires MANAGER role or higher
+users.use(deleteBulkUserAccountsRoute.path, requireRole('MANAGER'))
+users.openapi(deleteBulkUserAccountsRoute, deleteBulkUserAccountsHandler)
 
 export { users }

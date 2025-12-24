@@ -1,7 +1,6 @@
 // src/routes/auth/index.ts
 import { OpenAPIHono } from '@hono/zod-openapi'
 import type { HonoEnv } from '../../types'
-import { jwtAuth } from '../../middleware'
 import {
   loginRoute,
   callbackRoute,
@@ -28,8 +27,7 @@ auth.openapi(refreshRoute, refreshHandler)
 auth.openapi(logoutRoute, logoutHandler)
 auth.openapi(inviteRoute, inviteHandler)
 
-// Protected route (requires JWT)
-auth.use(meRoute.path, jwtAuth)
+// Session-based route (validates session in handler via getSession)
 auth.openapi(meRoute, meHandler)
 
 export { auth }

@@ -18,6 +18,17 @@ export const errorHandler: ErrorHandler = (err, c) => {
   const code = getErrorCode(err)
   const details = err instanceof HTTPException ? err.cause : undefined
 
+  // Log the error for debugging (use console.log for Cloudflare Workers visibility)
+  console.log(JSON.stringify({
+    _tag: 'ERROR_HANDLER',
+    status,
+    code,
+    message,
+    name: err.name,
+    stack: err.stack?.substring(0, 500),
+    cause: String(err.cause),
+  }))
+
   const response: ErrorResponse = {
     error: {
       code,

@@ -4,11 +4,12 @@ import type { Env } from '../env'
 
 export async function createAccessToken(env: Env, userId: string, email: string): Promise<string> {
   const now = Math.floor(Date.now() / 1000)
+  const expiryMinutes = parseInt(String(env.JWT_EXPIRY_MINUTES) || '15', 10)
   const payload = {
     sub: userId,
     email,
     iat: now,
-    exp: now + env.JWT_EXPIRY_MINUTES * 60,
+    exp: now + expiryMinutes * 60,
   }
   return sign(payload, env.JWT_SECRET)
 }
@@ -31,18 +32,20 @@ export async function hashToken(token: string): Promise<string> {
 }
 
 export function getRefreshTokenExpiry(env: Env): Date {
+  const expiryDays = parseInt(String(env.REFRESH_TOKEN_EXPIRY_DAYS) || '30', 10)
   const now = new Date()
-  now.setDate(now.getDate() + env.REFRESH_TOKEN_EXPIRY_DAYS)
+  now.setDate(now.getDate() + expiryDays)
   return now
 }
 
 export function setCookieOptions(env: Env, isProduction: boolean) {
+  const expiryDays = parseInt(String(env.REFRESH_TOKEN_EXPIRY_DAYS) || '30', 10)
   return {
     httpOnly: true,
     secure: isProduction,
     sameSite: 'Lax' as const,
     path: '/',
-    maxAge: env.REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60,
+    maxAge: expiryDays * 24 * 60 * 60,
   }
 }
 

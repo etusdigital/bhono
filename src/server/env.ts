@@ -3,6 +3,9 @@ export interface Env {
   // D1 Database
   DB: D1Database
 
+  // KV Sessions
+  SESSIONS: KVNamespace
+
   // Static Assets
   ASSETS: Fetcher
 

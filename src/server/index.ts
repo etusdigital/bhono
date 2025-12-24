@@ -11,6 +11,7 @@ import {
   configurableCors,
   requestContext,
 } from './middleware'
+import { sessionMiddleware } from './lib/session'
 
 // Hono app with bindings
 const app = new Hono<{ Bindings: Env }>()
@@ -45,6 +46,9 @@ app.use('*', async (c, next) => {
   c.set('db', db)
   await next()
 })
+
+// 7. Session middleware - read session from KV
+app.use('*', sessionMiddleware())
 
 // Mount routes
 app.route('/auth', auth)

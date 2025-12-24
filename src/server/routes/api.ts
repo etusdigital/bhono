@@ -5,18 +5,22 @@ import type { Env } from '../env'
 import { users } from './users'
 import { accounts } from './accounts'
 import { invitationsRouter } from './invitations'
-import { jwtAuth, accountMiddleware } from '../middleware'
+import { storage } from './storage'
+import { audits } from './audits'
+import { sessionAuth, accountMiddleware } from '../middleware'
 
 const api = new OpenAPIHono<{ Bindings: Env }>()
 
-// Apply auth middleware to all API routes
-api.use('/*', jwtAuth)
+// Apply auth middleware to all API routes (session-based)
+api.use('/*', sessionAuth)
 api.use('/*', accountMiddleware)
 
 // Mount resource routers
 api.route('/users', users)
 api.route('/accounts', accounts)
 api.route('/invitations', invitationsRouter)
+api.route('/storage', storage)
+api.route('/audits', audits)
 
 // OpenAPI documentation
 api.doc('/doc', {
@@ -24,6 +28,7 @@ api.doc('/doc', {
   info: {
     title: 'Hono Boilerplate API',
     version: '1.0.0',
+    description: 'A production-ready API boilerplate built with Hono, Cloudflare Workers, D1, and R2.',
   },
 })
 

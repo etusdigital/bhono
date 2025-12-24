@@ -30,9 +30,16 @@
   --color-input: oklch(0.922 0 0);
   --color-ring: oklch(0.708 0 0);
 
+  /* Sidebar - Light mode uses a subtle gray */
+  --color-sidebar: oklch(0.985 0 0);
+  --color-sidebar-foreground: oklch(0.145 0 0);
+  --color-sidebar-border: oklch(0.922 0 0);
+  --color-sidebar-accent: oklch(0.97 0 0);
+  --color-sidebar-accent-foreground: oklch(0.145 0 0);
+
   /* Typography */
-  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "Geist Mono", ui-monospace, monospace;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 
   /* Radius */
   --radius-sm: 0.25rem;
@@ -71,6 +78,13 @@
     --color-border: oklch(0.269 0 0);
     --color-input: oklch(0.269 0 0);
     --color-ring: oklch(0.439 0 0);
+
+    /* Sidebar - Dark mode uses darker sidebar like ChatGPT */
+    --color-sidebar: oklch(0.12 0 0);
+    --color-sidebar-foreground: oklch(0.985 0 0);
+    --color-sidebar-border: oklch(0.2 0 0);
+    --color-sidebar-accent: oklch(0.18 0 0);
+    --color-sidebar-accent-foreground: oklch(0.985 0 0);
   }
 }
 

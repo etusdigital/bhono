@@ -4,16 +4,18 @@ import { Permission, hasPermission, hasAnyPermission, hasAllPermissions } from '
 
 describe('permissions', () => {
   describe('hasPermission', () => {
-    it('ADMIN should have MANAGE_SYSTEM_SETTINGS', () => {
-      expect(hasPermission('ADMIN', 'MANAGE_SYSTEM_SETTINGS')).toBe(true)
+    it('ADMIN should have MANAGE_TENANT_SETTINGS', () => {
+      // Note: MANAGE_SYSTEM_SETTINGS requires isSuperAdmin flag, not ADMIN role
+      expect(hasPermission('ADMIN', 'MANAGE_TENANT_SETTINGS')).toBe(true)
     })
 
-    it('VIEWER should NOT have MANAGE_SYSTEM_SETTINGS', () => {
-      expect(hasPermission('VIEWER', 'MANAGE_SYSTEM_SETTINGS')).toBe(false)
+    it('ADMIN should NOT have MANAGE_SYSTEM_SETTINGS (requires isSuperAdmin)', () => {
+      expect(hasPermission('ADMIN', 'MANAGE_SYSTEM_SETTINGS')).toBe(false)
     })
 
-    it('VIEWER should have VIEW_CONTENT', () => {
-      expect(hasPermission('VIEWER', 'VIEW_CONTENT')).toBe(true)
+    it('VIEWER should have VIEW_PUBLISHED_CONTENT', () => {
+      // Note: VIEWER only has VIEW_PUBLISHED_CONTENT, not full VIEW_CONTENT
+      expect(hasPermission('VIEWER', 'VIEW_PUBLISHED_CONTENT')).toBe(true)
     })
 
     it('BILLING should have MANAGE_BILLING', () => {
@@ -33,11 +35,11 @@ describe('permissions', () => {
 
   describe('hasAllPermissions', () => {
     it('should return true if user has all permissions', () => {
-      expect(hasAllPermissions('ADMIN', ['CREATE_CONTENT', 'VIEW_CONTENT'])).toBe(true)
+      expect(hasAllPermissions('ADMIN', ['CREATE_CONTENT', 'EDIT_ALL_CONTENT'])).toBe(true)
     })
 
     it('should return false if user is missing any permission', () => {
-      expect(hasAllPermissions('VIEWER', ['CREATE_CONTENT', 'VIEW_CONTENT'])).toBe(false)
+      expect(hasAllPermissions('VIEWER', ['CREATE_CONTENT', 'VIEW_PUBLISHED_CONTENT'])).toBe(false)
     })
   })
 })

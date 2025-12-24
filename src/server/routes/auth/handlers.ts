@@ -9,7 +9,8 @@ import {
   exchangeCodeForTokens,
   decodeIdToken,
 } from '../../lib/oauth'
-import { setCookieOptions, setOAuthStateCookieOptions } from '../../lib/tokens'
+import { setOAuthStateCookieOptions } from '../../lib/tokens'
+import { createSession, destroySession, getSession } from '../../lib/session'
 import { authService } from '../../services/auth'
 import { invitationsService } from '../../services/invitations'
 import type { AuthEventContext } from '../../lib/audit'
@@ -29,7 +30,7 @@ export const loginHandler = async (c: any) => {
   const env = c.env
   const { redirect } = c.req.valid('query')
 
-  const isProduction = env.NODE_ENV === 'production'
+  const isProduction = env.ENVIRONMENT === 'production'
 
   const codeVerifier = generateCodeVerifier()
   const codeChallenge = await generateCodeChallenge(codeVerifier)
@@ -54,23 +55,26 @@ export const callbackHandler = async (c: any) => {
   const { code, state } = c.req.valid('query')
   const ctx = getAuthContext(c)
 
-  const isProduction = env.NODE_ENV === 'production'
+  const isProduction = env.ENVIRONMENT === 'production'
 
   // Get stored OAuth state
   const oauthCookie = getCookie(c, 'oauth_state')
   if (!oauthCookie) {
+    console.error('[AUTH CALLBACK] Missing OAuth state cookie')
     throw new HTTPException(400, { message: 'Missing OAuth state cookie' })
   }
 
   let oauthData: { codeVerifier: string; state: string; redirect: string | null }
   try {
     oauthData = JSON.parse(oauthCookie)
-  } catch {
+  } catch (e) {
+    console.error('[AUTH CALLBACK] Invalid OAuth state cookie:', e)
     throw new HTTPException(400, { message: 'Invalid OAuth state cookie' })
   }
 
   // Validate state
   if (state !== oauthData.state) {
+    console.error('[AUTH CALLBACK] State mismatch:', { received: state, expected: oauthData.state })
     throw new HTTPException(400, { message: 'Invalid state parameter' })
   }
 
@@ -84,7 +88,7 @@ export const callbackHandler = async (c: any) => {
   const googleUser = decodeIdToken(tokens.id_token)
 
   // Find or create user
-  const result = await authService.findOrCreateUser(db, googleUser, ctx)
+  const result = await authService.findOrCreateUser(db, env, googleUser, ctx)
 
   // Check for pending invitation
   const pendingInvitation = getCookie(c, 'pending_invitation')
@@ -97,24 +101,25 @@ export const callbackHandler = async (c: any) => {
     }
   }
 
-  // Set refresh token cookie
-  setCookie(c, 'refresh_token', result.refreshToken, setCookieOptions(env, isProduction))
-
-  // If redirect URL provided, redirect with token in query (for SPA)
-  if (oauthData.redirect) {
-    const redirectUrl = new URL(oauthData.redirect)
-    redirectUrl.searchParams.set('token', result.tokens.accessToken)
-    return c.redirect(redirectUrl.toString())
-  }
-
-  return c.json({
-    user: result.user,
-    tokens: result.tokens,
+  // Create session (replaces JWT tokens)
+  await createSession(c, {
+    userId: result.user.id,
+    email: result.user.email,
+    name: result.user.name,
+    avatarUrl: (result.user as any).avatarUrl || null,
+    isSuperAdmin: result.user.isSuperAdmin,
   })
+
+  // Redirect to SPA (session cookie will be set automatically)
+  const baseUrl = env.APP_URL || `${new URL(c.req.url).origin}`
+  const redirectPath = oauthData.redirect || '/dashboard'
+  const redirectUrl = new URL(redirectPath, baseUrl)
+  return c.redirect(redirectUrl.toString(), 302)
 }
 
 export const refreshHandler = async (c: any) => {
   const db = c.get('db')
+  const env = c.env
   const refreshToken = getCookie(c, 'refresh_token')
 
   if (!refreshToken) {
@@ -122,7 +127,7 @@ export const refreshHandler = async (c: any) => {
   }
 
   const ctx = getAuthContext(c)
-  const tokens = await authService.refreshAccessToken(db, refreshToken, ctx)
+  const tokens = await authService.refreshAccessToken(db, env, refreshToken, ctx)
 
   return c.json({ tokens })
 }
@@ -130,26 +135,37 @@ export const refreshHandler = async (c: any) => {
 export const logoutHandler = async (c: any) => {
   const db = c.get('db')
   const ctx = getAuthContext(c)
-  const user = c.get('user')
-  const refreshToken = getCookie(c, 'refresh_token')
+  const session = getSession(c)
 
-  if (refreshToken) {
-    await authService.revokeRefreshToken(db, refreshToken, ctx, user?.id || null)
+  // Log logout event if we have a session
+  if (session) {
+    const { logAuthEvent } = await import('../../lib/audit')
+    await logAuthEvent(db, ctx, 'LOGOUT', session.userId, {})
   }
 
-  deleteCookie(c, 'refresh_token')
+  // Destroy session (removes from KV and clears cookie)
+  await destroySession(c)
 
   return c.json({ message: 'Logged out successfully' })
 }
 
 export const meHandler = async (c: any) => {
-  const user = c.get('user')
+  const session = getSession(c)
 
-  if (!user) {
+  if (!session) {
     throw new HTTPException(401, { message: 'Not authenticated' })
   }
 
-  return c.json({ user })
+  // Return user data from session
+  return c.json({
+    user: {
+      id: session.userId,
+      email: session.email,
+      name: session.name,
+      avatarUrl: session.avatarUrl,
+      isSuperAdmin: session.isSuperAdmin,
+    },
+  })
 }
 
 export const inviteHandler = async (c: any) => {
@@ -157,7 +173,7 @@ export const inviteHandler = async (c: any) => {
   const env = c.env
   const { token } = c.req.valid('param')
 
-  const isProduction = env.NODE_ENV === 'production'
+  const isProduction = env.ENVIRONMENT === 'production'
 
   // Validate invitation
   const invitation = await invitationsService.getByToken(db, token)

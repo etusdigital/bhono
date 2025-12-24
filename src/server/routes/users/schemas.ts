@@ -32,3 +32,36 @@ export const UpdateUserSchema = z
   .openapi('UpdateUserInput')
 
 export const PaginatedUsersSchema = createPaginatedSchema(UserSchema, 'Users')
+
+// Bulk User-Account Operations
+export const UserAccountSchema = z
+  .object({
+    userId: z.string().uuid().openapi({
+      example: '550e8400-e29b-41d4-a716-446655440000',
+      description: 'The ID of the user',
+    }),
+    accountId: z.string().uuid().openapi({
+      example: '550e8400-e29b-41d4-a716-446655440001',
+      description: 'The ID of the account',
+    }),
+    role: z
+      .enum(['ADMIN', 'MANAGER', 'EDITOR', 'AUTHOR', 'VIEWER', 'BILLING', 'ANALYTICS'])
+      .openapi({
+        example: 'VIEWER',
+        description: 'The role of the user in the account',
+      }),
+  })
+  .openapi('UserAccount')
+
+export const BulkUserAccountsInputSchema = z
+  .array(UserAccountSchema)
+  .min(1)
+  .max(100)
+  .openapi('BulkUserAccountsInput')
+
+export const BulkOperationSuccessSchema = z
+  .object({
+    success: z.boolean().openapi({ example: true }),
+    count: z.number().openapi({ example: 3, description: 'Number of records affected' }),
+  })
+  .openapi('BulkOperationSuccess')

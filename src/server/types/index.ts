@@ -75,6 +75,19 @@ export interface PaginatedResponse<T> {
   meta: PaginationMeta
 }
 
+// Session data type (matches lib/session.ts)
+export interface SessionData {
+  userId: string
+  email: string
+  name: string
+  avatarUrl?: string | null
+  isSuperAdmin: boolean
+  fingerprint?: {
+    ip?: string
+    userAgent?: string
+  }
+}
+
 // Hono Environment type
 export type HonoEnv = {
   Bindings: Env
@@ -87,6 +100,10 @@ export type HonoEnv = {
     userRole: Role | null
     isSystemAdminAccess: boolean
     db: any // Database instance injected by middleware
+    // Session variables
+    sessionId?: string
+    sessionData?: SessionData
+    sessionCookies?: string[]
   }
 }
 
