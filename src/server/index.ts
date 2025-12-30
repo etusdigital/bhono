@@ -5,6 +5,7 @@ import type { Env } from './env'
 import { createDb } from './db/client'
 import { auth } from './routes/auth'
 import { api } from './routes'
+import { health } from './routes/health'
 import {
   errorHandler,
   requestLogger,
@@ -51,7 +52,13 @@ app.use('*', async (c, next) => {
 app.use('*', sessionMiddleware())
 
 // Mount routes
+// Health checks (no auth required) - must be before /api
+app.route('/health', health)
+
+// Auth routes
 app.route('/auth', auth)
+
+// API routes (with auth)
 app.route('/api', api)
 
 export default app
