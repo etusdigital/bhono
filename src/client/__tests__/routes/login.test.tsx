@@ -41,10 +41,28 @@ describe('Login Page', () => {
     })
   })
 
+  it('should render login content without waiting for authentication', async () => {
+    // Login page is public - should render immediately without blocking on auth
+    const { container } = renderRoute({ initialEntries: ['/login'] })
+
+    // Login page should render quickly without spinner/loading state
+    await waitFor(() => {
+      expect(screen.getByText('Welcome back')).toBeInTheDocument()
+    })
+
+    // All interactive elements should be available immediately
+    expect(screen.getByRole('button', { name: /continue with google/i })).toBeInTheDocument()
+    expect(screen.getByText('Sign in to your account to continue')).toBeInTheDocument()
+
+    // Should not show any loading indicators
+    expect(container.querySelector('[data-loading]')).not.toBeInTheDocument()
+    expect(screen.queryByText(/loading/i)).not.toBeInTheDocument()
+  })
+
   it('should trigger OAuth flow when clicking login button', async () => {
     const user = userEvent.setup()
 
-    // Mock window.location.href
+    // Mock window.location.href with try/finally for guaranteed cleanup
     const originalLocation = window.location
     const locationMock = {
       ...originalLocation,
@@ -55,21 +73,23 @@ describe('Login Page', () => {
       writable: true,
     })
 
-    renderRoute({ initialEntries: ['/login'] })
+    try {
+      renderRoute({ initialEntries: ['/login'] })
 
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /continue with google/i })).toBeInTheDocument()
-    })
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /continue with google/i })).toBeInTheDocument()
+      })
 
-    await user.click(screen.getByRole('button', { name: /continue with google/i }))
+      await user.click(screen.getByRole('button', { name: /continue with google/i }))
 
-    expect(window.location.href).toBe('/auth/login')
-
-    // Restore original location
-    Object.defineProperty(window, 'location', {
-      value: originalLocation,
-      writable: true,
-    })
+      expect(window.location.href).toBe('/auth/login')
+    } finally {
+      // Restore original location even if test fails
+      Object.defineProperty(window, 'location', {
+        value: originalLocation,
+        writable: true,
+      })
+    }
   })
 
   it('should show Terms of Service and Privacy Policy links', async () => {

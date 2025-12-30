@@ -5,6 +5,7 @@ import { afterEach, vi } from "vitest"
 // Cleanup after each test
 afterEach(() => {
   cleanup()
+  vi.restoreAllMocks()
 })
 
 // Mock window.matchMedia (needed for some components)
