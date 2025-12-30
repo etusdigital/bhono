@@ -16,5 +16,23 @@ export default defineConfig({
     setupFiles: ["./src/client/__tests__/setup.ts"],
     include: ["src/client/**/*.test.{ts,tsx}"],
     exclude: ["node_modules", ".claude", "dist"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "json", "html", "lcov"],
+      reportsDirectory: "./coverage/client",
+      include: ["src/client/**/*.{ts,tsx}"],
+      exclude: [
+        "**/*.test.{ts,tsx}",
+        "**/__tests__/**",
+        "**/routeTree.gen.ts",
+        "**/*.d.ts",
+      ],
+      thresholds: {
+        statements: 40,
+        branches: 40,
+        functions: 40,
+        lines: 40,
+      },
+    },
   },
 })
