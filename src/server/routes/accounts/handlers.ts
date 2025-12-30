@@ -125,3 +125,24 @@ export async function deleteAccountHandler(c: any) {
   await accountsService.delete(db, ctx, id)
   return c.body(null, 204)
 }
+
+export async function restoreAccountHandler(c: any) {
+  const { id } = c.req.valid('param')
+  const db = c.get('db')
+  const accountId = c.get('accountId')
+  const user = c.get('user')!
+  const transactionId = c.get('transactionId')
+  const ip = c.get('ip')
+  const userAgent = c.get('userAgent')
+
+  const ctx: ServiceContext = {
+    accountId,
+    user,
+    transactionId,
+    ip,
+    userAgent,
+  }
+
+  const result = await accountsService.restore(db, ctx, id)
+  return c.json({ data: result }, 200)
+}

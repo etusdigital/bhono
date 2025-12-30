@@ -9,6 +9,7 @@ import {
   deleteUserRoute,
   createBulkUserAccountsRoute,
   deleteBulkUserAccountsRoute,
+  restoreUserRoute,
 } from './routes'
 import {
   listUsersHandler,
@@ -18,6 +19,7 @@ import {
   deleteUserHandler,
   createBulkUserAccountsHandler,
   deleteBulkUserAccountsHandler,
+  restoreUserHandler,
 } from './handlers'
 
 const users = new OpenAPIHono<HonoEnv>()
@@ -49,5 +51,9 @@ users.openapi(createBulkUserAccountsRoute, createBulkUserAccountsHandler)
 // Delete user-account relationships - requires MANAGER role or higher
 users.use(deleteBulkUserAccountsRoute.path, requireRole('MANAGER'))
 users.openapi(deleteBulkUserAccountsRoute, deleteBulkUserAccountsHandler)
+
+// Restore soft-deleted user - requires ADMIN role
+users.use(restoreUserRoute.path, requireRole('ADMIN'))
+users.openapi(restoreUserRoute, restoreUserHandler)
 
 export { users }

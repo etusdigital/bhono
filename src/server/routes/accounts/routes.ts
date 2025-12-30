@@ -168,3 +168,38 @@ export const deleteAccountRoute = createRoute({
     },
   },
 })
+
+export const restoreAccountRoute = createRoute({
+  method: 'post',
+  path: '/{id}/restore',
+  tags: ['Accounts'],
+  summary: 'Restore a soft-deleted account',
+  description: 'Restores a soft-deleted account. Only super-admin.',
+  request: {
+    params: IdParamSchema,
+  },
+  responses: {
+    200: {
+      description: 'Account restored successfully',
+      content: {
+        'application/json': {
+          schema: z.object({
+            data: AccountSchema,
+          }),
+        },
+      },
+    },
+    401: {
+      description: 'Unauthorized',
+      content: { 'application/json': { schema: ErrorResponseSchema } },
+    },
+    403: {
+      description: 'Forbidden - Super admin only',
+      content: { 'application/json': { schema: ErrorResponseSchema } },
+    },
+    404: {
+      description: 'Account not found or not deleted',
+      content: { 'application/json': { schema: ErrorResponseSchema } },
+    },
+  },
+})

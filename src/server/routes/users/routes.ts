@@ -229,3 +229,37 @@ export const deleteBulkUserAccountsRoute = createRoute({
     },
   },
 })
+
+export const restoreUserRoute = createRoute({
+  method: 'post',
+  path: '/{id}/restore',
+  tags: ['Users'],
+  summary: 'Restore a soft-deleted user',
+  request: {
+    params: IdParamSchema,
+  },
+  responses: {
+    200: {
+      description: 'User restored successfully',
+      content: {
+        'application/json': {
+          schema: z.object({
+            data: UserSchema,
+          }),
+        },
+      },
+    },
+    401: {
+      description: 'Unauthorized',
+      content: { 'application/json': { schema: ErrorResponseSchema } },
+    },
+    403: {
+      description: 'Forbidden - requires ADMIN role',
+      content: { 'application/json': { schema: ErrorResponseSchema } },
+    },
+    404: {
+      description: 'User not found or not deleted',
+      content: { 'application/json': { schema: ErrorResponseSchema } },
+    },
+  },
+})

@@ -169,3 +169,24 @@ export async function deleteBulkUserAccountsHandler(c: any) {
   const result = await usersService.deleteUserAccounts(db, ctx, data)
   return c.json(result, 200)
 }
+
+export async function restoreUserHandler(c: any) {
+  const { id } = c.req.valid('param')
+  const db = c.get('db')
+  const accountId = c.get('accountId')
+  const user = c.get('user')!
+  const transactionId = c.get('transactionId')
+  const ip = c.get('ip')
+  const userAgent = c.get('userAgent')
+
+  const ctx: ServiceContext = {
+    accountId,
+    user,
+    transactionId,
+    ip,
+    userAgent,
+  }
+
+  const result = await usersService.restore(db, ctx, id)
+  return c.json({ data: result }, 200)
+}

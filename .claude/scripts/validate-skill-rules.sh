@@ -11,9 +11,11 @@ CLAUDE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 HOOKS_DIR="$CLAUDE_DIR/hooks"
 RULES_FILE="$CLAUDE_DIR/skills/skill-rules.json"
 
+# Collect messages
+MESSAGES=""
+
 # Install dependencies if needed (silent)
 if [ -f "$HOOKS_DIR/package.json" ] && [ ! -d "$HOOKS_DIR/node_modules" ]; then
-  echo "📦 Installing hook dependencies..." >&2
   cd "$HOOKS_DIR" && npm install --silent >/dev/null 2>&1
 fi
 
@@ -24,17 +26,31 @@ fi
 
 # Validate skill-rules.json exists
 if [ ! -f "$RULES_FILE" ]; then
-  echo "❌ skill-rules.json not found at $RULES_FILE" >&2
-  echo "   Skill activation will not work properly." >&2
+  MESSAGES+="❌ skill-rules.json not found\n"
+  MESSAGES+="   Skill activation will not work properly.\n"
+
+  jq -n --arg msg "$(echo -e "$MESSAGES")" '{
+    hookSpecificOutput: {
+      hookEventName: "SessionStart",
+      additionalContext: $msg
+    }
+  }'
   exit 1
 fi
 
 # Validate skill-rules.json is valid JSON
 if ! command -v jq >/dev/null 2>&1; then
   # jq not available, skip JSON validation
-  echo "⚠️  jq not found, skipping JSON validation" >&2
+  MESSAGES+="⚠️  jq not found, skipping JSON validation\n"
 elif ! jq empty "$RULES_FILE" 2>/dev/null; then
-  echo "❌ skill-rules.json is not valid JSON" >&2
+  MESSAGES+="❌ skill-rules.json is not valid JSON\n"
+
+  jq -n --arg msg "$(echo -e "$MESSAGES")" '{
+    hookSpecificOutput: {
+      hookEventName: "SessionStart",
+      additionalContext: $msg
+    }
+  }'
   exit 1
 fi
 
@@ -42,14 +58,37 @@ fi
 TEST_INPUT='{"session_id":"test","transcript_path":"/tmp","cwd":".","permission_mode":"auto","prompt":"test fastapi endpoint"}'
 if [ -x "$HOOKS_DIR/skill-activation-prompt.sh" ]; then
   if echo "$TEST_INPUT" | "$HOOKS_DIR/skill-activation-prompt.sh" >/dev/null 2>&1; then
-    echo "✅ Skill-rules system validated"
-    exit 0
+    MESSAGES+="✅ Skill-rules system validated"
   else
-    echo "⚠️  Skill activation hook test failed" >&2
-    echo "   Check that dependencies are installed in $HOOKS_DIR" >&2
+    MESSAGES+="⚠️  Skill activation hook test failed\n"
+    MESSAGES+="   Check that dependencies are installed in $HOOKS_DIR\n"
+
+    jq -n --arg msg "$(echo -e "$MESSAGES")" '{
+      hookSpecificOutput: {
+        hookEventName: "SessionStart",
+        additionalContext: $msg
+      }
+    }'
     exit 1
   fi
 else
-  echo "⚠️  skill-activation-prompt.sh not found or not executable" >&2
+  MESSAGES+="⚠️  skill-activation-prompt.sh not found or not executable\n"
+
+  jq -n --arg msg "$(echo -e "$MESSAGES")" '{
+    hookSpecificOutput: {
+      hookEventName: "SessionStart",
+      additionalContext: $msg
+    }
+  }'
   exit 1
 fi
+
+# Output success message in Claude Code format with visual reminder
+jq -n --arg msg "<important-reminder>IN YOUR FIRST REPLY AFTER SEEING THIS MESSAGE YOU MUST TELL THE USER:\n$(echo -e "$MESSAGES")</important-reminder>" '{
+  hookSpecificOutput: {
+    hookEventName: "SessionStart",
+    additionalContext: $msg
+  }
+}'
+
+exit 0

@@ -7,6 +7,7 @@ import {
   createAccountRoute,
   updateAccountRoute,
   deleteAccountRoute,
+  restoreAccountRoute,
 } from './routes'
 import {
   listAccountsHandler,
@@ -14,6 +15,7 @@ import {
   createAccountHandler,
   updateAccountHandler,
   deleteAccountHandler,
+  restoreAccountHandler,
 } from './handlers'
 
 const accounts = new OpenAPIHono<HonoEnv>()
@@ -37,5 +39,9 @@ accounts.openapi(updateAccountRoute, updateAccountHandler)
 // Still requires ADMIN role at route level for non-super-admins
 accounts.use(deleteAccountRoute.path, requireRole('ADMIN'))
 accounts.openapi(deleteAccountRoute, deleteAccountHandler)
+
+// Restore soft-deleted account - super-admin only (enforced in service layer)
+accounts.use(restoreAccountRoute.path, requireRole('ADMIN'))
+accounts.openapi(restoreAccountRoute, restoreAccountHandler)
 
 export { accounts }

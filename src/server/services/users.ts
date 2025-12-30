@@ -1,5 +1,5 @@
 // src/services/users.ts
-import { eq, and, isNull, like, sql } from 'drizzle-orm'
+import { eq, and, isNull, isNotNull, like, sql } from 'drizzle-orm'
 import type { Database } from '../db/client'
 import { users, userAccounts } from '../db/schema'
 import { logAudit } from '../lib/audit'
@@ -294,5 +294,50 @@ export const usersService = {
     }
 
     return { success: true, count }
+  },
+
+  async restore(
+    db: Database,
+    ctx: ServiceContext,
+    id: string
+  ): Promise<User> {
+    // Find deleted record
+    const [record] = await db
+      .select()
+      .from(users)
+      .where(and(
+        eq(users.id, id),
+        isNotNull(users.deletedAt)
+      ))
+      .limit(1)
+
+    if (!record) {
+      throw new NotFoundError('User not found or not deleted')
+    }
+
+    // Restore user
+    const restored = await auditedUpdate(
+      db,
+      ctx,
+      users,
+      { deletedAt: null, deletedById: null },
+      eq(users.id, id)
+    )
+
+    if (!restored) {
+      throw new NotFoundError('Failed to restore user')
+    }
+
+    return {
+      id: restored.id,
+      email: restored.email,
+      name: restored.name,
+      status: restored.status,
+      providerIds: restored.providerIds || [],
+      isSuperAdmin: restored.isSuperAdmin,
+      createdAt: restored.createdAt,
+      updatedAt: restored.updatedAt,
+      deletedAt: restored.deletedAt,
+    }
   },
 }

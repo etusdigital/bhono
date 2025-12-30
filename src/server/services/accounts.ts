@@ -1,5 +1,5 @@
 // src/services/accounts.ts
-import { eq, and, isNull, sql } from 'drizzle-orm'
+import { eq, and, isNull, isNotNull, sql } from 'drizzle-orm'
 import type { Database } from '../db/client'
 import { accounts, userAccounts } from '../db/schema'
 import { auditedInsert, auditedUpdate, auditedDelete } from '../lib/audited-db'
@@ -207,5 +207,49 @@ export const accountsService = {
 
     // Soft delete with audit
     await auditedDelete(db, ctx, accounts, eq(accounts.id, id))
+  },
+
+  async restore(db: Database, ctx: ServiceContext, id: string): Promise<Account> {
+    // Only super-admin can restore accounts
+    if (!ctx.user.isSuperAdmin) {
+      throw new ForbiddenError('Only super-admin can restore accounts')
+    }
+
+    // Find deleted record
+    const [record] = await db
+      .select()
+      .from(accounts)
+      .where(and(
+        eq(accounts.id, id),
+        isNotNull(accounts.deletedAt)
+      ))
+      .limit(1)
+
+    if (!record) {
+      throw new NotFoundError('Account not found or not deleted')
+    }
+
+    // Restore account
+    const restored = await auditedUpdate(
+      db,
+      ctx,
+      accounts,
+      { deletedAt: null, deletedById: null },
+      eq(accounts.id, id)
+    )
+
+    if (!restored) {
+      throw new NotFoundError('Failed to restore account')
+    }
+
+    return {
+      id: restored.id,
+      name: restored.name,
+      description: restored.description,
+      domain: restored.domain,
+      createdAt: restored.createdAt,
+      updatedAt: restored.updatedAt,
+      deletedAt: restored.deletedAt,
+    }
   },
 }
