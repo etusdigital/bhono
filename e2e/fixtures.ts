@@ -70,3 +70,56 @@ export async function isAuthenticated(page: Page): Promise<boolean> {
     return false
   }
 }
+
+/**
+ * Wait for a toast notification to appear
+ */
+export async function waitForToast(page: Page, text?: string | RegExp) {
+  const toast = text
+    ? page.getByRole('status').filter({ hasText: text })
+    : page.getByRole('status')
+
+  await expect(toast.first()).toBeVisible({ timeout: 5000 })
+  return toast.first()
+}
+
+/**
+ * Close all open dialogs by pressing Escape
+ */
+export async function closeAllDialogs(page: Page) {
+  const dialogs = page.getByRole('dialog')
+  const count = await dialogs.count()
+
+  for (let i = 0; i < count; i++) {
+    await page.keyboard.press('Escape')
+    await page.waitForTimeout(200)
+  }
+}
+
+/**
+ * Check if element is within the visible viewport
+ */
+export async function isInViewport(page: Page, locator: ReturnType<Page['locator']>) {
+  const box = await locator.boundingBox()
+  if (!box) return false
+
+  const viewport = page.viewportSize()
+  if (!viewport) return false
+
+  return (
+    box.x >= 0 &&
+    box.y >= 0 &&
+    box.x + box.width <= viewport.width &&
+    box.y + box.height <= viewport.height
+  )
+}
+
+/**
+ * Take a debug screenshot with timestamp
+ */
+export async function takeDebugScreenshot(page: Page, name: string) {
+  await page.screenshot({
+    path: `e2e/debug-screenshots/${name}-${Date.now()}.png`,
+    fullPage: true,
+  })
+}
