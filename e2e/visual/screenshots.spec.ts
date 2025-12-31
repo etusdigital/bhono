@@ -167,5 +167,64 @@ test.describe('Visual Regression @visual', () => {
         // Dialog screenshots are not fullPage
       })
     })
+
+    test('account page visual snapshot', async ({ page }) => {
+      await page.goto('/account')
+      await page.waitForLoadState('networkidle')
+
+      // Wait for account page content to load (exact match to avoid "Connected Accounts" h2)
+      await expect(page.getByRole('heading', { name: 'Account', exact: true })).toBeVisible()
+
+      // Mask dynamic content: avatars, session IPs/device info, timestamps
+      await expect(page).toHaveScreenshot('account-page.png', {
+        ...screenshotOptions,
+        mask: [
+          // Mask avatars
+          page.locator('[class*="Avatar"]'),
+          page.locator('img[alt*="avatar" i]'),
+          page.locator('img[alt*="profile" i]'),
+          // Mask session IPs and device info
+          page.locator('text=/\\d+\\.\\d+\\.\\d+\\.\\d+/'), // IP addresses
+          page.locator('[class*="ip" i]'),
+          page.locator('text=/chrome|firefox|safari|edge/i'), // Browser info
+          page.locator('[class*="device" i]'),
+          page.locator('[class*="browser" i]'),
+          page.locator('[class*="user-agent" i]'),
+          // Mask timestamps
+          page.locator('time'),
+          page.locator('text=/ago$/'),
+          page.locator('text=/last active/i'),
+          page.locator('text=/created/i'),
+        ],
+      })
+    })
+
+    test('webhook create dialog visual snapshot', async ({ page }) => {
+      await page.goto('/integrations')
+      await page.waitForLoadState('networkidle')
+
+      // Wait for integrations page to fully load (exact match to avoid "Available Integrations" h2)
+      await expect(page.getByRole('heading', { name: 'Integrations', exact: true })).toBeVisible()
+
+      // Click the Add Webhook button (use first() as DialogTrigger may create multiple elements)
+      const addWebhookButton = page.getByRole('button', { name: /add webhook/i }).first()
+      await expect(addWebhookButton).toBeVisible()
+      await addWebhookButton.click()
+
+      // Wait for dialog content to be visible
+      const dialogHeading = page.getByRole('heading', { name: /create webhook/i })
+      await expect(dialogHeading).toBeVisible()
+
+      // Find the dialog container (custom Dialog component with fixed positioning)
+      // The dialog content has the close button and heading as direct descendants
+      const dialogContent = page.locator('.fixed.z-50').filter({ has: dialogHeading })
+      await expect(dialogContent).toBeVisible()
+
+      // Take screenshot of dialog only (not fullPage)
+      await expect(dialogContent).toHaveScreenshot('webhook-create-dialog.png', {
+        maxDiffPixelRatio: 0.02,
+        // Dialog screenshots are not fullPage
+      })
+    })
   })
 })
