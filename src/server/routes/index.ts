@@ -6,6 +6,7 @@ import { users } from './users'
 import { accounts } from './accounts'
 import { invitationsRouter } from './invitations'
 import { audits } from './audits'
+import { storage } from './storage'
 
 const api = new OpenAPIHono<HonoEnv>()
 
@@ -18,6 +19,7 @@ api.route('/users', users)
 api.route('/accounts', accounts)
 api.route('/invitations', invitationsRouter)
 api.route('/audits', audits)
+api.route('/storage', storage)
 
 // Register security scheme component (session-based authentication via cookies)
 api.openAPIRegistry.registerComponent('securitySchemes', 'SessionCookie', {
