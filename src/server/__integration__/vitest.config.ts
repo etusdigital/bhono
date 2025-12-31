@@ -27,5 +27,18 @@ export default defineConfig({
     hookTimeout: 30000,
     // Retry failed tests once (helpful for flaky integration tests)
     retry: 1,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html', 'lcov'],
+      reportsDirectory: './coverage/integration',
+      include: ['src/server/**/*.ts'],
+      exclude: [
+        '**/*.test.ts',
+        '**/__tests__/**',
+        '**/__integration__/**',
+        '**/types/**',
+        '**/*.d.ts',
+      ],
+    },
   },
 })
