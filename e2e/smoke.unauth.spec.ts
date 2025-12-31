@@ -79,3 +79,52 @@ test.describe('Smoke Tests (Unauthenticated)', () => {
     await expect(page).toHaveURL(/login/)
   })
 })
+
+test.describe('API Smoke Tests @smoke', () => {
+  test('readiness endpoint returns ready status', async ({ request, baseURL }) => {
+    const response = await request.get(`${baseURL}/health/ready`, {
+      failOnStatusCode: false,
+    })
+
+    const contentType = response.headers()['content-type'] || ''
+    if (!contentType.includes('application/json')) {
+      test.skip(true, 'API not available')
+      return
+    }
+
+    expect([200, 503]).toContain(response.status())
+
+    const body = await response.json()
+    expect(body).toHaveProperty('ready')
+  })
+
+  test('API documentation endpoint is accessible', async ({ request, baseURL }) => {
+    const response = await request.get(`${baseURL}/api/doc`, {
+      failOnStatusCode: false,
+    })
+
+    const contentType = response.headers()['content-type'] || ''
+    if (!contentType.includes('application/json')) {
+      test.skip(true, 'API doc not available')
+      return
+    }
+
+    expect(response.ok()).toBeTruthy()
+
+    const body = await response.json()
+    expect(body).toHaveProperty('openapi')
+    expect(body).toHaveProperty('info')
+  })
+})
+
+test.describe('Navigation Smoke Tests @smoke', () => {
+  test('all main public navigation links work', async ({ page }) => {
+    // Home
+    await page.goto('/')
+    await expect(page.locator('body')).toBeVisible()
+
+    // Login
+    await page.goto('/login')
+    await expect(page.getByText('Welcome back')).toBeVisible()
+  })
+})
