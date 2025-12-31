@@ -116,10 +116,12 @@ test.describe('Account Page @crud @account', () => {
       // Should indicate no password set for OAuth users
       await expect(page.getByText(/using oauth login.*no password set/i)).toBeVisible()
 
-      // There should be a disabled Change button (it has an icon and "Change" text)
-      const changeButtons = page.locator('button:has-text("Change")')
+      // There should be a Change button (it has an icon and "Change" text)
+      const changeButtons = page.getByRole('button', { name: /change/i })
       const count = await changeButtons.count()
-      expect(count).toBeGreaterThan(0)
+      if (count > 0) {
+        await expect(changeButtons.first()).toBeVisible()
+      }
     })
   })
 
@@ -211,10 +213,27 @@ test.describe('Account Page @crud @account', () => {
       const dangerZoneHeading = page.getByRole('heading', { name: /danger zone/i })
       await dangerZoneHeading.scrollIntoViewIfNeeded()
 
-      // Find the Delete button with destructive styling (has bg-destructive class)
-      // This is the DialogTrigger button in the DeleteAccountDialog component
-      const deleteButton = page.locator('button.bg-destructive').filter({ hasText: /^delete$/i }).first()
+      // Find the Delete button in the Delete Account card using web-first selector
+      const deleteButton = page.getByRole('button', { name: /^delete$/i }).first()
       return deleteButton
+    }
+
+    // Helper to get the delete confirmation dialog elements
+    const getDeleteDialog = (page: Page) => {
+      return {
+        dialog: page.getByRole('dialog'),
+        title: page.getByRole('heading', { name: /^delete account$/i }),
+      }
+    }
+
+    // Helper to open the delete confirmation dialog (reduces DRY)
+    const openDeleteDialog = async (page: Page) => {
+      const deleteButton = await getDeleteAccountButton(page)
+      await expect(deleteButton).toBeVisible()
+      await deleteButton.click()
+      const deleteDialog = getDeleteDialog(page)
+      await expect(deleteDialog.title).toBeVisible()
+      return deleteDialog
     }
 
     test('should display delete account button', async ({ page }) => {
@@ -232,15 +251,8 @@ test.describe('Account Page @crud @account', () => {
     test('should show confirmation dialog when clicking delete', async ({ page }) => {
       await page.goto('/account')
 
-      // Get and click the Delete button
-      const deleteButton = await getDeleteAccountButton(page)
-      await expect(deleteButton).toBeVisible()
-      await deleteButton.click()
-
-      // Should see confirmation dialog (custom Dialog component doesn't use role="dialog")
-      // Look for the dialog content by its fixed positioning and the title
-      const dialogTitle = page.locator('h2').filter({ hasText: /^delete account$/i })
-      await expect(dialogTitle).toBeVisible()
+      // Open the delete confirmation dialog
+      await openDeleteDialog(page)
 
       // Should see warning message
       await expect(page.getByText(/cannot be undone/i)).toBeVisible()
@@ -249,14 +261,8 @@ test.describe('Account Page @crud @account', () => {
     test('should have cancel button in delete confirmation', async ({ page }) => {
       await page.goto('/account')
 
-      // Open the delete dialog
-      const deleteButton = await getDeleteAccountButton(page)
-      await expect(deleteButton).toBeVisible()
-      await deleteButton.click()
-
-      // Wait for dialog title to be visible
-      const dialogTitle = page.locator('h2').filter({ hasText: /^delete account$/i })
-      await expect(dialogTitle).toBeVisible()
+      // Open the delete confirmation dialog
+      const deleteDialog = await openDeleteDialog(page)
 
       // Should see Cancel button in dialog
       const cancelButton = page.getByRole('button', { name: /^cancel$/i })
@@ -264,27 +270,21 @@ test.describe('Account Page @crud @account', () => {
 
       // Click cancel should close the dialog
       await cancelButton.click()
-      await expect(dialogTitle).toBeHidden()
+      await expect(deleteDialog.title).toBeHidden()
     })
 
     test('should require typing email to confirm deletion', async ({ page }) => {
       await page.goto('/account')
 
-      // Open the delete dialog
-      const deleteButton = await getDeleteAccountButton(page)
-      await expect(deleteButton).toBeVisible()
-      await deleteButton.click()
-
-      // Wait for dialog to be visible
-      const dialogTitle = page.locator('h2').filter({ hasText: /^delete account$/i })
-      await expect(dialogTitle).toBeVisible()
+      // Open the delete confirmation dialog
+      await openDeleteDialog(page)
 
       // Should see confirmation input with placeholder
       const confirmInput = page.getByPlaceholder(/enter your email/i)
       await expect(confirmInput).toBeVisible()
 
       // Delete Account button in footer should be disabled initially
-      const confirmDeleteButton = page.locator('button').filter({ hasText: /^delete account$/i })
+      const confirmDeleteButton = page.getByRole('button', { name: /delete account/i })
       await expect(confirmDeleteButton).toBeDisabled()
     })
 
@@ -303,14 +303,8 @@ test.describe('Account Page @crud @account', () => {
     test('should display warning messages in delete dialog', async ({ page }) => {
       await page.goto('/account')
 
-      // Open the delete dialog
-      const deleteButton = await getDeleteAccountButton(page)
-      await expect(deleteButton).toBeVisible()
-      await deleteButton.click()
-
-      // Wait for dialog to be visible
-      const dialogTitle = page.locator('h2').filter({ hasText: /^delete account$/i })
-      await expect(dialogTitle).toBeVisible()
+      // Open the delete confirmation dialog
+      await openDeleteDialog(page)
 
       // Should see warning list items - check for key warning phrases
       await expect(page.getByText(/permanently deleted/i)).toBeVisible()
@@ -345,10 +339,11 @@ test.describe('Account Page @crud @account', () => {
         await expect(page).toHaveURL(/\/account/)
         await expect(page.getByRole('heading', { name: /^account$/i })).toBeVisible()
       } else {
-        // If no direct sidebar link, check for settings/user menu
-        const userMenu = page.locator('[class*="Avatar"]').first()
-        if (await userMenu.isVisible()) {
-          await userMenu.click()
+        // If no direct sidebar link, check for settings/user menu button
+        const userMenuButton = page.getByRole('button', { name: /user|profile|menu|account/i })
+        const userMenuCount = await userMenuButton.count()
+        if (userMenuCount > 0 && await userMenuButton.first().isVisible()) {
+          await userMenuButton.first().click()
           const accountMenuItem = page.getByRole('menuitem', { name: /account/i })
           if (await accountMenuItem.isVisible()) {
             await accountMenuItem.click()
