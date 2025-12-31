@@ -713,7 +713,7 @@ describe('accountsService', () => {
 
       mockDb.select = vi.fn().mockReturnValue(deletedAccountChain)
 
-      ;(auditedUpdate as Mock).mockResolvedValue(restoredAccount)
+      ;(auditedUpdate as Mock).mockResolvedValue([restoredAccount])
 
       const result = await accountsService.restore(mockDb, superAdminCtx, 'deleted-account-123')
 

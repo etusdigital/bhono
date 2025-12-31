@@ -230,7 +230,7 @@ export const accountsService = {
     }
 
     // Restore account
-    const restored = await auditedUpdate(
+    const [restored] = await auditedUpdate(
       db,
       ctx,
       accounts,

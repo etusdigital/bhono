@@ -637,8 +637,8 @@ describe('usersService', () => {
 
       mockDb.select = vi.fn().mockReturnValue(deletedUserChain)
 
-      // Mock auditedUpdate for restore
-      ;(auditedUpdate as Mock).mockResolvedValue(restoredUser)
+      // Mock auditedUpdate for restore (returns array)
+      ;(auditedUpdate as Mock).mockResolvedValue([restoredUser])
 
       const result = await usersService.restore(mockDb, ctx, 'deleted-user-123')
 
