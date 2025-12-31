@@ -469,4 +469,219 @@ describe('authService', () => {
       }))
     })
   })
+
+  describe('refreshAccessToken', () => {
+    it('should throw UnauthorizedError when refresh token not found', async () => {
+      // Arrange
+      const mockDb = createMockDb()
+      mockDb.select = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([]),
+          }),
+        }),
+      })
+
+      // Act & Assert
+      await expect(
+        authService.refreshAccessToken(mockDb, mockEnv, 'invalid-token', mockCtx)
+      ).rejects.toThrow('Invalid or expired refresh token')
+    })
+
+    it('should throw UnauthorizedError when token is expired', async () => {
+      // Arrange - Token query returns empty because WHERE clause filters expired tokens
+      const mockDb = createMockDb()
+      mockDb.select = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([]), // Expired tokens filtered out by query
+          }),
+        }),
+      })
+
+      // Act & Assert - Expired tokens are handled by the WHERE clause (gt expiresAt > new Date())
+      // so they return empty result, same error as not found
+      await expect(
+        authService.refreshAccessToken(mockDb, mockEnv, 'expired-token', mockCtx)
+      ).rejects.toThrow('Invalid or expired refresh token')
+    })
+
+    it('should throw UnauthorizedError when token is revoked', async () => {
+      // Arrange - Token query returns empty because WHERE clause filters revoked tokens
+      const mockDb = createMockDb()
+      mockDb.select = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([]), // Revoked tokens filtered out by query
+          }),
+        }),
+      })
+
+      // Act & Assert - Revoked tokens are handled by the WHERE clause (isNull revokedAt)
+      // so they return empty result, same error as not found
+      await expect(
+        authService.refreshAccessToken(mockDb, mockEnv, 'revoked-token', mockCtx)
+      ).rejects.toThrow('Invalid or expired refresh token')
+    })
+
+    it('should throw UnauthorizedError when user not found', async () => {
+      // Arrange
+      const mockDb = createMockDb()
+      let selectCallCount = 0
+      mockDb.select = vi.fn().mockImplementation(() => {
+        selectCallCount++
+        return {
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue(
+                selectCallCount === 1
+                  ? [{ id: 'token-id', userId: 'user-id', tokenHash: 'hashed-token' }] // Token found
+                  : [] // User not found
+              ),
+            }),
+          }),
+        }
+      })
+
+      // Act & Assert
+      await expect(
+        authService.refreshAccessToken(mockDb, mockEnv, 'valid-token', mockCtx)
+      ).rejects.toThrow('User not found or inactive')
+    })
+
+    it('should throw UnauthorizedError when user is inactive', async () => {
+      // Arrange
+      const inactiveUser = createExistingUserRecord({ status: 'suspended' })
+      const mockDb = createMockDb()
+      let selectCallCount = 0
+      mockDb.select = vi.fn().mockImplementation(() => {
+        selectCallCount++
+        return {
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue(
+                selectCallCount === 1
+                  ? [{ id: 'token-id', userId: inactiveUser.id, tokenHash: 'hashed-token' }] // Token found
+                  : [inactiveUser] // User found but inactive
+              ),
+            }),
+          }),
+        }
+      })
+
+      // Act & Assert
+      await expect(
+        authService.refreshAccessToken(mockDb, mockEnv, 'valid-token', mockCtx)
+      ).rejects.toThrow('User not found or inactive')
+    })
+
+    it('should return new tokens when refresh token is valid', async () => {
+      // Arrange
+      const existingUser = createExistingUserRecord()
+      const mockDb = createMockDb()
+      let selectCallCount = 0
+      mockDb.select = vi.fn().mockImplementation(() => {
+        selectCallCount++
+        return {
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue(
+                selectCallCount === 1
+                  ? [{ id: 'token-id', userId: existingUser.id, tokenHash: 'hashed-token' }] // Token found
+                  : [existingUser] // User found
+              ),
+            }),
+          }),
+        }
+      })
+
+      // Act
+      const result = await authService.refreshAccessToken(mockDb, mockEnv, 'valid-refresh-token', mockCtx)
+
+      // Assert
+      expect(result.accessToken).toBe('mock-access-token')
+      expect(result.expiresIn).toBe(60 * 15) // 15 minutes in seconds
+
+      // Verify token functions were called
+      expect(hashToken).toHaveBeenCalledWith('valid-refresh-token')
+      expect(createAccessToken).toHaveBeenCalledWith(
+        mockEnv,
+        existingUser.id,
+        existingUser.email
+      )
+
+      // Verify TOKEN_REFRESH event was logged
+      expect(logAuthEvent).toHaveBeenCalledWith(
+        mockDb,
+        mockCtx,
+        'TOKEN_REFRESH',
+        existingUser.id,
+        expect.objectContaining({
+          email: existingUser.email,
+        })
+      )
+    })
+  })
+
+  describe('revokeAllUserTokens', () => {
+    it('should revoke all refresh tokens for user by marking revokedAt', async () => {
+      // Arrange
+      const mockDb = createMockDb()
+      const userId = 'user-id-to-revoke'
+
+      // Act
+      await authService.revokeAllUserTokens(mockDb, userId)
+
+      // Assert - verify update was called
+      expect(mockDb.update).toHaveBeenCalled()
+    })
+  })
+
+  describe('revokeRefreshToken', () => {
+    it('should revoke single refresh token by hash', async () => {
+      // Arrange
+      const mockDb = createMockDb()
+      const refreshToken = 'token-to-revoke'
+
+      // Act
+      await authService.revokeRefreshToken(mockDb, refreshToken, mockCtx, null)
+
+      // Assert
+      expect(mockDb.update).toHaveBeenCalled()
+      expect(hashToken).toHaveBeenCalledWith(refreshToken)
+    })
+
+    it('should log logout event when userId is provided', async () => {
+      // Arrange
+      const mockDb = createMockDb()
+      const refreshToken = 'token-to-revoke'
+      const userId = 'user-123'
+
+      // Act
+      await authService.revokeRefreshToken(mockDb, refreshToken, mockCtx, userId)
+
+      // Assert
+      expect(mockDb.update).toHaveBeenCalled()
+      expect(logAuthEvent).toHaveBeenCalledWith(
+        mockDb,
+        mockCtx,
+        'LOGOUT',
+        userId,
+        {}
+      )
+    })
+
+    it('should not log logout event when userId is null', async () => {
+      // Arrange
+      const mockDb = createMockDb()
+      vi.mocked(logAuthEvent).mockClear() // Clear previous calls
+      const refreshToken = 'token-to-revoke'
+
+      // Act
+      await authService.revokeRefreshToken(mockDb, refreshToken, mockCtx, null)
+
+      // Assert
+      expect(logAuthEvent).not.toHaveBeenCalled()
+    })
+  })
 })
