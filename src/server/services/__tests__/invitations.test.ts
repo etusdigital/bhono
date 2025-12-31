@@ -1,7 +1,8 @@
 // src/server/services/__tests__/invitations.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { invitationsService } from '../invitations'
-import { ForbiddenError, ConflictError } from '../../lib/errors'
+import { ForbiddenError, ConflictError, NotFoundError } from '../../lib/errors'
+import type { AuthEventContext } from '../../lib/audit'
 import type { ServiceContext } from '../../types'
 import { createUserFixture, createAccountFixture } from '../../__tests__/fixtures'
 
@@ -16,6 +17,7 @@ vi.mock('../../lib/audit', () => ({
 }))
 
 import { sendInvitationEmail } from '../../lib/email'
+import { logAuthEvent } from '../../lib/audit'
 
 /**
  * Creates a mock Drizzle database instance with chainable methods
@@ -50,6 +52,9 @@ function createMockDb() {
       set: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([]),
       }),
+    }),
+    delete: vi.fn().mockReturnValue({
+      where: vi.fn().mockResolvedValue(undefined),
     }),
   } as any
 }
@@ -390,6 +395,310 @@ describe('invitationsService', () => {
           role: 'VIEWER',
         })
       ).rejects.toThrow('Pending invitation already exists for this email')
+    })
+  })
+
+  describe('list', () => {
+    it('should return pending invitations for account', async () => {
+      const mockInvitations = [
+        {
+          id: 'inv-1',
+          email: 'invited1@test.com',
+          role: 'EDITOR',
+          expiresAt: '2025-12-31T00:00:00Z',
+          createdAt: '2025-01-01T00:00:00Z',
+          invitedById: 'user-inviter-1',
+          inviterName: 'John Inviter',
+        },
+        {
+          id: 'inv-2',
+          email: 'invited2@test.com',
+          role: 'VIEWER',
+          expiresAt: '2025-12-31T00:00:00Z',
+          createdAt: '2025-01-02T00:00:00Z',
+          invitedById: 'user-inviter-2',
+          inviterName: 'Jane Inviter',
+        },
+      ]
+
+      // Mock the select chain with innerJoin and orderBy
+      mockDb.select = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          innerJoin: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              orderBy: vi.fn().mockResolvedValue(mockInvitations),
+            }),
+          }),
+        }),
+      })
+
+      const result = await invitationsService.list(mockDb, ctx)
+
+      expect(result).toHaveLength(2)
+      expect(result[0]).toEqual({
+        id: 'inv-1',
+        email: 'invited1@test.com',
+        role: 'EDITOR',
+        invitedBy: { id: 'user-inviter-1', name: 'John Inviter' },
+        expiresAt: '2025-12-31T00:00:00Z',
+        createdAt: '2025-01-01T00:00:00Z',
+      })
+      expect(result[1]).toEqual({
+        id: 'inv-2',
+        email: 'invited2@test.com',
+        role: 'VIEWER',
+        invitedBy: { id: 'user-inviter-2', name: 'Jane Inviter' },
+        expiresAt: '2025-12-31T00:00:00Z',
+        createdAt: '2025-01-02T00:00:00Z',
+      })
+    })
+
+    it('should return empty array when no pending invitations', async () => {
+      mockDb.select = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          innerJoin: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              orderBy: vi.fn().mockResolvedValue([]),
+            }),
+          }),
+        }),
+      })
+
+      const result = await invitationsService.list(mockDb, ctx)
+
+      expect(result).toEqual([])
+    })
+  })
+
+  describe('revoke', () => {
+    it('should throw NotFoundError when invitation not found', async () => {
+      // Mock select returning empty array (invitation not found)
+      mockDb.select = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([]),
+          }),
+        }),
+      })
+
+      await expect(
+        invitationsService.revoke(mockDb, ctx, 'non-existent-inv')
+      ).rejects.toThrow(NotFoundError)
+
+      await expect(
+        invitationsService.revoke(mockDb, ctx, 'non-existent-inv')
+      ).rejects.toThrow('Invitation not found')
+    })
+
+    it('should delete invitation successfully', async () => {
+      const existingInvitation = {
+        id: 'inv-to-delete',
+        accountId: ctx.accountId,
+        email: 'delete@test.com',
+        role: 'VIEWER',
+        acceptedAt: null,
+      }
+
+      // Mock select returning the invitation
+      mockDb.select = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([existingInvitation]),
+          }),
+        }),
+      })
+
+      // Mock delete
+      mockDb.delete = vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue(undefined),
+      })
+
+      await invitationsService.revoke(mockDb, ctx, 'inv-to-delete')
+
+      expect(mockDb.delete).toHaveBeenCalled()
+    })
+  })
+
+  describe('getByToken', () => {
+    it('should return null when invitation not found', async () => {
+      // Mock select returning empty array
+      mockDb.select = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          innerJoin: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue([]),
+            }),
+          }),
+        }),
+      })
+
+      const result = await invitationsService.getByToken(mockDb, 'invalid-token')
+
+      expect(result).toBeNull()
+    })
+
+    it('should return null when invitation already accepted', async () => {
+      const acceptedInvitation = {
+        id: 'inv-accepted',
+        accountId: 'account-123',
+        email: 'accepted@test.com',
+        role: 'VIEWER',
+        expiresAt: '2025-12-31T00:00:00Z',
+        acceptedAt: '2025-01-01T00:00:00Z', // Already accepted
+        accountName: 'Test Account',
+      }
+
+      mockDb.select = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          innerJoin: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue([acceptedInvitation]),
+            }),
+          }),
+        }),
+      })
+
+      const result = await invitationsService.getByToken(mockDb, 'some-token')
+
+      expect(result).toBeNull()
+    })
+
+    it('should return null when invitation expired', async () => {
+      const expiredInvitation = {
+        id: 'inv-expired',
+        accountId: 'account-123',
+        email: 'expired@test.com',
+        role: 'VIEWER',
+        expiresAt: '2020-01-01T00:00:00Z', // Expired in the past
+        acceptedAt: null,
+        accountName: 'Test Account',
+      }
+
+      mockDb.select = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          innerJoin: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue([expiredInvitation]),
+            }),
+          }),
+        }),
+      })
+
+      const result = await invitationsService.getByToken(mockDb, 'expired-token')
+
+      expect(result).toBeNull()
+    })
+
+    it('should return invitation when token valid', async () => {
+      const validInvitation = {
+        id: 'inv-valid',
+        accountId: 'account-123',
+        email: 'valid@test.com',
+        role: 'EDITOR',
+        expiresAt: '2099-12-31T00:00:00Z', // Far in the future
+        acceptedAt: null,
+        accountName: 'Valid Account',
+      }
+
+      mockDb.select = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          innerJoin: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue([validInvitation]),
+            }),
+          }),
+        }),
+      })
+
+      const result = await invitationsService.getByToken(mockDb, 'valid-token')
+
+      expect(result).toEqual({
+        id: 'inv-valid',
+        accountId: 'account-123',
+        email: 'valid@test.com',
+        role: 'EDITOR',
+        accountName: 'Valid Account',
+      })
+    })
+  })
+
+  describe('accept', () => {
+    const authCtx: AuthEventContext = {
+      transactionId: 'tx-accept-123',
+      ip: '192.168.1.1',
+      userAgent: 'TestAgent/2.0',
+    }
+
+    it('should throw NotFoundError when invitation not found', async () => {
+      // Mock select returning empty array (invitation not found)
+      mockDb.select = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([]),
+          }),
+        }),
+      })
+
+      await expect(
+        invitationsService.accept(mockDb, 'non-existent-inv', 'user-123', authCtx)
+      ).rejects.toThrow(NotFoundError)
+
+      await expect(
+        invitationsService.accept(mockDb, 'non-existent-inv', 'user-123', authCtx)
+      ).rejects.toThrow('Invitation not found')
+    })
+
+    it('should add user to account and mark invitation as accepted', async () => {
+      const invitation = {
+        id: 'inv-to-accept',
+        accountId: 'account-456',
+        email: 'newuser@test.com',
+        role: 'EDITOR',
+        token: 'accept-token',
+        acceptedAt: null,
+      }
+
+      // Mock select returning the invitation
+      mockDb.select = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([invitation]),
+          }),
+        }),
+      })
+
+      // Mock insert for userAccounts
+      mockDb.insert = vi.fn().mockReturnValue({
+        values: vi.fn().mockResolvedValue(undefined),
+      })
+
+      // Mock update for marking accepted
+      mockDb.update = vi.fn().mockReturnValue({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue(undefined),
+        }),
+      })
+
+      await invitationsService.accept(mockDb, 'inv-to-accept', 'new-user-123', authCtx)
+
+      // Verify insert was called to create user-account relationship
+      expect(mockDb.insert).toHaveBeenCalled()
+
+      // Verify update was called to mark invitation as accepted
+      expect(mockDb.update).toHaveBeenCalled()
+
+      // Verify logAuthEvent was called
+      expect(logAuthEvent).toHaveBeenCalledWith(
+        mockDb,
+        authCtx,
+        'LOGIN',
+        'new-user-123',
+        {
+          invitationAccepted: true,
+          accountId: 'account-456',
+          role: 'EDITOR',
+        }
+      )
     })
   })
 })
