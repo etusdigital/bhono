@@ -171,8 +171,8 @@ Coverage reports upload to Codecov automatically.
 
 | Layer | Statements | Branches | Functions | Lines |
 |-------|------------|----------|-----------|-------|
-| Backend | 50% | 50% | 50% | 50% |
-| Frontend | 40% | 40% | 40% | 40% |
+| Backend | 85% | 80% | 80% | 85% |
+| Frontend | 85% | 70% | 60% | 85% |
 
 View coverage reports:
 - `coverage/server/index.html` - Backend coverage
