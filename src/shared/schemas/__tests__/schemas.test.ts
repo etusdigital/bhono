@@ -1,7 +1,12 @@
 import { describe, it, expect } from 'vitest'
-import { CreateUserSchema, UpdateUserSchema } from '../user'
-import { CreateAccountSchema, UpdateAccountSchema } from '../account'
-import { CreateInvitationSchema } from '../invitation'
+// Import from index to ensure re-exports are covered
+import {
+  CreateUserSchema,
+  UpdateUserSchema,
+  CreateAccountSchema,
+  UpdateAccountSchema,
+  CreateInvitationSchema,
+} from '../index'
 
 describe('User Schemas', () => {
   describe('CreateUserSchema', () => {
