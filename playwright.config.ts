@@ -14,7 +14,13 @@ export default defineConfig({
 
   /* Global timeouts */
   timeout: 30_000,
-  expect: { timeout: 10_000 },
+  expect: {
+    timeout: 10_000,
+    // Visual comparison settings
+    toHaveScreenshot: {
+      maxDiffPixelRatio: 0.02,
+    },
+  },
 
   /* Execution */
   fullyParallel: true,
@@ -88,6 +94,28 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
       },
       testMatch: /.*\.unauth\.spec\.ts/,
+    },
+
+    // Visual regression tests (separate for baseline management)
+    {
+      name: 'visual',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'e2e/.auth/user.json',
+      },
+      dependencies: ['setup'],
+      grep: /@visual/,
+    },
+
+    // Accessibility tests
+    {
+      name: 'a11y',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'e2e/.auth/user.json',
+      },
+      dependencies: ['setup'],
+      grep: /@a11y/,
     },
   ],
 
