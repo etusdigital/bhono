@@ -17,6 +17,7 @@ import {
   meHandler,
   inviteHandler,
 } from './handlers'
+import { testLoginRoute, testLoginHandler } from './test-login'
 
 const auth = new OpenAPIHono<HonoEnv>()
 
@@ -29,5 +30,8 @@ auth.openapi(inviteRoute, inviteHandler)
 
 // Session-based route (validates session in handler via getSession)
 auth.openapi(meRoute, meHandler)
+
+// Test login route (development/test only)
+auth.openapi(testLoginRoute, testLoginHandler)
 
 export { auth }
