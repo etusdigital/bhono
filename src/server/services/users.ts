@@ -316,7 +316,7 @@ export const usersService = {
     }
 
     // Restore user
-    const restored = await auditedUpdate(
+    const [restored] = await auditedUpdate(
       db,
       ctx,
       users,

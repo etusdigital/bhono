@@ -24,6 +24,14 @@ import {
 
 const users = new OpenAPIHono<HonoEnv>()
 
+/**
+ * Convert OpenAPI path syntax {param} to Hono path syntax :param
+ * This is needed because .use() requires Hono path syntax
+ */
+function toHonoPath(openApiPath: string): string {
+  return openApiPath.replace(/{(\w+)}/g, ':$1')
+}
+
 // List users - requires VIEWER role or higher
 users.openapi(listUsersRoute, listUsersHandler)
 
@@ -32,28 +40,28 @@ users.openapi(getUserRoute, getUserHandler)
 
 // NOTE: User creation route is disabled - users should only be created through Google OAuth
 // Create user - requires ADMIN role
-// users.use(createUserRoute.path, requireRole('ADMIN'))
+// users.use(toHonoPath(createUserRoute.path), requireRole('ADMIN'))
 // users.openapi(createUserRoute, createUserHandler)
 
 // Update user - requires MANAGER role or higher
-users.use(updateUserRoute.path, requireRole('MANAGER'))
+users.use(toHonoPath(updateUserRoute.path), requireRole('MANAGER'))
 users.openapi(updateUserRoute, updateUserHandler)
 
 // Delete user - requires ADMIN role
-users.use(deleteUserRoute.path, requireRole('ADMIN'))
+users.use(toHonoPath(deleteUserRoute.path), requireRole('ADMIN'))
 users.openapi(deleteUserRoute, deleteUserHandler)
 
 // Bulk User-Account Operations
 // Create user-account relationships - requires MANAGER role or higher
-users.use(createBulkUserAccountsRoute.path, requireRole('MANAGER'))
+users.use(toHonoPath(createBulkUserAccountsRoute.path), requireRole('MANAGER'))
 users.openapi(createBulkUserAccountsRoute, createBulkUserAccountsHandler)
 
 // Delete user-account relationships - requires MANAGER role or higher
-users.use(deleteBulkUserAccountsRoute.path, requireRole('MANAGER'))
+users.use(toHonoPath(deleteBulkUserAccountsRoute.path), requireRole('MANAGER'))
 users.openapi(deleteBulkUserAccountsRoute, deleteBulkUserAccountsHandler)
 
 // Restore soft-deleted user - requires ADMIN role
-users.use(restoreUserRoute.path, requireRole('ADMIN'))
+users.use(toHonoPath(restoreUserRoute.path), requireRole('ADMIN'))
 users.openapi(restoreUserRoute, restoreUserHandler)
 
 export { users }
