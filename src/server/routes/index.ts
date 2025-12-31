@@ -5,6 +5,7 @@ import { sessionAuth, accountMiddleware } from '../middleware'
 import { users } from './users'
 import { accounts } from './accounts'
 import { invitationsRouter } from './invitations'
+import { audits } from './audits'
 
 const api = new OpenAPIHono<HonoEnv>()
 
@@ -16,6 +17,7 @@ api.use('/*', accountMiddleware)
 api.route('/users', users)
 api.route('/accounts', accounts)
 api.route('/invitations', invitationsRouter)
+api.route('/audits', audits)
 
 // Register security scheme component (session-based authentication via cookies)
 api.openAPIRegistry.registerComponent('securitySchemes', 'SessionCookie', {
