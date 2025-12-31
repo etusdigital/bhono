@@ -18,7 +18,7 @@ import {
 import { Icons } from '@/components/icons'
 import { useAuth } from '@/hooks/use-auth'
 
-export const Route = createFileRoute('/__authenticated/team')({
+export const Route = createFileRoute('/_authenticated/team')({
   component: TeamPage,
 })
 

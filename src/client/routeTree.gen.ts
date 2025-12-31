@@ -10,23 +10,23 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as _authenticatedRouteImport } from './routes/__authenticated'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as SplatRouteImport } from './routes/$'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
-import { Route as _authenticatedTeamRouteImport } from './routes/__authenticated/team'
-import { Route as _authenticatedSettingsRouteImport } from './routes/__authenticated/settings'
-import { Route as _authenticatedIntegrationsRouteImport } from './routes/__authenticated/integrations'
-import { Route as _authenticatedDashboardRouteImport } from './routes/__authenticated/dashboard'
-import { Route as _authenticatedAccountRouteImport } from './routes/__authenticated/account'
+import { Route as AuthenticatedTeamRouteImport } from './routes/_authenticated/team'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedIntegrationsRouteImport } from './routes/_authenticated/integrations'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const _authenticatedRoute = _authenticatedRouteImport.update({
-  id: '/__authenticated',
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SplatRoute = SplatRouteImport.update({
@@ -44,66 +44,66 @@ const InviteTokenRoute = InviteTokenRouteImport.update({
   path: '/invite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
-const _authenticatedTeamRoute = _authenticatedTeamRouteImport.update({
+const AuthenticatedTeamRoute = AuthenticatedTeamRouteImport.update({
   id: '/team',
   path: '/team',
-  getParentRoute: () => _authenticatedRoute,
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
-const _authenticatedSettingsRoute = _authenticatedSettingsRouteImport.update({
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
-  getParentRoute: () => _authenticatedRoute,
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
-const _authenticatedIntegrationsRoute =
-  _authenticatedIntegrationsRouteImport.update({
+const AuthenticatedIntegrationsRoute =
+  AuthenticatedIntegrationsRouteImport.update({
     id: '/integrations',
     path: '/integrations',
-    getParentRoute: () => _authenticatedRoute,
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
-const _authenticatedDashboardRoute = _authenticatedDashboardRouteImport.update({
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
-  getParentRoute: () => _authenticatedRoute,
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
-const _authenticatedAccountRoute = _authenticatedAccountRouteImport.update({
+const AuthenticatedAccountRoute = AuthenticatedAccountRouteImport.update({
   id: '/account',
   path: '/account',
-  getParentRoute: () => _authenticatedRoute,
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
   '/login': typeof LoginRoute
-  '/account': typeof _authenticatedAccountRoute
-  '/dashboard': typeof _authenticatedDashboardRoute
-  '/integrations': typeof _authenticatedIntegrationsRoute
-  '/settings': typeof _authenticatedSettingsRoute
-  '/team': typeof _authenticatedTeamRoute
+  '/account': typeof AuthenticatedAccountRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/integrations': typeof AuthenticatedIntegrationsRoute
+  '/settings': typeof AuthenticatedSettingsRoute
+  '/team': typeof AuthenticatedTeamRoute
   '/invite/$token': typeof InviteTokenRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
   '/login': typeof LoginRoute
-  '/account': typeof _authenticatedAccountRoute
-  '/dashboard': typeof _authenticatedDashboardRoute
-  '/integrations': typeof _authenticatedIntegrationsRoute
-  '/settings': typeof _authenticatedSettingsRoute
-  '/team': typeof _authenticatedTeamRoute
+  '/account': typeof AuthenticatedAccountRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/integrations': typeof AuthenticatedIntegrationsRoute
+  '/settings': typeof AuthenticatedSettingsRoute
+  '/team': typeof AuthenticatedTeamRoute
   '/invite/$token': typeof InviteTokenRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
-  '/__authenticated': typeof _authenticatedRouteWithChildren
+  '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
-  '/__authenticated/account': typeof _authenticatedAccountRoute
-  '/__authenticated/dashboard': typeof _authenticatedDashboardRoute
-  '/__authenticated/integrations': typeof _authenticatedIntegrationsRoute
-  '/__authenticated/settings': typeof _authenticatedSettingsRoute
-  '/__authenticated/team': typeof _authenticatedTeamRoute
+  '/_authenticated/account': typeof AuthenticatedAccountRoute
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/integrations': typeof AuthenticatedIntegrationsRoute
+  '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/_authenticated/team': typeof AuthenticatedTeamRoute
   '/invite/$token': typeof InviteTokenRoute
 }
 export interface FileRouteTypes {
@@ -133,20 +133,20 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/$'
-    | '/__authenticated'
+    | '/_authenticated'
     | '/login'
-    | '/__authenticated/account'
-    | '/__authenticated/dashboard'
-    | '/__authenticated/integrations'
-    | '/__authenticated/settings'
-    | '/__authenticated/team'
+    | '/_authenticated/account'
+    | '/_authenticated/dashboard'
+    | '/_authenticated/integrations'
+    | '/_authenticated/settings'
+    | '/_authenticated/team'
     | '/invite/$token'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SplatRoute: typeof SplatRoute
-  _authenticatedRoute: typeof _authenticatedRouteWithChildren
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   LoginRoute: typeof LoginRoute
   InviteTokenRoute: typeof InviteTokenRoute
 }
@@ -160,11 +160,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/__authenticated': {
-      id: '/__authenticated'
+    '/_authenticated': {
+      id: '/_authenticated'
       path: ''
       fullPath: ''
-      preLoaderRoute: typeof _authenticatedRouteImport
+      preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$': {
@@ -188,68 +188,68 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/__authenticated/team': {
-      id: '/__authenticated/team'
+    '/_authenticated/team': {
+      id: '/_authenticated/team'
       path: '/team'
       fullPath: '/team'
-      preLoaderRoute: typeof _authenticatedTeamRouteImport
-      parentRoute: typeof _authenticatedRoute
+      preLoaderRoute: typeof AuthenticatedTeamRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
-    '/__authenticated/settings': {
-      id: '/__authenticated/settings'
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
       path: '/settings'
       fullPath: '/settings'
-      preLoaderRoute: typeof _authenticatedSettingsRouteImport
-      parentRoute: typeof _authenticatedRoute
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
-    '/__authenticated/integrations': {
-      id: '/__authenticated/integrations'
+    '/_authenticated/integrations': {
+      id: '/_authenticated/integrations'
       path: '/integrations'
       fullPath: '/integrations'
-      preLoaderRoute: typeof _authenticatedIntegrationsRouteImport
-      parentRoute: typeof _authenticatedRoute
+      preLoaderRoute: typeof AuthenticatedIntegrationsRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
-    '/__authenticated/dashboard': {
-      id: '/__authenticated/dashboard'
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
-      preLoaderRoute: typeof _authenticatedDashboardRouteImport
-      parentRoute: typeof _authenticatedRoute
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
-    '/__authenticated/account': {
-      id: '/__authenticated/account'
+    '/_authenticated/account': {
+      id: '/_authenticated/account'
       path: '/account'
       fullPath: '/account'
-      preLoaderRoute: typeof _authenticatedAccountRouteImport
-      parentRoute: typeof _authenticatedRoute
+      preLoaderRoute: typeof AuthenticatedAccountRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
   }
 }
 
-interface _authenticatedRouteChildren {
-  _authenticatedAccountRoute: typeof _authenticatedAccountRoute
-  _authenticatedDashboardRoute: typeof _authenticatedDashboardRoute
-  _authenticatedIntegrationsRoute: typeof _authenticatedIntegrationsRoute
-  _authenticatedSettingsRoute: typeof _authenticatedSettingsRoute
-  _authenticatedTeamRoute: typeof _authenticatedTeamRoute
+interface AuthenticatedRouteChildren {
+  AuthenticatedAccountRoute: typeof AuthenticatedAccountRoute
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedIntegrationsRoute: typeof AuthenticatedIntegrationsRoute
+  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
+  AuthenticatedTeamRoute: typeof AuthenticatedTeamRoute
 }
 
-const _authenticatedRouteChildren: _authenticatedRouteChildren = {
-  _authenticatedAccountRoute: _authenticatedAccountRoute,
-  _authenticatedDashboardRoute: _authenticatedDashboardRoute,
-  _authenticatedIntegrationsRoute: _authenticatedIntegrationsRoute,
-  _authenticatedSettingsRoute: _authenticatedSettingsRoute,
-  _authenticatedTeamRoute: _authenticatedTeamRoute,
+const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedAccountRoute: AuthenticatedAccountRoute,
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedIntegrationsRoute: AuthenticatedIntegrationsRoute,
+  AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
+  AuthenticatedTeamRoute: AuthenticatedTeamRoute,
 }
 
-const _authenticatedRouteWithChildren = _authenticatedRoute._addFileChildren(
-  _authenticatedRouteChildren,
+const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
+  AuthenticatedRouteChildren,
 )
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SplatRoute: SplatRoute,
-  _authenticatedRoute: _authenticatedRouteWithChildren,
+  AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LoginRoute: LoginRoute,
   InviteTokenRoute: InviteTokenRoute,
 }

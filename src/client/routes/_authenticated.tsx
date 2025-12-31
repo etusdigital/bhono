@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
 import { Sidebar } from '@/components/sidebar'
 
-export const Route = createFileRoute('/__authenticated')({
+export const Route = createFileRoute('/_authenticated')({
   beforeLoad: async () => {
     const res = await fetch('/auth/me', { credentials: 'include' })
     if (!res.ok) {

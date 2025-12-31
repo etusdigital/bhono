@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Icons } from '@/components/icons'
 import { useAuth } from '@/hooks/use-auth'
 
-export const Route = createFileRoute('/__authenticated/dashboard')({
+export const Route = createFileRoute('/_authenticated/dashboard')({
   component: DashboardPage,
 })
 

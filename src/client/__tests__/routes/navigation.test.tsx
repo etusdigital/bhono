@@ -47,9 +47,9 @@ describe('Navigation', () => {
       const teamLink = screen.getByRole('link', { name: /team/i })
       await user.click(teamLink)
 
-      // Sidebar links use /__authenticated prefix paths
+      // Sidebar links use clean paths (pathless layout route)
       await waitFor(() => {
-        expect(router.state.location.pathname).toBe('/__authenticated/team')
+        expect(router.state.location.pathname).toBe('/team')
       })
     })
 
@@ -67,7 +67,7 @@ describe('Navigation', () => {
       await user.click(settingsLink)
 
       await waitFor(() => {
-        expect(router.state.location.pathname).toBe('/__authenticated/settings')
+        expect(router.state.location.pathname).toBe('/settings')
       })
     })
 
@@ -85,7 +85,7 @@ describe('Navigation', () => {
       await user.click(integrationsLink)
 
       await waitFor(() => {
-        expect(router.state.location.pathname).toBe('/__authenticated/integrations')
+        expect(router.state.location.pathname).toBe('/integrations')
       })
     })
 
@@ -103,7 +103,7 @@ describe('Navigation', () => {
       await user.click(accountLink)
 
       await waitFor(() => {
-        expect(router.state.location.pathname).toBe('/__authenticated/account')
+        expect(router.state.location.pathname).toBe('/account')
       })
     })
   })

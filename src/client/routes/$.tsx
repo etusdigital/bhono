@@ -47,7 +47,7 @@ function NotFoundPage() {
               </Link>
             </Button>
             <Button variant="outline" asChild>
-              <Link to="/__authenticated/dashboard">
+              <Link to="/dashboard">
                 <Icons.dashboard className="mr-2 h-4 w-4" />
                 Go to Dashboard
               </Link>

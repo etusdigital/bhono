@@ -18,7 +18,7 @@ import {
 import { Icons } from '@/components/icons'
 import { useAuth } from '@/hooks/use-auth'
 
-export const Route = createFileRoute('/__authenticated/account')({
+export const Route = createFileRoute('/_authenticated/account')({
   component: AccountPage,
 })
 

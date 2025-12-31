@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Icons } from '@/components/icons'
 import { useAuth } from '@/hooks/use-auth'
 
-export const Route = createFileRoute('/__authenticated/settings')({
+export const Route = createFileRoute('/_authenticated/settings')({
   component: SettingsPage,
 })
 

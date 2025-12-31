@@ -95,7 +95,7 @@ function AcceptInvitationPage() {
             </CardHeader>
             <CardContent>
               <Button asChild className="w-full">
-                <Link to="/__authenticated/dashboard">Go to Dashboard</Link>
+                <Link to="/dashboard">Go to Dashboard</Link>
               </Button>
             </CardContent>
           </Card>

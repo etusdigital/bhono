@@ -43,7 +43,7 @@ describe("Sidebar", () => {
       isLoading: false,
     })
     ;(useLocation as Mock).mockReturnValue({
-      pathname: "/__authenticated/dashboard",
+      pathname: "/dashboard",
     })
   })
 
@@ -75,14 +75,14 @@ describe("Sidebar", () => {
 
   it("highlights active route", () => {
     ;(useLocation as Mock).mockReturnValue({
-      pathname: "/__authenticated/dashboard",
+      pathname: "/dashboard",
     })
 
     render(<Sidebar />)
 
     // The active nav item link should have the active class (bg-sidebar-accent)
     // There are two links to dashboard (logo and nav item), get all and check the nav item
-    const dashboardLinks = screen.getAllByTestId("link-/__authenticated/dashboard")
+    const dashboardLinks = screen.getAllByTestId("link-/dashboard")
     // The nav item link has rounded-lg class (not the logo link)
     const navItemLink = dashboardLinks.find((link) => link.classList.contains("rounded-lg"))
     expect(navItemLink).toHaveClass("bg-sidebar-accent")
@@ -95,8 +95,8 @@ describe("Sidebar", () => {
     expect(teamLink).toBeInTheDocument()
 
     // Team link should be clickable
-    const teamNavItem = screen.getByTestId("link-/__authenticated/team")
-    expect(teamNavItem).toHaveAttribute("href", "/__authenticated/team")
+    const teamNavItem = screen.getByTestId("link-/team")
+    expect(teamNavItem).toHaveAttribute("href", "/team")
   })
 
   it("handles logout button click", async () => {

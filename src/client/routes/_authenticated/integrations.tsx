@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/dialog'
 import { Icons } from '@/components/icons'
 
-export const Route = createFileRoute('/__authenticated/integrations')({
+export const Route = createFileRoute('/_authenticated/integrations')({
   component: IntegrationsPage,
 })
 

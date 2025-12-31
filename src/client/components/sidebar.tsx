@@ -12,14 +12,14 @@ interface SidebarProps {
 }
 
 const mainNavItems = [
-  { to: '/__authenticated/dashboard', label: 'Dashboard', icon: Icons.dashboard },
-  { to: '/__authenticated/team', label: 'Team', icon: Icons.users },
-  { to: '/__authenticated/integrations', label: 'Integrations', icon: Icons.blocks },
+  { to: '/dashboard', label: 'Dashboard', icon: Icons.dashboard },
+  { to: '/team', label: 'Team', icon: Icons.users },
+  { to: '/integrations', label: 'Integrations', icon: Icons.blocks },
 ]
 
 const accountNavItems = [
-  { to: '/__authenticated/account', label: 'Account', icon: Icons.user },
-  { to: '/__authenticated/settings', label: 'Settings', icon: Icons.settings },
+  { to: '/account', label: 'Account', icon: Icons.user },
+  { to: '/settings', label: 'Settings', icon: Icons.settings },
 ]
 
 export function Sidebar({ defaultCollapsed = false }: SidebarProps) {
@@ -59,7 +59,7 @@ export function Sidebar({ defaultCollapsed = false }: SidebarProps) {
         isCollapsed ? "justify-center" : "justify-between"
       )}>
         <Link
-          to="/__authenticated/dashboard"
+          to="/dashboard"
           className={cn(
             "flex items-center gap-2 font-semibold transition-opacity",
             isCollapsed && "justify-center"
