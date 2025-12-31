@@ -178,5 +178,104 @@ test.describe('Critical User Journeys @critical', () => {
       await waitForNavigation(page, '/dashboard')
       await expect(page).toHaveURL(/dashboard/)
     })
+
+    test('should complete settings profile update journey', async ({ page }) => {
+      // Navigate to settings page
+      await page.goto('/settings')
+      await expect(page.getByRole('heading', { name: /settings/i })).toBeVisible()
+
+      // Ensure Profile tab is active
+      const profileTab = page.getByRole('tab', { name: /profile/i })
+      await expect(profileTab).toBeVisible()
+
+      // Get the name input and store original value
+      const nameInput = page.getByLabel(/full name/i)
+      await expect(nameInput).toBeVisible()
+      const originalName = await nameInput.inputValue()
+
+      // Update name with new value
+      const testName = 'Test User Updated'
+      await nameInput.clear()
+      await nameInput.fill(testName)
+
+      // Click save button
+      const saveButton = page.getByRole('button', { name: /save changes/i })
+      await expect(saveButton).toBeVisible()
+      await saveButton.click()
+
+      // Wait for update to complete (button should not show spinner after)
+      await expect(saveButton).toBeEnabled({ timeout: 5000 })
+
+      // Verify we stayed on the settings page
+      await expect(page).toHaveURL(/settings/)
+      await expect(page.getByRole('heading', { name: /settings/i })).toBeVisible()
+
+      // Restore original value
+      await nameInput.clear()
+      await nameInput.fill(originalName || '')
+      await saveButton.click()
+      await expect(saveButton).toBeEnabled({ timeout: 5000 })
+    })
+
+    test('should complete webhook creation journey', async ({ page }) => {
+      // Navigate to integrations page
+      await page.goto('/integrations')
+      await expect(page.getByRole('heading', { name: 'Integrations', exact: true })).toBeVisible()
+
+      // Click Add Webhook button
+      const addWebhookButton = page.getByRole('button', { name: 'Add Webhook' }).first()
+      await expect(addWebhookButton).toBeVisible()
+      await addWebhookButton.click()
+
+      // Verify dialog opened (check for Create Webhook heading)
+      const createWebhookHeading = page.getByRole('heading', { name: /create webhook/i })
+      await expect(createWebhookHeading).toBeVisible()
+
+      // Fill webhook URL
+      const urlInput = page.getByPlaceholder('https://api.example.com/webhooks')
+      await expect(urlInput).toBeVisible()
+      await urlInput.fill('https://api.test.com/webhook')
+
+      // Select User Created event
+      const userCreatedEvent = page.getByRole('button', { name: 'User Created' })
+      await expect(userCreatedEvent).toBeVisible()
+      await userCreatedEvent.click()
+
+      // Verify create button is now enabled (URL filled and event selected)
+      const createButton = page.getByRole('button', { name: 'Create Webhook', exact: true })
+      await expect(createButton).toBeEnabled()
+
+      // Cancel to avoid test data pollution
+      const cancelButton = page.getByRole('button', { name: 'Cancel' })
+      await cancelButton.click()
+      await expect(createWebhookHeading).not.toBeVisible()
+    })
+
+    test('should verify account security check journey', async ({ page }) => {
+      // Navigate to account page
+      await page.goto('/account')
+      await expect(page.getByRole('heading', { name: /^account$/i })).toBeVisible()
+
+      // Verify Security section is visible
+      await expect(page.getByRole('heading', { name: /^security$/i })).toBeVisible()
+      await expect(page.getByText(/two-factor authentication/i)).toBeVisible()
+
+      // Verify Connected Accounts section with Google
+      await expect(page.getByRole('heading', { name: /connected accounts/i })).toBeVisible()
+      await expect(page.getByText('Google')).toBeVisible()
+      // Verify Google shows as Connected (find the Connected badge near Google)
+      const connectedAccountsSection = page.locator('section').filter({ hasText: 'Connected Accounts' })
+      await expect(connectedAccountsSection.getByText('Connected').first()).toBeVisible()
+
+      // Verify Active Sessions section with current session
+      await expect(page.getByRole('heading', { name: /active sessions/i })).toBeVisible()
+      await expect(page.getByText('Current', { exact: true })).toBeVisible()
+
+      // Verify API Access section with Create Key button
+      await expect(page.getByRole('heading', { name: /api access/i })).toBeVisible()
+      const createKeyButton = page.getByRole('button', { name: /create key/i })
+      await expect(createKeyButton).toBeVisible()
+      await expect(createKeyButton).toBeEnabled()
+    })
   })
 })
