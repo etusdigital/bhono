@@ -318,5 +318,78 @@ describe('invitationsService', () => {
       // Verify insert was called to create invitation
       expect(mockDb.insert).toHaveBeenCalled()
     })
+
+    it('should throw ConflictError when pending invitation already exists', async () => {
+      // Helper to create mocked select chains
+      const createSelectMock = () => {
+        let selectCallCount = 0
+
+        // Call 1: check membership (empty - user not in account)
+        const emptyMembershipChain = {
+          from: vi.fn().mockReturnValue({
+            innerJoin: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue([]),
+              }),
+            }),
+          }),
+        }
+
+        // Call 2: check if user exists (empty - user doesn't exist)
+        const emptyUserChain = {
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue([]),
+            }),
+          }),
+        }
+
+        // Call 3: check for existing pending invitation (returns existing invitation)
+        const existingInvitationChain = {
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue([
+                {
+                  id: 'existing-inv-1',
+                  accountId: ctx.accountId,
+                  email: 'pending@test.com',
+                  role: 'VIEWER',
+                  expiresAt: '2025-12-31T00:00:00Z',
+                  acceptedAt: null,
+                },
+              ]),
+            }),
+          }),
+        }
+
+        return vi.fn().mockImplementation(() => {
+          selectCallCount++
+          if (selectCallCount === 1) {
+            return emptyMembershipChain
+          }
+          if (selectCallCount === 2) {
+            return emptyUserChain
+          }
+          return existingInvitationChain
+        })
+      }
+
+      mockDb.select = createSelectMock()
+      await expect(
+        invitationsService.create(mockDb, mockEnv, ctx, {
+          email: 'pending@test.com',
+          role: 'VIEWER',
+        })
+      ).rejects.toThrow(ConflictError)
+
+      // Reset mock for second assertion
+      mockDb.select = createSelectMock()
+      await expect(
+        invitationsService.create(mockDb, mockEnv, ctx, {
+          email: 'pending@test.com',
+          role: 'VIEWER',
+        })
+      ).rejects.toThrow('Pending invitation already exists for this email')
+    })
   })
 })
