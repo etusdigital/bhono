@@ -89,11 +89,17 @@ export function decodeIdToken(idToken: string): GoogleUserInfo {
     throw new Error('Invalid ID token format')
   }
 
-  // Decode base64url payload (same approach as OAuth Gateway)
-  // Simply replace base64url chars and decode - atob handles missing padding
-  const payload = JSON.parse(
-    atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'))
-  )
+  // Decode base64url payload with UTF-8 support
+  // 1. Convert base64url to standard base64
+  const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+  // 2. Decode to binary string (Latin-1 code points 0-255)
+  const binary = atob(base64)
+  // 3. Convert binary string to Uint8Array
+  const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0))
+  // 4. Decode as UTF-8 to handle multi-byte characters
+  const jsonStr = new TextDecoder('utf-8').decode(bytes)
+  // 5. Parse JSON
+  const payload = JSON.parse(jsonStr)
 
   return {
     sub: payload.sub,

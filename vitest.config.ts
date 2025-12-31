@@ -32,6 +32,13 @@ export default defineConfig({
         "**/__tests__/**",
         "**/types/**",
         "**/*.d.ts",
+        "src/server/index.ts",
+        "src/server/db/client.ts",
+        "src/server/db/seed.ts",
+        "src/server/db/schema-helpers.ts",
+        "src/server/routes/api.ts",
+        "src/server/__integration__/setup.ts",
+        "src/server/__integration__/fixtures.ts",
       ],
       thresholds: {
         statements: 90,

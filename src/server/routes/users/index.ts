@@ -35,13 +35,22 @@ function toHonoPath(openApiPath: string): string {
 // List users - requires VIEWER role or higher
 users.openapi(listUsersRoute, listUsersHandler)
 
-// Get user - requires VIEWER role or higher
-users.openapi(getUserRoute, getUserHandler)
-
 // NOTE: User creation route is disabled - users should only be created through Google OAuth
 // Create user - requires ADMIN role
 // users.use(toHonoPath(createUserRoute.path), requireRole('ADMIN'))
 // users.openapi(createUserRoute, createUserHandler)
+
+// Bulk User-Account Operations - register BEFORE /:id routes to prevent wildcard matching
+// Create user-account relationships - requires MANAGER role or higher
+users.use(toHonoPath(createBulkUserAccountsRoute.path), requireRole('MANAGER'))
+users.openapi(createBulkUserAccountsRoute, createBulkUserAccountsHandler)
+
+// Delete user-account relationships - requires MANAGER role or higher
+users.use(toHonoPath(deleteBulkUserAccountsRoute.path), requireRole('MANAGER'))
+users.openapi(deleteBulkUserAccountsRoute, deleteBulkUserAccountsHandler)
+
+// Get user - requires VIEWER role or higher
+users.openapi(getUserRoute, getUserHandler)
 
 // Update user - requires MANAGER role or higher
 users.use(toHonoPath(updateUserRoute.path), requireRole('MANAGER'))
@@ -50,15 +59,6 @@ users.openapi(updateUserRoute, updateUserHandler)
 // Delete user - requires ADMIN role
 users.use(toHonoPath(deleteUserRoute.path), requireRole('ADMIN'))
 users.openapi(deleteUserRoute, deleteUserHandler)
-
-// Bulk User-Account Operations
-// Create user-account relationships - requires MANAGER role or higher
-users.use(toHonoPath(createBulkUserAccountsRoute.path), requireRole('MANAGER'))
-users.openapi(createBulkUserAccountsRoute, createBulkUserAccountsHandler)
-
-// Delete user-account relationships - requires MANAGER role or higher
-users.use(toHonoPath(deleteBulkUserAccountsRoute.path), requireRole('MANAGER'))
-users.openapi(deleteBulkUserAccountsRoute, deleteBulkUserAccountsHandler)
 
 // Restore soft-deleted user - requires ADMIN role
 users.use(toHonoPath(restoreUserRoute.path), requireRole('ADMIN'))
