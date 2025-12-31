@@ -358,14 +358,31 @@ describe('authService', () => {
       const mockDb = createMockDb(existingUser)
       const googleUser = createGoogleUserInfo()
 
+      // Track refreshTokens insert values
+      let refreshTokenValues: any = null
+      const originalInsert = mockDb.insert
+      mockDb.insert = vi.fn().mockImplementation((table: any) => {
+        const result = originalInsert(table)
+        // Capture the values for refreshTokens table
+        return {
+          values: vi.fn().mockImplementation((values: any) => {
+            // For existing user, the only insert is refreshTokens
+            refreshTokenValues = values
+            return { returning: vi.fn().mockResolvedValue([values]) }
+          }),
+        }
+      })
+
       // Act
       await authService.findOrCreateUser(mockDb, mockEnv, googleUser, mockCtx)
 
-      // Assert - verify refresh token insert was called
+      // Assert - verify refresh token insert was called with correct values
       expect(mockDb.insert).toHaveBeenCalled()
-      // The last insert should be for refreshTokens
-      const insertCalls = mockDb.insert.mock.calls
-      expect(insertCalls.length).toBeGreaterThan(0)
+      expect(refreshTokenValues).toEqual(expect.objectContaining({
+        userId: existingUser.id,
+        tokenHash: 'hashed-token',
+        expiresAt: new Date('2025-01-07T00:00:00Z'),
+      }))
     })
 
     it('should create personal account for new user', async () => {
@@ -388,10 +405,13 @@ describe('authService', () => {
 
       // Track userAccounts insert
       let userAccountsValues: any = null
+      let insertCallCount = 0
       const originalInsert = mockDb.insert
       mockDb.insert = vi.fn().mockImplementation((table: any) => {
+        insertCallCount++
         const result = originalInsert(table)
-        if (table?.name === 'userAccounts' || table?.toString()?.includes('user_accounts')) {
+        // Third insert is userAccounts (1=users, 2=accounts, 3=userAccounts, 4=refreshTokens)
+        if (insertCallCount === 3) {
           return {
             values: vi.fn().mockImplementation((values: any) => {
               userAccountsValues = values
@@ -407,6 +427,11 @@ describe('authService', () => {
 
       // Assert - verify at least 4 inserts happened (user, account, userAccount, refreshToken)
       expect(mockDb.insert).toHaveBeenCalledTimes(4)
+
+      // Assert - verify userAccounts was created with EDITOR role
+      expect(userAccountsValues).toEqual(expect.objectContaining({
+        role: 'EDITOR',
+      }))
     })
 
     it('should handle user with no avatar (picture undefined)', async () => {
