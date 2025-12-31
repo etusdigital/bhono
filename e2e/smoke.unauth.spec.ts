@@ -115,6 +115,20 @@ test.describe('API Smoke Tests @smoke', () => {
     expect(body).toHaveProperty('openapi')
     expect(body).toHaveProperty('info')
   })
+
+  test('auth/me returns 401 without session', async ({ request, baseURL }) => {
+    const response = await request.get(`${baseURL}/api/auth/me`, {
+      failOnStatusCode: false,
+    })
+
+    const contentType = response.headers()['content-type'] || ''
+    if (!contentType.includes('application/json')) {
+      test.skip(true, 'API not available')
+      return
+    }
+
+    expect(response.status()).toBe(401)
+  })
 })
 
 test.describe('Navigation Smoke Tests @smoke', () => {
@@ -126,5 +140,57 @@ test.describe('Navigation Smoke Tests @smoke', () => {
     // Login
     await page.goto('/login')
     await expect(page.getByText('Welcome back')).toBeVisible()
+  })
+})
+
+test.describe('Static Assets Smoke @smoke', () => {
+  test('index.html loads successfully', async ({ request, baseURL }) => {
+    const response = await request.get(`${baseURL}/`)
+
+    expect(response.ok()).toBeTruthy()
+
+    const contentType = response.headers()['content-type'] || ''
+    expect(contentType).toContain('text/html')
+
+    const body = await response.text()
+    // Check for doctype (case-insensitive)
+    expect(body.toLowerCase()).toContain('<!doctype html>')
+    expect(body).toContain('<html')
+  })
+
+  test('CSS/JS assets load without errors', async ({ page }) => {
+    const consoleErrors: string[] = []
+
+    // Listen for console errors related to missing assets
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') {
+        const text = msg.text()
+        // Capture errors related to loading assets
+        if (
+          text.includes('Failed to load') ||
+          text.includes('net::ERR') ||
+          text.includes('404')
+        ) {
+          consoleErrors.push(text)
+        }
+      }
+    })
+
+    // Listen for failed network requests
+    page.on('requestfailed', (request) => {
+      const resourceType = request.resourceType()
+      if (resourceType === 'stylesheet' || resourceType === 'script') {
+        consoleErrors.push(`Failed to load ${resourceType}: ${request.url()}`)
+      }
+    })
+
+    await page.goto('/')
+    await expect(page.locator('body')).toBeVisible()
+
+    // Wait a bit for any async asset loads
+    await page.waitForLoadState('networkidle')
+
+    // Verify no critical asset errors
+    expect(consoleErrors).toHaveLength(0)
   })
 })
