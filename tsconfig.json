@@ -15,7 +15,6 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "sourceMap": true,
     "types": ["@cloudflare/workers-types", "vite/client"],
     "paths": {
       "@/*": ["./src/client/*"],
