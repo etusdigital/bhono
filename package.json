@@ -2,6 +2,7 @@
   "name": "hono-boilerplate",
   "version": "1.0.0",
   "type": "module",
+  "workspaces": ["packages/*"],
   "scripts": {
     "dev": "vite",
     "build": "vite build",
