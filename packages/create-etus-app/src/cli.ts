@@ -21,38 +21,8 @@ const DEFAULT_OPTIONS: Partial<CLIOptions> = {
   interactive: true,
 }
 
-export function parseArgs(args: string[]): CLIOptions {
-  const program = new Command()
-    .name('create-etus-app')
-    .description('Create a new project from the Etus boilerplate')
-    .version('0.1.0')
-    .argument('<project-name>', 'Name of the project')
-    .option('-d, --domain <domain>', 'Production domain')
-    .option('-m, --modules <modules>', 'Comma-separated modules to include')
-    .option('--auth <provider>', 'Auth provider: google, github, email', 'google')
-    .option('--email <provider>', 'Email provider: sendgrid, resend', 'sendgrid')
-    .option('--github <visibility>', 'Create GitHub repo: public, private, none', 'none')
-    .option('--provision', 'Provision Cloudflare resources', false)
-    .option('-y, --yes', 'Skip prompts, use defaults', false)
-    .parse(['node', 'create-etus-app', ...args])
-
-  const opts = program.opts()
-  const projectName = program.args[0]
-
-  return {
-    ...DEFAULT_OPTIONS,
-    projectName,
-    domain: opts.domain,
-    modules: opts.modules ? opts.modules.split(',') : [],
-    auth: opts.auth,
-    email: opts.email,
-    github: opts.github,
-    provision: opts.provision,
-    interactive: !opts.yes,
-  } as CLIOptions
-}
-
-export function createCLI(): Command {
+// Single source of truth for CLI definition
+function buildProgram(): Command {
   return new Command()
     .name('create-etus-app')
     .description('Create a new project from the Etus boilerplate')
@@ -65,4 +35,28 @@ export function createCLI(): Command {
     .option('--github <visibility>', 'Create GitHub repo: public, private, none', 'none')
     .option('--provision', 'Provision Cloudflare resources', false)
     .option('-y, --yes', 'Skip prompts, use defaults', false)
+}
+
+export function parseArgs(args: string[]): CLIOptions {
+  const program = buildProgram()
+    .parse(['node', 'create-etus-app', ...args])
+
+  const opts = program.opts()
+  const projectName = program.args[0]
+
+  return {
+    ...DEFAULT_OPTIONS,
+    projectName,
+    domain: opts.domain,
+    modules: opts.modules ? opts.modules.split(',').map((m: string) => m.trim()) : [],
+    auth: opts.auth,
+    email: opts.email,
+    github: opts.github,
+    provision: opts.provision,
+    interactive: !opts.yes,
+  } as CLIOptions
+}
+
+export function createCLI(): Command {
+  return buildProgram()
 }
