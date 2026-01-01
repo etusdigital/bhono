@@ -41,5 +41,35 @@
     "APP_URL": "https://hono-boilerplate.a3s.workers.dev",
     "GOOGLE_REDIRECT_URI": "https://hono-boilerplate.a3s.workers.dev/auth/callback",
     "R2_PUBLIC_URL": "https://pub-your-bucket-id.r2.dev"
+  },
+  "env": {
+    "staging": {
+      "name": "hono-boilerplate-staging",
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "boilerplate-db-staging",
+          "database_id": "2fe5e1b5-8168-4024-9060-be7972380228"
+        }
+      ],
+      "kv_namespaces": [
+        {
+          "binding": "SESSIONS",
+          "id": "c341542f0efd466a93b65e6cadf1f9ba"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "R2_BUCKET",
+          "bucket_name": "boilerplate-storage-staging"
+        }
+      ],
+      "vars": {
+        "ENVIRONMENT": "staging",
+        "APP_URL": "https://hono-boilerplate-staging.a3s.workers.dev",
+        "GOOGLE_REDIRECT_URI": "https://hono-boilerplate-staging.a3s.workers.dev/auth/callback",
+        "R2_PUBLIC_URL": "https://pub-your-bucket-id.r2.dev"
+      }
+    }
   }
 }
