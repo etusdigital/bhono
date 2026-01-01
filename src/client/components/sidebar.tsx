@@ -25,9 +25,15 @@ const accountNavItems = [
 
 export function Sidebar({ defaultCollapsed = false }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed)
+  const [isMac, setIsMac] = useState(false)
   const { user, logout, isLoggingOut } = useAuth()
   const location = useLocation()
   const { theme, setTheme, resolvedTheme } = useTheme()
+
+  // Detect platform for keyboard shortcut display
+  useEffect(() => {
+    setIsMac(navigator.platform.toUpperCase().includes('MAC'))
+  }, [])
 
   const initials = user?.name
     ?.split(' ')
@@ -163,7 +169,9 @@ export function Sidebar({ defaultCollapsed = false }: SidebarProps) {
         </Button>
         {!isCollapsed && (
           <p className="text-xs text-sidebar-foreground/40">
-            <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-sidebar-accent rounded">⌘B</kbd>
+            <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-sidebar-accent rounded">
+              {isMac ? '⌘' : 'Ctrl+'}B
+            </kbd>
             {' '}collapse
           </p>
         )}

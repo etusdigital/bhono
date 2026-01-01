@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Icons } from '@/components/icons'
@@ -8,7 +9,10 @@ export const Route = createFileRoute('/login')({
 })
 
 function LoginPage() {
+  const [isLoading, setIsLoading] = useState(false)
+
   const handleLogin = () => {
+    setIsLoading(true)
     window.location.href = '/auth/login'
   }
 
@@ -38,9 +42,14 @@ function LoginPage() {
               variant="outline"
               className="w-full"
               onClick={handleLogin}
+              disabled={isLoading}
             >
-              <Icons.google className="mr-2 h-4 w-4" />
-              Continue with Google
+              {isLoading ? (
+                <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Icons.google className="mr-2 h-4 w-4" />
+              )}
+              {isLoading ? 'Redirecting...' : 'Continue with Google'}
             </Button>
 
             <div className="relative">
