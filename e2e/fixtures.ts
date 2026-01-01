@@ -1,74 +1,128 @@
-import { test as base, expect, type Page } from '@playwright/test'
+import { test as base, expect, type Page, type BrowserContext } from '@playwright/test'
+import * as fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const authFile = path.join(__dirname, '.auth/user.json')
+const accountFile = path.join(__dirname, '.auth/account.json')
 
 /**
- * Custom fixtures for boilerplate E2E tests
+ * Custom Playwright fixtures for authenticated testing
+ *
+ * KEY PRINCIPLE: If storageState is configured, tests ARE authenticated.
+ * No need for runtime checks - trust the configuration.
  */
 
 type CustomFixtures = {
-  /** Page that is already authenticated via storageState */
+  /**
+   * Verified authenticated page.
+   * Navigates to dashboard and verifies auth before returning.
+   * Use when you need GUARANTEED auth state.
+   */
   authedPage: Page
 
-  /** API helper for test data setup/teardown */
+  /**
+   * Account ID from auth setup (for API requests)
+   */
+  accountId: string | null
+
+  /**
+   * API helper with account-id header pre-configured
+   */
   api: {
-    createUser: (data: { email: string; name: string }) => Promise<{ id: string }>
-    deleteUser: (id: string) => Promise<void>
+    get: (url: string) => Promise<Response>
+    post: (url: string, data?: unknown) => Promise<Response>
+    put: (url: string, data?: unknown) => Promise<Response>
+    patch: (url: string, data?: unknown) => Promise<Response>
+    delete: (url: string) => Promise<Response>
   }
 }
 
+/**
+ * Check if auth file exists and has valid cookies
+ */
+function hasValidAuthFile(): boolean {
+  try {
+    if (!fs.existsSync(authFile)) return false
+    const data = JSON.parse(fs.readFileSync(authFile, 'utf-8'))
+    return data.cookies && data.cookies.length > 0
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Get account ID from auth setup
+ */
+function getAccountIdFromFile(): string | null {
+  try {
+    if (fs.existsSync(accountFile)) {
+      const data = JSON.parse(fs.readFileSync(accountFile, 'utf-8'))
+      return data.accountId || null
+    }
+  } catch {
+    // Ignore errors
+  }
+  return null
+}
+
 export const test = base.extend<CustomFixtures>({
+  /**
+   * Verified authenticated page fixture.
+   * - Navigates to a protected route
+   * - Verifies we're NOT redirected to login
+   * - Returns the page ready for testing
+   */
   authedPage: async ({ page }, use) => {
-    // storageState is configured in the project, so page is already authenticated
+    // Navigate to dashboard to verify auth works
+    await page.goto('/dashboard')
+
+    // If redirected to login, auth failed
+    const url = page.url()
+    if (url.includes('/login')) {
+      throw new Error(
+        'Authentication failed: redirected to login. ' +
+        'Make sure auth setup ran successfully and storageState is configured.'
+      )
+    }
+
     await use(page)
   },
 
-  api: async ({ request }, use) => {
-    const createdUserIds: string[] = []
+  /**
+   * Account ID fixture - read once, use in all tests
+   */
+  accountId: async ({}, use) => {
+    await use(getAccountIdFromFile())
+  },
+
+  /**
+   * API helper with automatic account-id header
+   */
+  api: async ({ request, accountId }, use) => {
+    const headers = accountId ? { 'account-id': accountId } : {}
 
     await use({
-      createUser: async (data) => {
-        const response = await request.post('/api/users', {
-          data,
-        })
-        const user = await response.json()
-        createdUserIds.push(user.id)
-        return user
-      },
-
-      deleteUser: async (id) => {
-        await request.delete(`/api/users/${id}`)
-      },
+      get: (url: string) => request.get(url, { headers }),
+      post: (url: string, data?: unknown) => request.post(url, { data, headers }),
+      put: (url: string, data?: unknown) => request.put(url, { data, headers }),
+      patch: (url: string, data?: unknown) => request.patch(url, { data, headers }),
+      delete: (url: string) => request.delete(url, { headers }),
     })
-
-    // Cleanup: delete all created users after test
-    for (const id of createdUserIds) {
-      try {
-        await request.delete(`/api/users/${id}`)
-      } catch {
-        // Ignore cleanup errors
-      }
-    }
   },
 })
 
 export { expect }
+
+// Re-export useful types
+export type { Page, BrowserContext }
 
 /**
  * Helper to wait for page navigation to complete
  */
 export async function waitForNavigation(page: Page, path: string) {
   await page.waitForURL(`**${path}**`, { waitUntil: 'domcontentloaded' })
-}
-
-/**
- * Helper to check if user is authenticated
- */
-export async function isAuthenticated(page: Page): Promise<boolean> {
-  try {
-    const response = await page.request.get('/auth/me')
-    return response.ok()
-  } catch {
-    return false
-  }
 }
 
 /**
@@ -85,14 +139,17 @@ export async function waitForToast(page: Page, text?: string | RegExp) {
 
 /**
  * Close all open dialogs by pressing Escape
+ * Uses web-first assertions instead of arbitrary waits
  */
 export async function closeAllDialogs(page: Page) {
   const dialogs = page.getByRole('dialog')
-  const count = await dialogs.count()
+  let count = await dialogs.count()
 
-  for (let i = 0; i < count; i++) {
+  while (count > 0) {
     await page.keyboard.press('Escape')
-    await page.waitForTimeout(200)
+    // Wait for dialog to be hidden (web-first assertion)
+    await expect(dialogs.first()).toBeHidden({ timeout: 2000 }).catch(() => {})
+    count = await dialogs.count()
   }
 }
 
@@ -121,5 +178,53 @@ export async function takeDebugScreenshot(page: Page, name: string) {
   await page.screenshot({
     path: `e2e/debug-screenshots/${name}-${Date.now()}.png`,
     fullPage: true,
+  })
+}
+
+// ============================================================================
+// DEPRECATED - keeping for backward compatibility during migration
+// These will be removed after all tests are updated
+// ============================================================================
+
+/**
+ * @deprecated Use `authedPage` fixture instead.
+ * This function is kept for backward compatibility.
+ *
+ * NOTE: This function now just checks if auth file exists with cookies.
+ * It does NOT make an API call (which was causing race conditions in parallel tests).
+ * The storageState in playwright.config.ts handles the actual authentication.
+ */
+export async function isAuthenticated(_page: Page): Promise<boolean> {
+  // Just check if auth file exists with valid cookies
+  // The storageState configuration handles the actual authentication
+  // No API call needed - this was causing race conditions in parallel tests
+  return hasValidAuthFile()
+}
+
+/**
+ * @deprecated Use `accountId` fixture instead
+ */
+export function getAccountId(): string | null {
+  return getAccountIdFromFile()
+}
+
+/**
+ * @deprecated Use `api` fixture instead
+ */
+export async function apiRequest(
+  page: Page,
+  method: 'get' | 'post' | 'put' | 'patch' | 'delete',
+  url: string,
+  options?: { data?: unknown; headers?: Record<string, string> }
+) {
+  const accountId = getAccountIdFromFile()
+  const headers = {
+    ...(accountId ? { 'account-id': accountId } : {}),
+    ...options?.headers,
+  }
+
+  return page.request[method](url, {
+    data: options?.data,
+    headers,
   })
 }

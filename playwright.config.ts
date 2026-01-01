@@ -12,10 +12,10 @@ import { defineConfig, devices } from '@playwright/test'
 export default defineConfig({
   testDir: './e2e',
 
-  /* Global timeouts */
-  timeout: 30_000,
+  /* Global timeouts - keep short for fast feedback */
+  timeout: 15_000,  // 15s is plenty for most tests
   expect: {
-    timeout: 10_000,
+    timeout: 5_000,  // 5s for assertions
     // Visual comparison settings
     toHaveScreenshot: {
       maxDiffPixelRatio: 0.02,
@@ -25,7 +25,7 @@ export default defineConfig({
   /* Execution */
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries: process.env.CI ? 2 : 0, // No retries locally - fix the tests instead
   workers: process.env.CI ? 1 : undefined, // Single worker in CI to avoid resource issues
 
   /* Reporters */
@@ -43,19 +43,27 @@ export default defineConfig({
     video: 'retain-on-failure',
 
     /* Browser defaults */
-    headless: !!process.env.CI,
+    headless: !process.env.HEADED,  // headless by default, use HEADED=true to see browser
     ignoreHTTPSErrors: true,
+
+    /* Explicit timeouts (best practice) */
+    actionTimeout: 10_000,
+    navigationTimeout: 30_000,
   },
 
   /* Projects */
   projects: [
     // Auth setup project - creates authenticated state
+    // IMPORTANT: Use same device as chromium to match user-agent fingerprint
     {
       name: 'setup',
       testMatch: /.*\.setup\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+      },
     },
 
-    // Desktop Chrome - main test target
+    // Desktop Chrome - main test target (authenticated tests)
     {
       name: 'chromium',
       use: {
@@ -63,6 +71,10 @@ export default defineConfig({
         storageState: 'e2e/.auth/user.json',
       },
       dependencies: ['setup'],
+      // Exclude unauth tests and setup files - they run in chromium-unauth
+      testIgnore: [/.*\.unauth\.spec\.ts/, /.*\.setup\.ts/],
+      // Exclude tests that run in specialized projects
+      grepInvert: /@visual|@a11y|@mobile/,
     },
 
     // Firefox - critical tests only in CI
@@ -74,17 +86,21 @@ export default defineConfig({
       },
       dependencies: ['setup'],
       grep: /@critical/,
+      testIgnore: [/.*\.unauth\.spec\.ts/, /.*\.setup\.ts/],
     },
 
-    // Mobile Chrome - responsive testing
+    // Mobile Chrome - responsive testing (public pages only)
+    // Note: Authenticated mobile tests are skipped due to fingerprint mismatch
+    // (Pixel 5 has different user-agent than Desktop Chrome used in auth setup)
     {
       name: 'mobile-chrome',
       use: {
         ...devices['Pixel 5'],
-        storageState: 'e2e/.auth/user.json',
+        // No storageState - fingerprint validation fails with different device
       },
-      dependencies: ['setup'],
+      // No dependency on setup - public pages don't need auth
       grep: /@mobile/,
+      testIgnore: [/.*\.unauth\.spec\.ts/, /.*\.setup\.ts/],
     },
 
     // Unauthenticated tests (no setup dependency)
@@ -105,6 +121,7 @@ export default defineConfig({
       },
       dependencies: ['setup'],
       grep: /@visual/,
+      testIgnore: [/.*\.unauth\.spec\.ts/, /.*\.setup\.ts/],
     },
 
     // Accessibility tests
@@ -116,6 +133,7 @@ export default defineConfig({
       },
       dependencies: ['setup'],
       grep: /@a11y/,
+      testIgnore: [/.*\.unauth\.spec\.ts/, /.*\.setup\.ts/],
     },
   ],
 
