@@ -68,8 +68,8 @@ test.describe('Critical User Journeys @critical', () => {
       await expect(page.getByRole('heading', { name: /team members/i })).toBeVisible()
 
       // Verify team page elements are present
-      await expect(page.getByText(/active members/i)).toBeVisible()
-      await expect(page.getByRole('button', { name: /invite member/i })).toBeVisible()
+      await expect(page.getByText('Active Members')).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Invite Member' }).first()).toBeVisible()
     })
 
     test('should complete team invitation flow', async ({ page }) => {
@@ -78,7 +78,7 @@ test.describe('Critical User Journeys @critical', () => {
       await expect(page.getByRole('heading', { name: /team members/i })).toBeVisible()
 
       // Open invite dialog
-      const inviteButton = page.getByRole('button', { name: /invite member/i })
+      const inviteButton = page.getByRole('button', { name: 'Invite Member' }).first()
       await expect(inviteButton).toBeVisible()
       await inviteButton.click()
 
@@ -128,7 +128,7 @@ test.describe('Critical User Journeys @critical', () => {
       await expect(emailInput).toBeDisabled() // Email should be read-only
 
       // Verify profile picture section
-      await expect(page.getByText(/profile picture/i)).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'Profile Picture' })).toBeVisible()
       const changePhotoButton = page.getByRole('button', { name: /change photo/i })
       await expect(changePhotoButton).toBeVisible()
 
@@ -169,7 +169,7 @@ test.describe('Critical User Journeys @critical', () => {
       await expect(integrationsLink).toBeVisible()
       await integrationsLink.click()
       await waitForNavigation(page, '/integrations')
-      await expect(page.getByRole('heading', { name: /integrations/i })).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'Integrations', exact: true })).toBeVisible()
 
       // Step 6: Return to Dashboard (completing the circuit)
       const dashboardLink = page.getByRole('link', { name: /dashboard/i })

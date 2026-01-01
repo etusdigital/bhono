@@ -1,9 +1,11 @@
 import { test as setup, expect } from '@playwright/test'
+import * as fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const authFile = path.join(__dirname, '.auth/user.json')
+const accountFile = path.join(__dirname, '.auth/account.json')
 
 setup('authenticate', async ({ page, context }) => {
   // Navigate to the app first to establish context
@@ -26,6 +28,15 @@ setup('authenticate', async ({ page, context }) => {
     console.log('Creating empty auth state - tests will run as unauthenticated')
     await context.storageState({ path: authFile })
     return
+  }
+
+  // Parse the response to get the accountId
+  const loginData = await response.json()
+  const accountId = loginData.accountId
+
+  // Save accountId to file for API tests
+  if (accountId) {
+    fs.writeFileSync(accountFile, JSON.stringify({ accountId }, null, 2))
   }
 
   // Verify authentication works

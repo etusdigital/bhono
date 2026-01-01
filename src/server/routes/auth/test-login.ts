@@ -32,6 +32,7 @@ export const testLoginRoute = createRoute({
               email: z.string(),
               name: z.string().nullable(),
             }),
+            accountId: z.string().describe('The default account ID for API requests'),
           }),
         },
       },
@@ -69,6 +70,8 @@ export async function testLoginHandler(c: any) {
     .limit(1)
     .then((rows: any[]) => rows[0])
 
+  let defaultAccountId: string | null = null
+
   if (!user) {
     // Create test user
     const userId = crypto.randomUUID()
@@ -92,9 +95,9 @@ export async function testLoginHandler(c: any) {
       .then((rows: any[]) => rows[0])
 
     // Create a default account for the user
-    const accountId = crypto.randomUUID()
+    defaultAccountId = crypto.randomUUID()
     await db.insert(accounts).values({
-      id: accountId,
+      id: defaultAccountId,
       name: `${name || 'Test'}'s Workspace`,
       createdAt: now,
       updatedAt: now,
@@ -103,9 +106,21 @@ export async function testLoginHandler(c: any) {
     // Link user to account as ADMIN
     await db.insert(userAccounts).values({
       userId,
-      accountId,
+      accountId: defaultAccountId,
       role: 'ADMIN',
     })
+  } else {
+    // Get the user's first account
+    const userAccount = await db
+      .select()
+      .from(userAccounts)
+      .where(eq(userAccounts.userId, user.id))
+      .limit(1)
+      .then((rows: any[]) => rows[0])
+
+    if (userAccount) {
+      defaultAccountId = userAccount.accountId
+    }
   }
 
   // Create session
@@ -123,5 +138,6 @@ export async function testLoginHandler(c: any) {
       email: user.email,
       name: user.name,
     },
+    accountId: defaultAccountId,
   })
 }

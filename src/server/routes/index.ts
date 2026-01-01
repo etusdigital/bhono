@@ -10,9 +10,21 @@ import { storage } from './storage'
 
 const api = new OpenAPIHono<HonoEnv>()
 
-// Apply auth middleware to all routes (session-based)
-api.use('/*', sessionAuth)
-api.use('/*', accountMiddleware)
+// Apply auth middleware to all routes except documentation
+api.use('/*', async (c, next) => {
+  // Skip auth for documentation endpoints
+  if (c.req.path === '/api/doc' || c.req.path === '/api/swagger') {
+    return next()
+  }
+  return sessionAuth(c, next)
+})
+api.use('/*', async (c, next) => {
+  // Skip account middleware for documentation endpoints
+  if (c.req.path === '/api/doc' || c.req.path === '/api/swagger') {
+    return next()
+  }
+  return accountMiddleware(c, next)
+})
 
 // Mount routers
 api.route('/users', users)

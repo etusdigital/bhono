@@ -1,10 +1,10 @@
-import { test, expect, isAuthenticated } from '../fixtures'
+import { test, expect, isAuthenticated, apiRequest, getAccountId } from '../fixtures'
 
 /**
  * Authenticated API Integration Tests
  *
  * These tests verify API endpoints from an authenticated browser context.
- * Uses page.request to make API calls with the session cookie.
+ * Uses apiRequest helper to make API calls with session cookie and account-id header.
  *
  * @tags @api
  */
@@ -13,6 +13,9 @@ test.describe('Authenticated API @api', () => {
   test.beforeEach(async ({ page }) => {
     const authenticated = await isAuthenticated(page)
     test.skip(!authenticated, 'No authenticated session available')
+
+    const accountId = getAccountId()
+    test.skip(!accountId, 'No account ID available')
   })
 
   test.describe('Auth Endpoints', () => {
@@ -39,7 +42,7 @@ test.describe('Authenticated API @api', () => {
 
   test.describe('Users Endpoints', () => {
     test('GET /api/users should return paginated list', async ({ page }) => {
-      const response = await page.request.get('/api/users')
+      const response = await apiRequest(page, 'get', '/api/users')
 
       expect(response.ok()).toBeTruthy()
       expect(response.status()).toBe(200)
@@ -80,7 +83,7 @@ test.describe('Authenticated API @api', () => {
     })
 
     test('GET /api/users with pagination params should respect parameters', async ({ page }) => {
-      const response = await page.request.get('/api/users?page=1&limit=10')
+      const response = await apiRequest(page, 'get', '/api/users?page=1&limit=10')
 
       expect(response.ok()).toBeTruthy()
       expect(response.status()).toBe(200)
@@ -101,12 +104,12 @@ test.describe('Authenticated API @api', () => {
 
     test('GET /api/users with page 2 should return second page', async ({ page }) => {
       // First get total count
-      const firstResponse = await page.request.get('/api/users?page=1&limit=5')
+      const firstResponse = await apiRequest(page, 'get', '/api/users?page=1&limit=5')
       const firstBody = await firstResponse.json()
 
       // Only test page 2 if there are enough items
       if (firstBody.meta.totalItems > 5) {
-        const response = await page.request.get('/api/users?page=2&limit=5')
+        const response = await apiRequest(page, 'get', '/api/users?page=2&limit=5')
 
         expect(response.ok()).toBeTruthy()
 
@@ -117,8 +120,8 @@ test.describe('Authenticated API @api', () => {
     })
 
     test('GET /api/users with sortOrder should respect sort', async ({ page }) => {
-      const ascResponse = await page.request.get('/api/users?sortOrder=ASC')
-      const descResponse = await page.request.get('/api/users?sortOrder=DESC')
+      const ascResponse = await apiRequest(page, 'get', '/api/users?sortOrder=ASC')
+      const descResponse = await apiRequest(page, 'get', '/api/users?sortOrder=DESC')
 
       expect(ascResponse.ok()).toBeTruthy()
       expect(descResponse.ok()).toBeTruthy()
@@ -142,7 +145,7 @@ test.describe('Authenticated API @api', () => {
 
   test.describe('Accounts Endpoints', () => {
     test('GET /api/accounts should return account list', async ({ page }) => {
-      const response = await page.request.get('/api/accounts')
+      const response = await apiRequest(page, 'get', '/api/accounts')
 
       expect(response.ok()).toBeTruthy()
       expect(response.status()).toBe(200)
@@ -171,7 +174,7 @@ test.describe('Authenticated API @api', () => {
     })
 
     test('GET /api/accounts with pagination should respect parameters', async ({ page }) => {
-      const response = await page.request.get('/api/accounts?page=1&limit=5')
+      const response = await apiRequest(page, 'get', '/api/accounts?page=1&limit=5')
 
       expect(response.ok()).toBeTruthy()
 
@@ -185,7 +188,7 @@ test.describe('Authenticated API @api', () => {
 
   test.describe('Invitations Endpoints', () => {
     test('GET /api/invitations should return invitation list', async ({ page }) => {
-      const response = await page.request.get('/api/invitations')
+      const response = await apiRequest(page, 'get', '/api/invitations')
 
       expect(response.ok()).toBeTruthy()
       expect(response.status()).toBe(200)
@@ -212,8 +215,10 @@ test.describe('Authenticated API @api', () => {
       // Use a valid UUID format that doesn't exist
       const nonExistentId = '00000000-0000-0000-0000-000000000000'
 
+      const accountId = getAccountId()
       const response = await page.request.get(`/api/users/${nonExistentId}`, {
         failOnStatusCode: false,
+        headers: accountId ? { 'account-id': accountId } : {},
       })
 
       expect(response.status()).toBe(404)
@@ -221,17 +226,20 @@ test.describe('Authenticated API @api', () => {
       const body = await response.json()
 
       // Should have error response structure
+      // API returns { error: { code, message, status, timestamp } }
       expect(body).toHaveProperty('error')
-      expect(body).toHaveProperty('statusCode')
-      expect(body.statusCode).toBe(404)
+      expect(body.error).toHaveProperty('status', 404)
+      expect(body.error).toHaveProperty('code', 'NOT_FOUND')
     })
 
     test('GET /api/accounts/:id should return 404 for non-existent account', async ({ page }) => {
       // Use a valid UUID format that doesn't exist
       const nonExistentId = '00000000-0000-0000-0000-000000000000'
 
+      const accountId = getAccountId()
       const response = await page.request.get(`/api/accounts/${nonExistentId}`, {
         failOnStatusCode: false,
+        headers: accountId ? { 'account-id': accountId } : {},
       })
 
       expect(response.status()).toBe(404)
@@ -239,16 +247,19 @@ test.describe('Authenticated API @api', () => {
       const body = await response.json()
 
       // Should have error response structure
+      // API returns { error: { code, message, status, timestamp } }
       expect(body).toHaveProperty('error')
-      expect(body).toHaveProperty('statusCode')
-      expect(body.statusCode).toBe(404)
+      expect(body.error).toHaveProperty('status', 404)
+      expect(body.error).toHaveProperty('code', 'NOT_FOUND')
     })
 
     test('GET /api/users/:id with invalid UUID should return 400', async ({ page }) => {
       const invalidId = 'not-a-valid-uuid'
 
+      const accountId = getAccountId()
       const response = await page.request.get(`/api/users/${invalidId}`, {
         failOnStatusCode: false,
+        headers: accountId ? { 'account-id': accountId } : {},
       })
 
       // Should return 400 for invalid UUID format
@@ -261,8 +272,10 @@ test.describe('Authenticated API @api', () => {
     test('GET /api/accounts/:id with invalid UUID should return 400', async ({ page }) => {
       const invalidId = 'not-a-valid-uuid'
 
+      const accountId = getAccountId()
       const response = await page.request.get(`/api/accounts/${invalidId}`, {
         failOnStatusCode: false,
+        headers: accountId ? { 'account-id': accountId } : {},
       })
 
       // Should return 400 for invalid UUID format
@@ -275,7 +288,7 @@ test.describe('Authenticated API @api', () => {
 
   test.describe('Response Headers', () => {
     test('API responses should have correct content-type', async ({ page }) => {
-      const response = await page.request.get('/api/users')
+      const response = await apiRequest(page, 'get', '/api/users')
 
       expect(response.ok()).toBeTruthy()
 
@@ -287,7 +300,7 @@ test.describe('Authenticated API @api', () => {
   test.describe('API Authentication', () => {
     test('API requests should use session authentication', async ({ page }) => {
       // Make an authenticated request
-      const response = await page.request.get('/api/users')
+      const response = await apiRequest(page, 'get', '/api/users')
       expect(response.ok()).toBeTruthy()
 
       // Verify we're actually authenticated by checking we get data, not a redirect
