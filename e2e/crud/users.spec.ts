@@ -81,16 +81,12 @@ test.describe('User CRUD @crud', () => {
     test('should display user avatar or initials', async ({ page }) => {
       await page.goto('/team')
 
-      // Should see team member content (any indicator of user display)
-      // Look for owner badge, member info, or any user-related content
-      const ownerBadge = page.getByText(/owner/i).first()
-      const memberBadge = page.getByText(/member/i).first()
+      // Wait for page content to load - check for Active Members heading
+      await expect(page.getByRole('heading', { name: /active members/i })).toBeVisible()
 
-      const hasOwner = await ownerBadge.isVisible({ timeout: 3000 }).catch(() => false)
-      const hasMember = await memberBadge.isVisible({ timeout: 3000 }).catch(() => false)
-
-      // Team page should show at least role information
-      expect(hasOwner || hasMember).toBeTruthy()
+      // Should see at least one role badge (owner, admin, or member)
+      const roleBadge = page.locator('text=/owner|admin|member/i').first()
+      await expect(roleBadge).toBeVisible()
     })
 
     test('should display user email on team page', async ({ page }) => {

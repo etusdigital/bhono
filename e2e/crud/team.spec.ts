@@ -31,16 +31,12 @@ test.describe('Team CRUD @crud', () => {
     test('should display team member details', async ({ page }) => {
       await page.goto('/team')
 
-      // Team page should show team members section
-      // Look for any indication of team member data (names, emails, roles)
-      const memberSection = page.getByText(/active members|team members/i).first()
-      const ownerBadge = page.getByText(/owner/i).first()
+      // Wait for page content to load - check for Active Members heading
+      await expect(page.getByRole('heading', { name: /active members/i })).toBeVisible()
 
-      const hasSection = await memberSection.isVisible({ timeout: 3000 }).catch(() => false)
-      const hasOwner = await ownerBadge.isVisible({ timeout: 3000 }).catch(() => false)
-
-      // Should have team member content visible
-      expect(hasSection || hasOwner).toBeTruthy()
+      // Should see at least one role badge (owner, admin, or member)
+      const roleBadge = page.locator('text=/owner|admin|member/i').first()
+      await expect(roleBadge).toBeVisible()
     })
 
     test('should display team page description', async ({ page }) => {
