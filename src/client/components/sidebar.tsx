@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { Icons } from '@/components/icons'
 import { useAuth } from '@/hooks/use-auth'
+import { useTheme } from '@/hooks/use-theme'
 
 interface SidebarProps {
   defaultCollapsed?: boolean
@@ -26,6 +27,7 @@ export function Sidebar({ defaultCollapsed = false }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed)
   const { user, logout, isLoggingOut } = useAuth()
   const location = useLocation()
+  const { theme, setTheme, resolvedTheme } = useTheme()
 
   const initials = user?.name
     ?.split(' ')
@@ -138,15 +140,34 @@ export function Sidebar({ defaultCollapsed = false }: SidebarProps) {
         </div>
       </nav>
 
-      {/* Keyboard shortcut hint */}
-      {!isCollapsed && (
-        <div className="px-4 py-2">
-          <p className="text-xs text-sidebar-foreground/40 text-center">
+      {/* Theme toggle and keyboard shortcut hint */}
+      <div className={cn(
+        "px-3 py-2",
+        isCollapsed ? "flex justify-center" : "flex items-center justify-between"
+      )}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+          onClick={() => {
+            const next = theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light'
+            setTheme(next)
+          }}
+          title={`Theme: ${theme} (click to change)`}
+        >
+          {resolvedTheme === 'dark' ? (
+            <Icons.moon className="h-4 w-4" />
+          ) : (
+            <Icons.sun className="h-4 w-4" />
+          )}
+        </Button>
+        {!isCollapsed && (
+          <p className="text-xs text-sidebar-foreground/40">
             <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-sidebar-accent rounded">⌘B</kbd>
-            {' '}to collapse
+            {' '}collapse
           </p>
-        </div>
-      )}
+        )}
+      </div>
 
       <Separator className="bg-sidebar-border" />
 

@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, redirect, useRouter } from '@tanstack/react-router'
 import { Sidebar } from '@/components/sidebar'
 import { ErrorFallback } from '@/components/ui/error-fallback'
+import { SidebarSkeleton, PageSkeleton } from '@/components/ui/loading-skeleton'
 
 export const Route = createFileRoute('/_authenticated')({
   beforeLoad: async () => {
@@ -10,6 +11,7 @@ export const Route = createFileRoute('/_authenticated')({
     }
   },
   component: AuthenticatedLayout,
+  pendingComponent: AuthenticatedPendingComponent,
   errorComponent: AuthenticatedErrorComponent,
 })
 
@@ -22,6 +24,19 @@ function AuthenticatedLayout() {
       <main className="flex-1 overflow-y-auto">
         <div className="container max-w-screen-xl py-8 px-6">
           <Outlet />
+        </div>
+      </main>
+    </div>
+  )
+}
+
+function AuthenticatedPendingComponent() {
+  return (
+    <div className="flex h-screen overflow-hidden">
+      <SidebarSkeleton />
+      <main className="flex-1 overflow-y-auto">
+        <div className="container max-w-screen-xl py-8 px-6">
+          <PageSkeleton />
         </div>
       </main>
     </div>

@@ -1,5 +1,6 @@
 // src/client/hooks/use-auth.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import type { AuthUser } from '@shared/types'
 
 interface AuthResponse {
@@ -13,7 +14,10 @@ async function fetchMe(): Promise<AuthResponse | null> {
 }
 
 async function logout(): Promise<void> {
-  await fetch('/auth/logout', { method: 'POST', credentials: 'include' })
+  const res = await fetch('/auth/logout', { method: 'POST', credentials: 'include' })
+  if (!res.ok) {
+    throw new Error('Failed to logout')
+  }
 }
 
 export function useAuth() {
@@ -30,6 +34,10 @@ export function useAuth() {
     mutationFn: logout,
     onSuccess: () => {
       queryClient.setQueryData(['auth', 'me'], null)
+      toast.success('Logged out successfully')
+    },
+    onError: () => {
+      toast.error('Failed to logout. Please try again.')
     },
   })
 

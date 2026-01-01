@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -75,12 +76,18 @@ function TeamPage() {
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsInviting(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    setIsInviting(false)
-    setIsInviteOpen(false)
-    setInviteEmail('')
-    setInviteRole('member')
+    try {
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+      toast.success(`Invitation sent to ${inviteEmail}`)
+      setIsInviteOpen(false)
+      setInviteEmail('')
+      setInviteRole('member')
+    } catch {
+      toast.error('Failed to send invitation. Please try again.')
+    } finally {
+      setIsInviting(false)
+    }
   }
 
   return (
@@ -278,14 +285,26 @@ function InvitationRow({ invitation }: { invitation: Invitation }) {
 
   const handleRevoke = async () => {
     setIsRevoking(true)
-    await new Promise((resolve) => setTimeout(resolve, 500))
-    setIsRevoking(false)
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      toast.success('Invitation revoked')
+    } catch {
+      toast.error('Failed to revoke invitation')
+    } finally {
+      setIsRevoking(false)
+    }
   }
 
   const handleResend = async () => {
     setIsResending(true)
-    await new Promise((resolve) => setTimeout(resolve, 500))
-    setIsResending(false)
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      toast.success('Invitation resent')
+    } catch {
+      toast.error('Failed to resend invitation')
+    } finally {
+      setIsResending(false)
+    }
   }
 
   return (

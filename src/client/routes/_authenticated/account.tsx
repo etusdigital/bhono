@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -303,10 +304,16 @@ function DeleteAccountDialog({ userEmail }: { userEmail: string }) {
   const handleDelete = async () => {
     if (!canDelete) return
     setIsDeleting(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    setIsDeleting(false)
-    setIsOpen(false)
+    try {
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+      toast.success('Account deleted successfully')
+      setIsOpen(false)
+    } catch {
+      toast.error('Failed to delete account. Please try again.')
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   return (
