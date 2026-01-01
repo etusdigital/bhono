@@ -1,5 +1,6 @@
-import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
+import { createFileRoute, Outlet, redirect, useRouter } from '@tanstack/react-router'
 import { Sidebar } from '@/components/sidebar'
+import { ErrorFallback } from '@/components/ui/error-fallback'
 
 export const Route = createFileRoute('/_authenticated')({
   beforeLoad: async () => {
@@ -9,6 +10,7 @@ export const Route = createFileRoute('/_authenticated')({
     }
   },
   component: AuthenticatedLayout,
+  errorComponent: AuthenticatedErrorComponent,
 })
 
 function AuthenticatedLayout() {
@@ -21,6 +23,26 @@ function AuthenticatedLayout() {
         <div className="container max-w-screen-xl py-8 px-6">
           <Outlet />
         </div>
+      </main>
+    </div>
+  )
+}
+
+function AuthenticatedErrorComponent({ error }: { error: Error }) {
+  const router = useRouter()
+
+  return (
+    <div className="flex h-screen overflow-hidden">
+      <Sidebar />
+      <main className="flex-1 overflow-y-auto">
+        <ErrorFallback
+          error={error}
+          title="Something went wrong"
+          message="An error occurred while loading this page. Please try again."
+          onRetry={() => router.invalidate()}
+          onGoBack={() => router.history.back()}
+          onGoHome={() => router.navigate({ to: '/dashboard' })}
+        />
       </main>
     </div>
   )
