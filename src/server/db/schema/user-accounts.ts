@@ -16,9 +16,9 @@ export const userAccounts = sqliteTable(
       enum: ['ADMIN', 'MANAGER', 'EDITOR', 'AUTHOR', 'VIEWER', 'BILLING', 'ANALYTICS'],
     }).notNull(),
   },
-  (table) => ({
-    pk: primaryKey({ columns: [table.userId, table.accountId] }),
-  })
+  (table) => [
+    primaryKey({ columns: [table.userId, table.accountId] }),
+  ]
 )
 
 export type UserAccountRecord = typeof userAccounts.$inferSelect

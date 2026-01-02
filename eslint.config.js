@@ -29,6 +29,7 @@ export default tseslint.config(
       "**/.codex/**",
       "**/e2e/**",
       "**/packages/**",
+      "**/.pnpm*",
     ],
   },
 

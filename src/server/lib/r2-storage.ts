@@ -63,6 +63,8 @@ export async function uploadFile(
     },
   })
 
+  // R2Bucket.put() can return null on failure
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (!result) {
     throw new Error('Failed to upload file to R2')
   }

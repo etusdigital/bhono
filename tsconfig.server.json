@@ -8,6 +8,7 @@
     "declarationMap": true,
     "outDir": "./node_modules/.tmp/types/server",
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.server.tsbuildinfo",
+    "types": ["node", "@cloudflare/workers-types"],
     "baseUrl": ".",
     "paths": {
       "@server/*": ["./src/server/*"],

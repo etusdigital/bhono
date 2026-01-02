@@ -24,7 +24,7 @@ export const UploadUrlResponseSchema = z
       example: 'images/1703123456789-my-photo.jpg',
       description: 'The unique filename with timestamp',
     }),
-    publicUrl: z.string().url().openapi({
+    publicUrl: z.url().openapi({
       example: 'https://pub-xxx.r2.dev/images/1703123456789-my-photo.jpg',
       description: 'The public URL to access the file after upload',
     }),
@@ -42,7 +42,7 @@ export const UploadSuccessSchema = z
   .object({
     success: z.boolean().openapi({ example: true }),
     key: z.string().openapi({ example: 'images/1703123456789-my-photo.jpg' }),
-    publicUrl: z.string().url().openapi({
+    publicUrl: z.url().openapi({
       example: 'https://pub-xxx.r2.dev/images/1703123456789-my-photo.jpg',
     }),
   })

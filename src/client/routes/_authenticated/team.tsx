@@ -23,7 +23,7 @@ import { Icons } from '@/components/icons'
 import { useAuth } from '@/hooks/use-auth'
 
 const InviteFormSchema = z.object({
-  email: z.string().min(1, 'Email é obrigatório').email('Email inválido'),
+  email: z.email('Email inválido'),
   role: z.enum(['member', 'admin']),
 })
 

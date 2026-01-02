@@ -31,7 +31,7 @@ export const PaginationQuerySchema = z.object({
 })
 
 // Create paginated response schema factory
-export const createPaginatedSchema = <T extends z.ZodTypeAny>(
+export const createPaginatedSchema = <T extends z.ZodType>(
   itemSchema: T,
   name: string
 ) =>
@@ -44,10 +44,10 @@ export const createPaginatedSchema = <T extends z.ZodTypeAny>(
 
 // UUID param schema
 export const IdParamSchema = z.object({
-  id: z.string().uuid().openapi({ example: '550e8400-e29b-41d4-a716-446655440000' }),
+  id: z.uuid().openapi({ example: '550e8400-e29b-41d4-a716-446655440000' }),
 })
 
 // Account header schema
 export const AccountHeaderSchema = z.object({
-  'account-id': z.string().uuid().openapi({ example: '550e8400-e29b-41d4-a716-446655440000' }),
+  'account-id': z.uuid().openapi({ example: '550e8400-e29b-41d4-a716-446655440000' }),
 })

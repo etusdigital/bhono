@@ -2,12 +2,13 @@
 import type { RouteHandler } from '@hono/zod-openapi'
 import { createRoute, z } from '@hono/zod-openapi'
 import { eq } from 'drizzle-orm'
+import { HTTPException } from 'hono/http-exception'
 import { users, accounts, userAccounts, type UserRecord } from '../../db/schema'
 import { createSession } from '../../lib/session'
 import type { HonoEnv } from '../../types'
 
 const TestLoginSchema = z.object({
-  email: z.string().email(),
+  email: z.email(),
   name: z.string().optional(),
 })
 
@@ -56,7 +57,7 @@ export const testLoginHandler: RouteHandler<typeof testLoginRoute, HonoEnv> = as
   // Only allow in development/test
   const env = c.env
   if (env.ENVIRONMENT === 'production') {
-    return c.json({ error: { message: 'Not available in production' } }, 403)
+    throw new HTTPException(403, { message: 'Not available in production' })
   }
 
   const { email, name } = c.req.valid('json')
@@ -141,12 +142,15 @@ export const testLoginHandler: RouteHandler<typeof testLoginRoute, HonoEnv> = as
     isSuperAdmin: user.isSuperAdmin,
   })
 
-  return c.json({
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
+  return c.json(
+    {
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+      },
+      accountId: defaultAccountId,
     },
-    accountId: defaultAccountId,
-  })
+    200
+  )
 }

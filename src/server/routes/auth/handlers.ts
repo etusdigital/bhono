@@ -176,15 +176,18 @@ export const meHandler: RouteHandler<typeof meRoute, HonoEnv> = (c) => {
   }
 
   // Return user data from session
-  return c.json({
-    user: {
-      id: session.userId,
-      email: session.email,
-      name: session.name,
-      avatarUrl: session.avatarUrl,
-      isSuperAdmin: session.isSuperAdmin,
+  return c.json(
+    {
+      user: {
+        id: session.userId,
+        email: session.email,
+        name: session.name,
+        avatarUrl: session.avatarUrl,
+        isSuperAdmin: session.isSuperAdmin,
+      },
     },
-  })
+    200
+  )
 }
 
 export const inviteHandler: RouteHandler<typeof inviteRoute, HonoEnv> = async (c) => {

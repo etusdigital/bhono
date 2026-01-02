@@ -2,7 +2,7 @@
 import { z } from '@hono/zod-openapi'
 
 export const CreateInvitationSchema = z.object({
-  email: z.string().email().openapi({ description: 'Email address to invite' }),
+  email: z.email().openapi({ description: 'Email address to invite' }),
   role: z.enum(['ADMIN', 'MANAGER', 'EDITOR', 'AUTHOR', 'VIEWER', 'BILLING', 'ANALYTICS']).openapi({
     description: 'Role to assign (cannot exceed your own role)',
   }),
@@ -10,7 +10,7 @@ export const CreateInvitationSchema = z.object({
 
 export const InvitationSchema = z.object({
   id: z.string(),
-  email: z.string().email(),
+  email: z.email(),
   role: z.string(),
   expiresAt: z.string(),
   createdAt: z.string(),

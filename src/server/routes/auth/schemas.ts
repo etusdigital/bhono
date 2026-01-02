@@ -8,7 +8,7 @@ export const AuthTokensSchema = z.object({
 
 export const AuthUserSchema = z.object({
   id: z.string(),
-  email: z.string().email(),
+  email: z.email(),
   name: z.string(),
   avatarUrl: z.string().nullable().optional(),
   status: z.enum(['active', 'inactive']),
@@ -21,14 +21,14 @@ export const AuthUserSchema = z.object({
 // Contains only data available in the session, not the full user record
 export const SessionUserSchema = z.object({
   id: z.string(),
-  email: z.string().email(),
+  email: z.email(),
   name: z.string(),
   avatarUrl: z.string().nullable().optional(),
   isSuperAdmin: z.boolean(),
 })
 
 export const LoginQuerySchema = z.object({
-  redirect: z.string().url().optional().openapi({
+  redirect: z.url().optional().openapi({
     description: 'URL to redirect after successful login',
   }),
 })

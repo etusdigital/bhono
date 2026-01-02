@@ -5,7 +5,7 @@ const HealthResponseSchema = z.object({
     example: 'healthy',
     description: 'Overall health status'
   }),
-  timestamp: z.string().datetime().openapi({
+  timestamp: z.iso.datetime().openapi({
     example: '2025-12-30T10:00:00Z',
     description: 'UTC timestamp when check was performed'
   }),

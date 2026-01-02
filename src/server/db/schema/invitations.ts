@@ -22,9 +22,9 @@ export const invitations = sqliteTable('invitations', {
   expiresAt: text('expires_at').notNull(),
   acceptedAt: text('accepted_at'),
   createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
-}, (table) => ({
-  accountEmailIdx: uniqueIndex('account_email_idx').on(table.accountId, table.email),
-}))
+}, (table) => [
+  uniqueIndex('account_email_idx').on(table.accountId, table.email),
+])
 
 export type InvitationRecord = typeof invitations.$inferSelect
 export type NewInvitation = typeof invitations.$inferInsert

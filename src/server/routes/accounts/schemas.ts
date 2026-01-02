@@ -3,12 +3,12 @@ import { createPaginatedSchema } from '../schemas'
 
 export const AccountSchema = z
   .object({
-    id: z.string().uuid().openapi({ example: '550e8400-e29b-41d4-a716-446655440000' }),
+    id: z.uuid().openapi({ example: '550e8400-e29b-41d4-a716-446655440000' }),
     name: z.string().openapi({ example: 'Acme Corp' }),
     description: z.string().nullable().openapi({ example: 'Main business account' }),
     domain: z.string().nullable().openapi({ example: 'acme.com' }),
-    createdAt: z.string().datetime().openapi({ example: '2024-01-01T00:00:00Z' }),
-    updatedAt: z.string().datetime().openapi({ example: '2024-01-01T00:00:00Z' }),
+    createdAt: z.iso.datetime().openapi({ example: '2024-01-01T00:00:00Z' }),
+    updatedAt: z.iso.datetime().openapi({ example: '2024-01-01T00:00:00Z' }),
   })
   .openapi('Account')
 

@@ -3,19 +3,19 @@ import { createPaginatedSchema } from '../schemas'
 
 export const UserSchema = z
   .object({
-    id: z.string().uuid().openapi({ example: '550e8400-e29b-41d4-a716-446655440000' }),
-    email: z.string().email().openapi({ example: 'user@example.com' }),
+    id: z.uuid().openapi({ example: '550e8400-e29b-41d4-a716-446655440000' }),
+    email: z.email().openapi({ example: 'user@example.com' }),
     name: z.string().openapi({ example: 'John Doe' }),
     status: z.enum(['active', 'inactive']).openapi({ example: 'active' }),
     isSuperAdmin: z.boolean().openapi({ example: false }),
-    createdAt: z.string().datetime().openapi({ example: '2024-01-01T00:00:00Z' }),
-    updatedAt: z.string().datetime().openapi({ example: '2024-01-01T00:00:00Z' }),
+    createdAt: z.iso.datetime().openapi({ example: '2024-01-01T00:00:00Z' }),
+    updatedAt: z.iso.datetime().openapi({ example: '2024-01-01T00:00:00Z' }),
   })
   .openapi('User')
 
 export const CreateUserSchema = z
   .object({
-    email: z.string().email().openapi({ example: 'newuser@example.com' }),
+    email: z.email().openapi({ example: 'newuser@example.com' }),
     name: z.string().min(1).max(255).openapi({ example: 'Jane Doe' }),
     role: z
       .enum(['ADMIN', 'MANAGER', 'EDITOR', 'AUTHOR', 'VIEWER', 'BILLING', 'ANALYTICS'])
@@ -36,11 +36,11 @@ export const PaginatedUsersSchema = createPaginatedSchema(UserSchema, 'Users')
 // Bulk User-Account Operations
 export const UserAccountSchema = z
   .object({
-    userId: z.string().uuid().openapi({
+    userId: z.uuid().openapi({
       example: '550e8400-e29b-41d4-a716-446655440000',
       description: 'The ID of the user',
     }),
-    accountId: z.string().uuid().openapi({
+    accountId: z.uuid().openapi({
       example: '550e8400-e29b-41d4-a716-446655440001',
       description: 'The ID of the account',
     }),

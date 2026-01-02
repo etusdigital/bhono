@@ -59,35 +59,35 @@ src/
 ### Commands
 
 ```bash
-npm run dev                 # Start dev server (Vite + Wrangler)
-npm run build               # Build for production
-npm run deploy              # Deploy to Cloudflare Workers
+pnpm dev                    # Start dev server (Vite + Wrangler)
+pnpm build                  # Build for production
+pnpm deploy                 # Deploy to Cloudflare Workers
 
 # Database
-npm run db:migrate:local    # Apply migrations locally
-npm run db:migrate:remote   # Apply migrations to production
-npm run db:seed             # Seed test data
+pnpm db:migrate:local       # Apply migrations locally
+pnpm db:migrate:remote      # Apply migrations to production
+pnpm db:seed                # Seed test data
 
 # Testing
-npm test                    # Backend unit tests (watch)
-npm run test:run            # Backend tests (single run)
-npm run test:client         # Frontend tests
-npm run test:e2e            # Playwright E2E tests
-npm run test:e2e:ui         # Playwright interactive UI
-npm run test:coverage       # Coverage report
+pnpm test                   # Backend unit tests (watch)
+pnpm test:run               # Backend tests (single run)
+pnpm test:client            # Frontend tests
+pnpm test:e2e               # Playwright E2E tests
+pnpm test:e2e:ui            # Playwright interactive UI
+pnpm test:coverage          # Coverage report
 
 # Code quality
-npm run lint                # ESLint
-npm run cf-typegen          # Generate Cloudflare types
+pnpm lint                   # ESLint
+pnpm cf-typegen             # Generate Cloudflare types
 ```
 
 ### Workflow
 
 1. Make changes
-2. Run `npm test` for affected unit tests
-3. Run `npm run lint` to check code style
-4. Run `npm run test:e2e` for E2E validation
-5. Verify build with `npm run build`
+2. Run `pnpm test` for affected unit tests
+3. Run `pnpm lint` to check code style
+4. Run `pnpm test:e2e` for E2E validation
+5. Verify build with `pnpm build`
 
 ### Path Aliases
 
@@ -200,5 +200,5 @@ Defined in `wrangler.json`:
 ### Database Changes
 
 1. Modify schema in `src/server/db/schema/`
-2. Run `npx drizzle-kit generate` to create migration
-3. Apply with `npm run db:migrate:local`
+2. Run `pnpm drizzle-kit generate` to create migration
+3. Apply with `pnpm db:migrate:local`
