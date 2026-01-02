@@ -35,6 +35,8 @@ export function useAuth() {
     onSuccess: () => {
       queryClient.setQueryData(['auth', 'me'], null)
       toast.success('Logged out successfully')
+      // Redirect to login page
+      window.location.href = '/login'
     },
     onError: () => {
       toast.error('Failed to logout. Please try again.')
