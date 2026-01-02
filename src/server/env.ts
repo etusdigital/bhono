@@ -62,3 +62,17 @@ export function isSuperAdminEmail(env: Env, email: string): boolean {
   const { SUPER_ADMIN_EMAILS_LIST } = getEnv(env)
   return SUPER_ADMIN_EMAILS_LIST.includes(email.toLowerCase())
 }
+
+// Minimum required length for JWT_SECRET (security requirement)
+export const JWT_SECRET_MIN_LENGTH = 32
+
+/**
+ * Validate environment variables at startup
+ * Throws an error if validation fails
+ */
+export function validateEnv(env: Env): void {
+  // JWT_SECRET must be at least 32 characters for security
+  if (!env.JWT_SECRET || env.JWT_SECRET.length < JWT_SECRET_MIN_LENGTH) {
+    throw new Error(`JWT_SECRET must be at least ${String(JWT_SECRET_MIN_LENGTH)} characters`)
+  }
+}
