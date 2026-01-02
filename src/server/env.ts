@@ -37,6 +37,9 @@ export interface Env {
 
   // CORS
   CORS_ORIGINS?: string
+
+  // Super Admin emails (comma-separated)
+  SUPER_ADMIN_EMAILS?: string
 }
 
 // Helper to get env with defaults
@@ -48,5 +51,14 @@ export function getEnv(env: Env) {
     CORS_ORIGINS_LIST: env.CORS_ORIGINS
       ? env.CORS_ORIGINS.split(',').map((o) => o.trim())
       : [],
+    SUPER_ADMIN_EMAILS_LIST: env.SUPER_ADMIN_EMAILS
+      ? env.SUPER_ADMIN_EMAILS.split(',').map((e) => e.trim().toLowerCase())
+      : [],
   }
+}
+
+// Check if email is a super admin
+export function isSuperAdminEmail(env: Env, email: string): boolean {
+  const { SUPER_ADMIN_EMAILS_LIST } = getEnv(env)
+  return SUPER_ADMIN_EMAILS_LIST.includes(email.toLowerCase())
 }

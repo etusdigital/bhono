@@ -1,7 +1,7 @@
 // src/services/auth.ts
 import { eq, and, isNull, gt } from 'drizzle-orm'
 import type { Database } from '../db/client'
-import type { Env } from '../env'
+import { isSuperAdminEmail, type Env } from '../env'
 import { users, accounts, userAccounts, refreshTokens } from '../db/schema'
 import { createAccessToken, generateRefreshToken, hashToken, getRefreshTokenExpiry } from '../lib/tokens'
 import { UnauthorizedError } from '../lib/errors'
@@ -51,7 +51,8 @@ export const authService = {
     } else {
       isNewUser = true
 
-      // Create new user
+      // Create new user (check if email is pre-registered as super admin)
+      const shouldBeSuperAdmin = isSuperAdminEmail(env, googleUser.email)
       const created = await db
         .insert(users)
         .values({
@@ -60,6 +61,7 @@ export const authService = {
           name: googleUser.name,
           avatarUrl: googleUser.picture ?? null,
           status: 'active',
+          isSuperAdmin: shouldBeSuperAdmin,
         })
         .returning()
       userRecord = created[0]
