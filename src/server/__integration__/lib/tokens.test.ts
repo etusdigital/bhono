@@ -16,6 +16,7 @@ import {
   createAccessToken,
   generateRefreshToken,
   hashToken,
+  verifyToken,
   getRefreshTokenExpiry,
   setCookieOptions,
   setOAuthStateCookieOptions,
@@ -169,6 +170,40 @@ describe('Token Utility Functions', () => {
       const hash = await hashToken('こんにちは世界🌍')
 
       expect(hash).toHaveLength(64)
+    })
+  })
+
+  describe('verifyToken', () => {
+    it('should return true for matching token and hash', async () => {
+      const token = 'my-secret-refresh-token'
+      const hash = await hashToken(token)
+
+      expect(await verifyToken(token, hash)).toBe(true)
+    })
+
+    it('should return false for wrong token', async () => {
+      const token = 'my-secret-refresh-token'
+      const hash = await hashToken(token)
+
+      expect(await verifyToken('wrong-token', hash)).toBe(false)
+    })
+
+    it('should return false for similar but different tokens', async () => {
+      const token = 'my-secret-refresh-token'
+      const hash = await hashToken(token)
+
+      // Slightly different tokens should not verify
+      expect(await verifyToken('my-secret-refresh-token ', hash)).toBe(false)
+      expect(await verifyToken(' my-secret-refresh-token', hash)).toBe(false)
+      expect(await verifyToken('My-secret-refresh-token', hash)).toBe(false)
+    })
+
+    it('should work with generated refresh tokens', async () => {
+      const token = generateRefreshToken()
+      const hash = await hashToken(token)
+
+      expect(await verifyToken(token, hash)).toBe(true)
+      expect(await verifyToken(generateRefreshToken(), hash)).toBe(false)
     })
   })
 

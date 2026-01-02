@@ -3,6 +3,7 @@ import {
   createAccessToken,
   generateRefreshToken,
   hashToken,
+  verifyToken,
   getRefreshTokenExpiry,
   setCookieOptions,
   setOAuthStateCookieOptions,
@@ -83,6 +84,44 @@ describe('tokens', () => {
       const hash2 = await hashToken(token)
 
       expect(hash1).toBe(hash2)
+    })
+
+    it('should produce different hashes for different inputs', async () => {
+      const token1 = 'token-one'
+      const token2 = 'token-two'
+
+      const hash1 = await hashToken(token1)
+      const hash2 = await hashToken(token2)
+
+      expect(hash1).not.toBe(hash2)
+    })
+  })
+
+  describe('verifyToken', () => {
+    it('should return true for matching token and hash', async () => {
+      const originalToken = 'my-secret-token'
+      const hashedToken = await hashToken(originalToken)
+
+      const isValid = await verifyToken(originalToken, hashedToken)
+
+      expect(isValid).toBe(true)
+    })
+
+    it('should return false for non-matching token', async () => {
+      const originalToken = 'my-secret-token'
+      const hashedToken = await hashToken(originalToken)
+
+      const isValid = await verifyToken('wrong-token', hashedToken)
+
+      expect(isValid).toBe(false)
+    })
+
+    it('should be case-sensitive', async () => {
+      const token = 'CaseSensitiveToken'
+      const hash = await hashToken(token)
+
+      expect(await verifyToken('CaseSensitiveToken', hash)).toBe(true)
+      expect(await verifyToken('casesensitivetoken', hash)).toBe(false)
     })
   })
 

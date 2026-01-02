@@ -31,6 +31,11 @@ export async function hashToken(token: string): Promise<string> {
     .join('')
 }
 
+export async function verifyToken(token: string, hash: string): Promise<boolean> {
+  const computedHash = await hashToken(token)
+  return computedHash === hash
+}
+
 export function getRefreshTokenExpiry(env: Env): Date {
   const expiryDays = Number.parseInt(env.REFRESH_TOKEN_EXPIRY_DAYS || '30', 10)
   const now = new Date()
