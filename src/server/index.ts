@@ -15,6 +15,7 @@ import {
   authRateLimit,
 } from './middleware'
 import { sessionMiddleware } from './lib/session'
+import { validateEnv } from './env'
 
 // Hono app with bindings and variables
 const app = new Hono<HonoEnv>()
@@ -25,10 +26,16 @@ app.onError(errorHandler)
 // 2. Request context (transactionId, IP, userAgent) - must be first for logging
 app.use('*', requestContext)
 
-// 3. Request logger (uses transactionId from context)
+// 3. Environment validation - fail fast if misconfigured
+app.use('*', async (c, next) => {
+  validateEnv(c.env)
+  await next()
+})
+
+// 4. Request logger (uses transactionId from context)
 app.use('*', requestLogger())
 
-// 4. Configurable CORS
+// 5. Configurable CORS
 app.use('*', async (c, next) => {
   const env = c.env
   const corsOrigins = env.CORS_ORIGINS
@@ -41,16 +48,16 @@ app.use('*', async (c, next) => {
   })(c, next)
 })
 
-// 5. Security headers
+// 6. Security headers
 app.use('*', secureHeaders())
 
-// 6. Rate limiting - global limit of 100 requests per minute
+// 7. Rate limiting - global limit of 100 requests per minute
 app.use('*', rateLimit())
 
-// 7. Stricter rate limiting for auth endpoints (10 requests per minute)
+// 8. Stricter rate limiting for auth endpoints (10 requests per minute)
 app.use('/auth/*', authRateLimit())
 
-// 8. Database middleware - create db instance per request
+// 9. Database middleware - create db instance per request
 app.use('*', async (c, next) => {
   if (c.env.DB) {
     const db = createDb(c.env.DB)
@@ -59,7 +66,7 @@ app.use('*', async (c, next) => {
   await next()
 })
 
-// 9. Session middleware - read session from KV
+// 10. Session middleware - read session from KV
 app.use('*', sessionMiddleware())
 
 // Mount routes
