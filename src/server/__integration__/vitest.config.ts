@@ -11,9 +11,17 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    // Vitest 4: File-system cache for faster subsequent runs
+    cache: {
+      dir: './node_modules/.vitest-cache',
+    },
+    // Vitest 4: Schema matching with Zod
+    setupFiles: [
+      'src/test/vitest-zod-matcher.ts',
+      'src/server/__integration__/setup.ts',
+    ],
     include: ['src/server/__integration__/**/*.test.ts'],
     exclude: ['**/node_modules/**', '**/.claude/**', '**/dist/**'],
-    setupFiles: ['src/server/__integration__/setup.ts'],
     // Use forks with singleFork for sequential execution
     // This ensures tests don't interfere with each other's database state
     pool: 'forks',

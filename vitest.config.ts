@@ -14,6 +14,12 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "node",
+    // Vitest 4: File-system cache for faster subsequent runs
+    cache: {
+      dir: "./node_modules/.vitest-cache",
+    },
+    // Vitest 4: Schema matching with Zod
+    setupFiles: ["./src/test/vitest-zod-matcher.ts"],
     include: ["src/server/**/*.test.ts", "src/shared/**/*.test.ts"],
     exclude: [
       "**/node_modules/**",

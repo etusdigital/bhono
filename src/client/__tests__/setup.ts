@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom/vitest"
+import "../../test/vitest-zod-matcher"
 import { cleanup } from "@testing-library/react"
 import { afterEach, vi } from "vitest"
 

@@ -26,10 +26,10 @@ describe("Card", () => {
     render(<Card data-testid="card">Content</Card>)
 
     const card = screen.getByTestId("card")
-    expect(card).toHaveClass("rounded-xl")
+    expect(card).toHaveClass("rounded-lg")
     expect(card).toHaveClass("border")
     expect(card).toHaveClass("bg-card")
-    expect(card).toHaveClass("shadow")
+    expect(card).toHaveClass("shadow-sm")
   })
 
   it("applies custom className to Card", () => {
@@ -98,10 +98,10 @@ describe("CardTitle", () => {
   })
 
   it("forwards ref to CardTitle", () => {
-    const ref = createRef<HTMLDivElement>()
+    const ref = createRef<HTMLHeadingElement>()
     render(<CardTitle ref={ref}>Title</CardTitle>)
 
-    expect(ref.current).toBeInstanceOf(HTMLDivElement)
+    expect(ref.current).toBeInstanceOf(HTMLHeadingElement)
   })
 })
 
