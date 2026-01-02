@@ -17,6 +17,16 @@ export const AuthUserSchema = z.object({
   updatedAt: z.string(),
 })
 
+// Simplified user schema for session-based /me endpoint
+// Contains only data available in the session, not the full user record
+export const SessionUserSchema = z.object({
+  id: z.string(),
+  email: z.string().email(),
+  name: z.string(),
+  avatarUrl: z.string().nullable().optional(),
+  isSuperAdmin: z.boolean(),
+})
+
 export const LoginQuerySchema = z.object({
   redirect: z.string().url().optional().openapi({
     description: 'URL to redirect after successful login',

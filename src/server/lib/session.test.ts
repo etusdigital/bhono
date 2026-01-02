@@ -37,7 +37,7 @@ function createMockContext(opts: {
           const cookies = opts.cookies ?? {}
           return Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; ')
         }
-        return undefined
+        return
       }),
     },
     env: { SESSIONS: mockKv },
@@ -304,7 +304,7 @@ describe('session library', () => {
           url: 'http://localhost:3000/test',
           header: vi.fn().mockImplementation((name: string) => {
             if (name === 'user-agent') return 'TestAgent/1.0'
-            return undefined
+            return
           }),
           raw: {
             headers: new Headers(),
@@ -346,7 +346,7 @@ describe('session library', () => {
           url: 'http://localhost:3000/test',
           header: vi.fn().mockImplementation((name: string) => {
             if (name === 'user-agent') return 'DifferentAgent/2.0' // Different user agent
-            return undefined
+            return
           }),
           raw: {
             headers: new Headers(),
@@ -383,7 +383,7 @@ describe('session library', () => {
       const c = {
         req: {
           url: 'http://localhost:3000/test',
-          header: vi.fn().mockReturnValue(undefined),
+          header: vi.fn().mockReturnValue(),
           raw: {
             headers: new Headers(),
           },

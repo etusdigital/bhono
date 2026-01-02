@@ -1,9 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -15,7 +16,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Icons } from '@/components/icons'
+import { CreateWebhookSchema, type CreateWebhookInput } from '@shared/schemas'
 
 export const Route = createFileRoute('/_authenticated/integrations')({
   component: IntegrationsPage,
@@ -130,7 +133,7 @@ function IntegrationsPage() {
           <Input
             placeholder="Search integrations..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => { setSearchQuery(e.target.value) }}
             className="pl-9"
           />
         </div>
@@ -140,7 +143,7 @@ function IntegrationsPage() {
               key={category.id}
               variant={activeCategory === category.id ? 'default' : 'ghost'}
               size="sm"
-              onClick={() => setActiveCategory(category.id)}
+              onClick={() => { setActiveCategory(category.id) }}
               className="shrink-0"
             >
               {category.label}
@@ -269,7 +272,7 @@ function IntegrationCard({ integration }: { integration: Integration }) {
           <Button
             variant={connected ? 'outline' : 'default'}
             size="sm"
-            onClick={handleToggle}
+            onClick={() => { void handleToggle() }}
             disabled={isConnecting}
           >
             {isConnecting ? (
@@ -342,7 +345,7 @@ function WebhookCard({ webhook }: { webhook: Webhook }) {
               variant="ghost"
               size="icon"
               className="h-8 w-8 text-destructive hover:text-destructive"
-              onClick={handleDelete}
+              onClick={() => { void handleDelete() }}
               disabled={isDeleting}
             >
               {isDeleting ? (
@@ -360,8 +363,6 @@ function WebhookCard({ webhook }: { webhook: Webhook }) {
 
 function CreateWebhookDialog() {
   const [isOpen, setIsOpen] = useState(false)
-  const [url, setUrl] = useState('')
-  const [isCreating, setIsCreating] = useState(false)
 
   const eventTypes = [
     { id: 'user.created', label: 'User Created' },
@@ -372,27 +373,45 @@ function CreateWebhookDialog() {
     { id: 'invoice.paid', label: 'Invoice Paid' },
   ]
 
-  const [selectedEvents, setSelectedEvents] = useState<string[]>([])
+  const form = useForm<CreateWebhookInput>({
+    resolver: zodResolver(CreateWebhookSchema),
+    defaultValues: {
+      url: '',
+      events: [],
+    },
+  })
+
+  const selectedEvents = form.watch('events')
 
   const toggleEvent = (eventId: string) => {
-    setSelectedEvents((prev) =>
-      prev.includes(eventId)
-        ? prev.filter((e) => e !== eventId)
-        : [...prev, eventId]
-    )
+    const currentEvents = form.getValues('events')
+    if (currentEvents.includes(eventId)) {
+      form.setValue('events', currentEvents.filter((e) => e !== eventId), { shouldValidate: true })
+    } else {
+      form.setValue('events', [...currentEvents, eventId], { shouldValidate: true })
+    }
   }
 
-  const handleCreate = async () => {
-    setIsCreating(true)
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    setIsCreating(false)
-    setIsOpen(false)
-    setUrl('')
-    setSelectedEvents([])
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open)
+    if (!open) form.reset()
+  }
+
+  const onSubmit = async (data: CreateWebhookInput) => {
+    try {
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+      console.log('Webhook created:', data)
+      setIsOpen(false)
+      form.reset()
+    } catch {
+      // Handle error
+      console.error('Failed to create webhook')
+    }
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button>
           <Icons.plus className="mr-2 h-4 w-4" />
@@ -400,76 +419,93 @@ function CreateWebhookDialog() {
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Create Webhook</DialogTitle>
-          <DialogDescription>
-            Configure a URL to receive POST requests when events occur.
-          </DialogDescription>
-        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={(e) => { void form.handleSubmit(onSubmit)(e) }}>
+            <DialogHeader>
+              <DialogTitle>Create Webhook</DialogTitle>
+              <DialogDescription>
+                Configure a URL to receive POST requests when events occur.
+              </DialogDescription>
+            </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="webhook-url">Endpoint URL</Label>
-            <Input
-              id="webhook-url"
-              type="url"
-              placeholder="https://api.example.com/webhooks"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              className="font-mono text-sm"
-            />
-            <p className="text-xs text-muted-foreground">
-              We'll send a POST request to this URL when events occur.
-            </p>
-          </div>
+            <div className="space-y-4 py-4">
+              <FormField
+                control={form.control}
+                name="url"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Endpoint URL</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="url"
+                        placeholder="https://api.example.com/webhooks"
+                        className="font-mono text-sm"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      We'll send a POST request to this URL when events occur.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          <div className="space-y-2">
-            <Label>Events to Subscribe</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {eventTypes.map((event) => {
-                const isSelected = selectedEvents.includes(event.id)
-                return (
-                  <button
-                    key={event.id}
-                    type="button"
-                    onClick={() => toggleEvent(event.id)}
-                    className={`flex items-center gap-2 rounded-lg border p-3 text-left text-sm transition-colors ${
-                      isSelected
-                        ? 'border-primary bg-primary/5'
-                        : 'border-border hover:border-primary/50'
-                    }`}
-                  >
-                    <div className={`flex h-4 w-4 items-center justify-center rounded border ${
-                      isSelected ? 'border-primary bg-primary' : 'border-muted-foreground'
-                    }`}>
-                      {isSelected && <Icons.check className="h-3 w-3 text-primary-foreground" />}
-                    </div>
-                    <span className={isSelected ? 'font-medium' : ''}>{event.label}</span>
-                  </button>
-                )
-              })}
+              <FormField
+                control={form.control}
+                name="events"
+                render={() => (
+                  <FormItem>
+                    <FormLabel>Events to Subscribe</FormLabel>
+                    <FormControl>
+                      <div className="grid grid-cols-2 gap-2">
+                        {eventTypes.map((event) => {
+                          const isSelected = selectedEvents.includes(event.id)
+                          return (
+                            <button
+                              key={event.id}
+                              type="button"
+                              onClick={() => { toggleEvent(event.id) }}
+                              className={`flex items-center gap-2 rounded-lg border p-3 text-left text-sm transition-colors ${
+                                isSelected
+                                  ? 'border-primary bg-primary/5'
+                                  : 'border-border hover:border-primary/50'
+                              }`}
+                            >
+                              <div className={`flex h-4 w-4 items-center justify-center rounded border ${
+                                isSelected ? 'border-primary bg-primary' : 'border-muted-foreground'
+                              }`}>
+                                {isSelected && <Icons.check className="h-3 w-3 text-primary-foreground" />}
+                              </div>
+                              <span className={isSelected ? 'font-medium' : ''}>{event.label}</span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
-          </div>
-        </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setIsOpen(false)}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleCreate}
-            disabled={!url || selectedEvents.length === 0 || isCreating}
-          >
-            {isCreating ? (
-              <>
-                <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-                Creating...
-              </>
-            ) : (
-              'Create Webhook'
-            )}
-          </Button>
-        </DialogFooter>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => { setIsOpen(false) }}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting ? (
+                  <>
+                    <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  'Create Webhook'
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   )

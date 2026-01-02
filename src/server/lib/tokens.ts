@@ -4,7 +4,7 @@ import type { Env } from '../env'
 
 export async function createAccessToken(env: Env, userId: string, email: string): Promise<string> {
   const now = Math.floor(Date.now() / 1000)
-  const expiryMinutes = parseInt(String(env.JWT_EXPIRY_MINUTES) || '15', 10)
+  const expiryMinutes = Number.parseInt(env.JWT_EXPIRY_MINUTES || '15', 10)
   const payload = {
     sub: userId,
     email,
@@ -17,7 +17,7 @@ export async function createAccessToken(env: Env, userId: string, email: string)
 export function generateRefreshToken(): string {
   const array = new Uint8Array(32)
   crypto.getRandomValues(array)
-  return Array.from(array)
+  return [...array]
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('')
 }
@@ -26,20 +26,20 @@ export async function hashToken(token: string): Promise<string> {
   const encoder = new TextEncoder()
   const data = encoder.encode(token)
   const hash = await crypto.subtle.digest('SHA-256', data)
-  return Array.from(new Uint8Array(hash))
+  return [...new Uint8Array(hash)]
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('')
 }
 
 export function getRefreshTokenExpiry(env: Env): Date {
-  const expiryDays = parseInt(String(env.REFRESH_TOKEN_EXPIRY_DAYS) || '30', 10)
+  const expiryDays = Number.parseInt(env.REFRESH_TOKEN_EXPIRY_DAYS || '30', 10)
   const now = new Date()
   now.setDate(now.getDate() + expiryDays)
   return now
 }
 
 export function setCookieOptions(env: Env, isProduction: boolean) {
-  const expiryDays = parseInt(String(env.REFRESH_TOKEN_EXPIRY_DAYS) || '30', 10)
+  const expiryDays = Number.parseInt(env.REFRESH_TOKEN_EXPIRY_DAYS || '30', 10)
   return {
     httpOnly: true,
     secure: isProduction,

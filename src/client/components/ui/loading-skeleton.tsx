@@ -1,6 +1,10 @@
 import { Skeleton } from "./skeleton"
 import { Card, CardContent, CardHeader } from "./card"
 
+// Helper to create stable keys for skeleton items
+const skeletonItems = (count: number, prefix: string) =>
+  Array.from({ length: count }, (_, i) => `${prefix}-${String(i)}`)
+
 export function DashboardSkeleton() {
   return (
     <div className="space-y-8">
@@ -12,8 +16,8 @@ export function DashboardSkeleton() {
 
       {/* Stats cards skeleton */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {[...Array(4)].map((_, i) => (
-          <Card key={i}>
+        {skeletonItems(4, "stats-card").map((key) => (
+          <Card key={key}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <Skeleton className="h-4 w-24" />
               <Skeleton className="h-4 w-4 rounded" />
@@ -28,8 +32,8 @@ export function DashboardSkeleton() {
 
       {/* Quick actions skeleton */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {[...Array(3)].map((_, i) => (
-          <Card key={i}>
+        {skeletonItems(3, "action-card").map((key) => (
+          <Card key={key}>
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Skeleton className="h-5 w-5 rounded" />
@@ -70,8 +74,8 @@ export function TeamSkeleton() {
         </CardHeader>
         <CardContent>
           <div className="divide-y">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="flex items-center justify-between py-4 first:pt-0 last:pb-0">
+            {skeletonItems(3, "team-member").map((key) => (
+              <div key={key} className="flex items-center justify-between py-4 first:pt-0 last:pb-0">
                 <div className="flex items-center gap-4">
                   <Skeleton className="h-10 w-10 rounded-full" />
                   <div className="space-y-2">
@@ -99,8 +103,8 @@ export function PageSkeleton() {
       <Card>
         <CardContent className="pt-6">
           <div className="space-y-4">
-            {[...Array(4)].map((_, i) => (
-              <Skeleton key={i} className="h-4 w-full" />
+            {skeletonItems(4, "page-line").map((key) => (
+              <Skeleton key={key} className="h-4 w-full" />
             ))}
           </div>
         </CardContent>
@@ -123,15 +127,15 @@ export function SidebarSkeleton() {
       {/* Navigation */}
       <nav className="flex-1 space-y-1 p-2">
         <Skeleton className="h-4 w-12 mx-3 my-2" />
-        {[...Array(3)].map((_, i) => (
-          <Skeleton key={i} className="h-10 w-full rounded-lg" />
+        {skeletonItems(3, "nav-main").map((key) => (
+          <Skeleton key={key} className="h-10 w-full rounded-lg" />
         ))}
 
         <div className="my-4" />
 
         <Skeleton className="h-4 w-16 mx-3 my-2" />
-        {[...Array(2)].map((_, i) => (
-          <Skeleton key={i} className="h-10 w-full rounded-lg" />
+        {skeletonItems(2, "nav-account").map((key) => (
+          <Skeleton key={key} className="h-10 w-full rounded-lg" />
         ))}
       </nav>
 

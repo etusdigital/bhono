@@ -1,19 +1,16 @@
 // src/services/users.ts
-import { eq, and, isNull, isNotNull, like, sql } from 'drizzle-orm'
+import { eq, and, isNull, isNotNull, sql } from 'drizzle-orm'
 import type { Database } from '../db/client'
-import { users, userAccounts } from '../db/schema'
+import { users, userAccounts, type UserRecord } from '../db/schema'
 import { logAudit } from '../lib/audit'
 import { auditedUpdate, auditedDelete } from '../lib/audited-db'
 import { createPaginationMeta, calculateOffset } from '../lib/pagination'
-import { NotFoundError, ConflictError } from '../lib/errors'
+import { NotFoundError } from '../lib/errors'
 import type { ServiceContext, PaginationQuery, PaginatedResponse, User } from '../types'
 import type { Role } from '../auth/roles'
 
-interface CreateUserInput {
-  email: string
-  name: string
-  role: Role
-}
+// NOTE: CreateUserInput is commented out since user creation is disabled
+// (users should only be created through Google OAuth)
 
 interface UpdateUserInput {
   name?: string
@@ -49,12 +46,12 @@ export const usersService = {
     }
 
     // Get total count
-    const [countResult] = await db
+    const countResults = await db
       .select({ count: sql<number>`count(*)` })
       .from(users)
       .where(and(...conditions))
 
-    const totalItems = countResult?.count ?? 0
+    const totalItems = countResults.at(0)?.count ?? 0
 
     // Get paginated data
     const data = await db
@@ -71,7 +68,7 @@ export const usersService = {
         email: u.email,
         name: u.name,
         status: u.status,
-        providerIds: u.providerIds || [],
+        providerIds: u.providerIds ?? [],
         isSuperAdmin: u.isSuperAdmin,
         createdAt: u.createdAt,
         updatedAt: u.updatedAt,
@@ -82,19 +79,20 @@ export const usersService = {
   },
 
   async findById(db: Database, ctx: ServiceContext, id: string): Promise<User> {
-    const [userRecord] = await db
+    const userResults = await db
       .select()
       .from(users)
       .where(and(eq(users.id, id), isNull(users.deletedAt)))
       .limit(1)
 
+    const userRecord = userResults.at(0)
     if (!userRecord) {
       throw new NotFoundError('User')
     }
 
     // Check user has access (super-admin or same account)
     if (!ctx.user.isSuperAdmin) {
-      const [membership] = await db
+      const membershipResults = await db
         .select()
         .from(userAccounts)
         .where(
@@ -105,6 +103,7 @@ export const usersService = {
         )
         .limit(1)
 
+      const membership = membershipResults.at(0)
       if (!membership) {
         throw new NotFoundError('User')
       }
@@ -115,7 +114,7 @@ export const usersService = {
       email: userRecord.email,
       name: userRecord.name,
       status: userRecord.status,
-      providerIds: userRecord.providerIds || [],
+      providerIds: userRecord.providerIds ?? [],
       isSuperAdmin: userRecord.isSuperAdmin,
       createdAt: userRecord.createdAt,
       updatedAt: userRecord.updatedAt,
@@ -166,7 +165,7 @@ export const usersService = {
       email: userRecord.email,
       name: userRecord.name,
       status: userRecord.status,
-      providerIds: userRecord.providerIds || [],
+      providerIds: userRecord.providerIds ?? [],
       isSuperAdmin: userRecord.isSuperAdmin,
       createdAt: userRecord.createdAt,
       updatedAt: userRecord.updatedAt,
@@ -180,7 +179,7 @@ export const usersService = {
     await this.findById(db, ctx, id)
 
     // Update user with audit
-    const [userRecord] = await auditedUpdate(
+    const updateResults = await auditedUpdate<UserRecord>(
       db,
       ctx,
       users,
@@ -192,12 +191,17 @@ export const usersService = {
       eq(users.id, id)
     )
 
+    const userRecord: UserRecord | undefined = updateResults.at(0)
+    if (!userRecord) {
+      throw new Error('Failed to update user')
+    }
+
     return {
       id: userRecord.id,
       email: userRecord.email,
       name: userRecord.name,
       status: userRecord.status,
-      providerIds: userRecord.providerIds || [],
+      providerIds: userRecord.providerIds ?? [],
       isSuperAdmin: userRecord.isSuperAdmin,
       createdAt: userRecord.createdAt,
       updatedAt: userRecord.updatedAt,
@@ -217,13 +221,13 @@ export const usersService = {
   async createUserAccounts(
     db: Database,
     ctx: ServiceContext,
-    items: Array<{ userId: string; accountId: string; role: Role }>
+    items: { userId: string; accountId: string; role: Role }[]
   ): Promise<{ success: boolean; count: number }> {
     let count = 0
 
     for (const item of items) {
       // Check if relationship already exists
-      const [existing] = await db
+      const existingResults = await db
         .select()
         .from(userAccounts)
         .where(
@@ -234,6 +238,7 @@ export const usersService = {
         )
         .limit(1)
 
+      const existing = existingResults.at(0)
       if (existing) {
         // Update existing role
         await db
@@ -270,12 +275,12 @@ export const usersService = {
   async deleteUserAccounts(
     db: Database,
     ctx: ServiceContext,
-    items: Array<{ userId: string; accountId: string; role: Role }>
+    items: { userId: string; accountId: string; role: Role }[]
   ): Promise<{ success: boolean; count: number }> {
     let count = 0
 
     for (const item of items) {
-      const result = await db
+      await db
         .delete(userAccounts)
         .where(
           and(
@@ -302,7 +307,7 @@ export const usersService = {
     id: string
   ): Promise<User> {
     // Find deleted record
-    const [record] = await db
+    const recordResults = await db
       .select()
       .from(users)
       .where(and(
@@ -311,12 +316,13 @@ export const usersService = {
       ))
       .limit(1)
 
+    const record = recordResults.at(0)
     if (!record) {
       throw new NotFoundError('User not found or not deleted')
     }
 
     // Restore user
-    const [restored] = await auditedUpdate(
+    const restoreResults = await auditedUpdate<UserRecord>(
       db,
       ctx,
       users,
@@ -324,6 +330,7 @@ export const usersService = {
       eq(users.id, id)
     )
 
+    const restored: UserRecord | undefined = restoreResults.at(0)
     if (!restored) {
       throw new NotFoundError('Failed to restore user')
     }
@@ -333,7 +340,7 @@ export const usersService = {
       email: restored.email,
       name: restored.name,
       status: restored.status,
-      providerIds: restored.providerIds || [],
+      providerIds: restored.providerIds ?? [],
       isSuperAdmin: restored.isSuperAdmin,
       createdAt: restored.createdAt,
       updatedAt: restored.updatedAt,

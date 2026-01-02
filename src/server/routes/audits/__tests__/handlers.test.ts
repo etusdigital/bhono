@@ -63,7 +63,7 @@ describe('Audits Routes', () => {
   }
 
   // Helper to setup authenticated app with ADMIN role
-  function setupAuthenticatedApp(userRole: string = 'ADMIN', isSuperAdmin: boolean = false) {
+  function setupAuthenticatedApp(userRole = 'ADMIN', isSuperAdmin = false) {
     const authenticatedApp = new Hono<HonoEnv>()
 
     authenticatedApp.use('*', async (c, next) => {

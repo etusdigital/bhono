@@ -1,5 +1,6 @@
 import type { Role } from '../auth/roles'
 import type { Env } from '../env'
+import type { Database } from '../db/client'
 
 export interface User {
   id: string
@@ -48,9 +49,9 @@ export interface ServiceContext {
   accountId: string
   user: User
   userRole?: Role | null
-  transactionId: string
-  ip: string
-  userAgent: string
+  transactionId?: string
+  ip?: string
+  userAgent?: string
 }
 
 export interface PaginationQuery {
@@ -89,22 +90,28 @@ export interface SessionData {
 }
 
 // Hono Environment type
-export type HonoEnv = {
+// Note: Many variables are optional because they're set by different middlewares
+// at different points in the request lifecycle
+export interface HonoEnv {
   Bindings: Env
   Variables: {
-    transactionId: string
-    ip: string
-    userAgent: string
+    // Set by request-context middleware
+    transactionId?: string
+    ip?: string
+    userAgent?: string
+    // Set by auth middleware
     user: User | null
-    accountId: string
+    // Set by account middleware
+    accountId?: string
     userRole: Role | null
     isSystemAdminAccess: boolean
-    db: any // Database instance injected by middleware
-    // Session variables
+    // Set by database middleware (may be undefined before middleware runs or in health checks)
+    db?: Database
+    // Session variables (set by session middleware)
     sessionId?: string
     sessionData?: SessionData
     sessionCookies?: string[]
   }
 }
 
-export * from './auth'
+export type * from './auth'

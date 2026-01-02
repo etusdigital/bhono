@@ -1257,14 +1257,14 @@ describe('Role Hierarchy Authorization', () => {
   // ============================================================================
 
   describe('Permission matrix verification', () => {
-    const roleOperationMatrix: Array<{
+    const roleOperationMatrix: {
       role: Role
       operation: string
       endpoint: string
       method: 'GET' | 'POST' | 'PATCH' | 'DELETE'
       shouldSucceed: boolean
       body?: Record<string, unknown>
-    }> = [
+    }[] = [
       // ADMIN - should have access to everything
       { role: 'ADMIN', operation: 'View users', endpoint: '/api/users', method: 'GET', shouldSucceed: true },
       { role: 'ADMIN', operation: 'View invitations', endpoint: '/api/invitations', method: 'GET', shouldSucceed: true },

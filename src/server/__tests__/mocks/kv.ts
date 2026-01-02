@@ -197,7 +197,7 @@ export function createMockKV(): MockKVNamespace {
         const prefix = options?.prefix ?? ''
         const limit = options?.limit ?? 1000
 
-        const keys: Array<{ name: string; expiration?: number; metadata?: unknown }> = []
+        const keys: { name: string; expiration?: number; metadata?: unknown }[] = []
 
         for (const [key, stored] of store.entries()) {
           // Check expiration

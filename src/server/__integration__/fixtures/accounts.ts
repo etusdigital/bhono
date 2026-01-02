@@ -108,11 +108,11 @@ export async function addUserToAccount(
 /**
  * Get all accounts for a user
  */
-export async function getUserAccounts(userId: string): Promise<Array<{ accountId: string; role: Role }>> {
+export async function getUserAccounts(userId: string): Promise<{ accountId: string; role: Role }[]> {
   const db = getSqlite()
   const rows = db.prepare(`
     SELECT account_id, role FROM user_accounts WHERE user_id = ?
-  `).all(userId) as Array<{ account_id: string; role: Role }>
+  `).all(userId) as { account_id: string; role: Role }[]
 
   return rows.map((row) => ({
     accountId: row.account_id,
@@ -123,11 +123,11 @@ export async function getUserAccounts(userId: string): Promise<Array<{ accountId
 /**
  * Get all users for an account
  */
-export async function getAccountUsers(accountId: string): Promise<Array<{ userId: string; role: Role }>> {
+export async function getAccountUsers(accountId: string): Promise<{ userId: string; role: Role }[]> {
   const db = getSqlite()
   const rows = db.prepare(`
     SELECT user_id, role FROM user_accounts WHERE account_id = ?
-  `).all(accountId) as Array<{ user_id: string; role: Role }>
+  `).all(accountId) as { user_id: string; role: Role }[]
 
   return rows.map((row) => ({
     userId: row.user_id,

@@ -65,7 +65,7 @@ describe('Users Routes', () => {
   })
 
   // Helper to setup authenticated app with specific role
-  function setupAuthenticatedApp(userRole: string = 'VIEWER', isSuperAdmin: boolean = false) {
+  function setupAuthenticatedApp(userRole = 'VIEWER', isSuperAdmin = false) {
     const authenticatedApp = new Hono<HonoEnv>()
 
     authenticatedApp.use('*', async (c, next) => {
@@ -173,27 +173,19 @@ describe('Users Routes', () => {
       )
     })
 
-    it('requires authentication (returns 401 without user)', async () => {
+    it('requires authentication (returns error without user)', async () => {
       const unauthApp = setupUnauthenticatedApp()
 
-      // The guards.ts middleware checks for user in context
-      // Since the user routes use requireRole which checks c.get('user')
-      // we need to test what happens when user is not set
-      // However, the users routes don't have auth middleware directly
-      // They rely on the main app middleware chain
-      // For this test, we simulate that the route requires auth
-
-      // In production, this would be caught by sessionAuth middleware
-      // Let's verify the service is not called when no user context exists
+      // The handler checks for required context (db, accountId, user)
+      // When user is not set, it throws "Missing required context"
       const res = await unauthApp.request('/users', {
         method: 'GET',
       })
 
-      // Without proper auth middleware in test, the route will proceed
-      // but the handler will have undefined user
-      // The service call will still happen but with undefined context
-      // This tests the route behavior, not the auth middleware
-      expect(usersService.findAll).toHaveBeenCalled()
+      // Handler throws before reaching the service
+      // Error handler catches this and returns 500
+      expect(res.status).toBe(500)
+      expect(usersService.findAll).not.toHaveBeenCalled()
     })
 
     it('supports search query parameter', async () => {
@@ -368,7 +360,7 @@ describe('Users Routes', () => {
 
   describe('DELETE /users/:id', () => {
     it('soft deletes user with ADMIN role', async () => {
-      vi.mocked(usersService.delete).mockResolvedValue(undefined)
+      vi.mocked(usersService.delete).mockResolvedValue()
 
       const authenticatedApp = setupAuthenticatedApp('ADMIN')
 
@@ -406,7 +398,7 @@ describe('Users Routes', () => {
     })
 
     it('allows super admin to delete users', async () => {
-      vi.mocked(usersService.delete).mockResolvedValue(undefined)
+      vi.mocked(usersService.delete).mockResolvedValue()
 
       const authenticatedApp = setupAuthenticatedApp('VIEWER', true)
 

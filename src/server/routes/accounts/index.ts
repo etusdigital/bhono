@@ -25,7 +25,7 @@ const accounts = new OpenAPIHono<HonoEnv>()
  * This is needed because .use() requires Hono path syntax
  */
 function toHonoPath(openApiPath: string): string {
-  return openApiPath.replace(/{(\w+)}/g, ':$1')
+  return openApiPath.replaceAll(/{(\w+)}/g, ':$1')
 }
 
 // List accounts - requires VIEWER role or higher

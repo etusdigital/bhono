@@ -23,7 +23,7 @@ describe('Health Routes', () => {
       ;(c as any).env = mockEnv
       // Create mock db that supports sql template literal
       const mockDb = dbMock ?? {
-        execute: vi.fn().mockResolvedValue({ rows: [{ 1: 1 }] }),
+        run: vi.fn().mockResolvedValue({ rows: [{ 1: 1 }] }),
       }
       c.set('db', mockDb)
       await next()
@@ -64,7 +64,7 @@ describe('Health Routes', () => {
 
       // Create app with failing db
       const failingDb = {
-        execute: vi.fn().mockRejectedValue(new Error('DB connection failed')),
+        run: vi.fn().mockRejectedValue(new Error('DB connection failed')),
       }
       const app = createApp(failingDb)
 
@@ -125,7 +125,7 @@ describe('Health Routes', () => {
 
       // Create app with failing db
       const failingDb = {
-        execute: vi.fn().mockRejectedValue(new Error('DB connection failed')),
+        run: vi.fn().mockRejectedValue(new Error('DB connection failed')),
       }
       const app = createApp(failingDb)
 
@@ -156,7 +156,7 @@ describe('Health Routes', () => {
     it('returns 503 when db is down', async () => {
       // Create app with failing db
       const failingDb = {
-        execute: vi.fn().mockRejectedValue(new Error('DB connection failed')),
+        run: vi.fn().mockRejectedValue(new Error('DB connection failed')),
       }
       const app = createApp(failingDb)
 
@@ -196,7 +196,7 @@ describe('Health Routes', () => {
     it('returns alive even when db is down', async () => {
       // Create app with failing db
       const failingDb = {
-        execute: vi.fn().mockRejectedValue(new Error('DB connection failed')),
+        run: vi.fn().mockRejectedValue(new Error('DB connection failed')),
       }
       const app = createApp(failingDb)
 

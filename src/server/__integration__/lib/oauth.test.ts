@@ -162,7 +162,7 @@ describe('OAuth Utility Functions', () => {
     function utf8ToBase64url(str: string): string {
       const bytes = new TextEncoder().encode(str)
       const binary = String.fromCharCode(...bytes)
-      return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+      return btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '')
     }
 
     function createMockIdToken(payload: Record<string, unknown>): string {

@@ -13,7 +13,7 @@ vi.mock('../../lib/tokens', () => ({
 }))
 
 vi.mock('../../lib/audit', () => ({
-  logAuthEvent: vi.fn().mockResolvedValue(undefined),
+  logAuthEvent: vi.fn().mockResolvedValue(),
 }))
 
 import { createAccessToken, generateRefreshToken, hashToken, getRefreshTokenExpiry } from '../../lib/tokens'

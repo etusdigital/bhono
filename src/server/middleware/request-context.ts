@@ -8,11 +8,11 @@ export const requestContext = createMiddleware<HonoEnv>(async (c, next) => {
   c.set('transactionId', uuidv7())
 
   // Set IP address
-  const ip = c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || 'unknown'
+  const ip = c.req.header('x-forwarded-for') ?? c.req.header('x-real-ip') ?? 'unknown'
   c.set('ip', ip)
 
   // Set User Agent
-  const userAgent = c.req.header('user-agent') || 'unknown'
+  const userAgent = c.req.header('user-agent') ?? 'unknown'
   c.set('userAgent', userAgent)
 
   // Initialize user and account context (will be set by auth middleware)

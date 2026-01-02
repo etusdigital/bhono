@@ -36,9 +36,9 @@ export const requestLogger = () =>
       path: c.req.path,
       status,
       duration,
-      transactionId: c.get('transactionId') || 'unknown',
-      ip: c.get('ip') || c.req.header('x-forwarded-for') || 'unknown',
-      userAgent: c.get('userAgent') || c.req.header('user-agent') || 'unknown',
+      transactionId: c.get('transactionId') ?? 'unknown',
+      ip: c.get('ip') ?? c.req.header('x-forwarded-for') ?? 'unknown',
+      userAgent: c.get('userAgent') ?? c.req.header('user-agent') ?? 'unknown',
       timestamp: new Date().toISOString(),
     }
 

@@ -1,7 +1,7 @@
 // src/server/index.ts
 import { Hono } from 'hono'
 import { secureHeaders } from 'hono/secure-headers'
-import type { Env } from './env'
+import type { HonoEnv } from './types'
 import { createDb } from './db/client'
 import { auth } from './routes/auth'
 import { api } from './routes'
@@ -14,8 +14,8 @@ import {
 } from './middleware'
 import { sessionMiddleware } from './lib/session'
 
-// Hono app with bindings
-const app = new Hono<{ Bindings: Env }>()
+// Hono app with bindings and variables
+const app = new Hono<HonoEnv>()
 
 // 1. Global error handler
 app.onError(errorHandler)
@@ -35,6 +35,7 @@ app.use('*', async (c, next) => {
   return configurableCors({
     corsOrigins,
     appUrl: env.APP_URL,
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Hono wildcard route typing
   })(c, next)
 })
 
@@ -43,8 +44,10 @@ app.use('*', secureHeaders())
 
 // 6. Database middleware - create db instance per request
 app.use('*', async (c, next) => {
-  const db = createDb(c.env.DB)
-  c.set('db', db)
+  if (c.env.DB) {
+    const db = createDb(c.env.DB)
+    c.set('db', db)
+  }
   await next()
 })
 

@@ -2,7 +2,7 @@
 import { createRoute, z } from '@hono/zod-openapi'
 import {
   AuthTokensSchema,
-  AuthUserSchema,
+  SessionUserSchema,
   LoginQuerySchema,
   CallbackQuerySchema,
   AuthErrorSchema,
@@ -29,21 +29,13 @@ export const callbackRoute = createRoute({
   path: '/callback',
   tags: ['Auth'],
   summary: 'Google OAuth callback',
-  description: 'Handles Google OAuth callback and issues tokens',
+  description: 'Handles Google OAuth callback, creates session, and redirects to app',
   request: {
     query: CallbackQuerySchema,
   },
   responses: {
-    200: {
-      description: 'Authentication successful',
-      content: {
-        'application/json': {
-          schema: z.object({
-            user: AuthUserSchema,
-            tokens: AuthTokensSchema,
-          }),
-        },
-      },
+    302: {
+      description: 'Redirect to application after successful authentication',
     },
     400: {
       description: 'Invalid callback',
@@ -101,7 +93,7 @@ export const meRoute = createRoute({
   path: '/me',
   tags: ['Auth'],
   summary: 'Get current user',
-  description: 'Returns authenticated user info',
+  description: 'Returns authenticated user info from session',
   security: [{ Bearer: [] }],
   responses: {
     200: {
@@ -109,7 +101,7 @@ export const meRoute = createRoute({
       content: {
         'application/json': {
           schema: z.object({
-            user: AuthUserSchema,
+            user: SessionUserSchema,
           }),
         },
       },

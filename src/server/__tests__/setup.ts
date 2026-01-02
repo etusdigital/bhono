@@ -194,7 +194,7 @@ export function teardownTestEnvironment(): void {
  * Setup hooks for test files
  * Import and call this in your test file to automatically setup/teardown
  */
-export function useTestSetup(): void {
+export function registerTestLifecycle(): void {
   beforeEach(() => {
     setupTestEnvironment()
   })

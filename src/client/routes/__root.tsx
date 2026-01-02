@@ -26,8 +26,8 @@ function RootErrorComponent({ error }: { error: Error }) {
         error={error}
         title="Application Error"
         message="Something went wrong. Please try again or contact support if the problem persists."
-        onRetry={() => router.invalidate()}
-        onGoHome={() => router.navigate({ to: '/' })}
+        onRetry={() => { void router.invalidate() }}
+        onGoHome={() => { void router.navigate({ to: '/' }) }}
       />
     </div>
   )

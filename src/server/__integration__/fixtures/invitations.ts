@@ -171,7 +171,7 @@ export async function getAccountInvitations(accountId: string): Promise<CreatedI
   const rows = db.prepare(`
     SELECT id, account_id, email, role, token, invited_by_id, expires_at, accepted_at
     FROM invitations WHERE account_id = ?
-  `).all(accountId) as Array<{
+  `).all(accountId) as {
     id: string
     account_id: string
     email: string
@@ -180,7 +180,7 @@ export async function getAccountInvitations(accountId: string): Promise<CreatedI
     invited_by_id: string
     expires_at: string
     accepted_at: string | null
-  }>
+  }[]
 
   return rows.map((row) => ({
     id: row.id,

@@ -8,7 +8,7 @@ import { createUserFixture, createAccountFixture } from '../../__tests__/fixture
 
 // Mock email module
 vi.mock('../../lib/email', () => ({
-  sendInvitationEmail: vi.fn().mockResolvedValue(undefined),
+  sendInvitationEmail: vi.fn().mockResolvedValue(),
 }))
 
 // Mock audit module
@@ -54,7 +54,7 @@ function createMockDb() {
       }),
     }),
     delete: vi.fn().mockReturnValue({
-      where: vi.fn().mockResolvedValue(undefined),
+      where: vi.fn().mockResolvedValue(),
     }),
   } as any
 }
@@ -198,7 +198,7 @@ describe('invitationsService', () => {
 
       // Mock insert for creating user-account relationship
       mockDb.insert = vi.fn().mockReturnValue({
-        values: vi.fn().mockResolvedValue(undefined),
+        values: vi.fn().mockResolvedValue(),
       })
 
       const result = await invitationsService.create(mockDb, mockEnv, ctx, {
@@ -510,7 +510,7 @@ describe('invitationsService', () => {
 
       // Mock delete
       mockDb.delete = vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue(undefined),
+        where: vi.fn().mockResolvedValue(),
       })
 
       await invitationsService.revoke(mockDb, ctx, 'inv-to-delete')
@@ -669,13 +669,13 @@ describe('invitationsService', () => {
 
       // Mock insert for userAccounts
       mockDb.insert = vi.fn().mockReturnValue({
-        values: vi.fn().mockResolvedValue(undefined),
+        values: vi.fn().mockResolvedValue(),
       })
 
       // Mock update for marking accepted
       mockDb.update = vi.fn().mockReturnValue({
         set: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue(undefined),
+          where: vi.fn().mockResolvedValue(),
         }),
       })
 

@@ -54,7 +54,7 @@ describe('Invitations Routes', () => {
   })
 
   // Helper to setup authenticated app with specific role
-  function setupAuthenticatedApp(userRole: string = 'ADMIN', isSuperAdmin: boolean = false) {
+  function setupAuthenticatedApp(userRole = 'ADMIN', isSuperAdmin = false) {
     const authenticatedApp = new Hono<HonoEnv>()
 
     authenticatedApp.use('*', async (c, next) => {
@@ -301,7 +301,7 @@ describe('Invitations Routes', () => {
 
   describe('DELETE /invitations/:id (revokeInvitationHandler)', () => {
     it('should revoke invitation successfully', async () => {
-      vi.mocked(invitationsService.revoke).mockResolvedValue(undefined)
+      vi.mocked(invitationsService.revoke).mockResolvedValue()
 
       const authenticatedApp = setupAuthenticatedApp('ADMIN')
 
@@ -333,7 +333,7 @@ describe('Invitations Routes', () => {
     })
 
     it('allows MANAGER role to revoke invitations', async () => {
-      vi.mocked(invitationsService.revoke).mockResolvedValue(undefined)
+      vi.mocked(invitationsService.revoke).mockResolvedValue()
 
       const authenticatedApp = setupAuthenticatedApp('MANAGER')
 

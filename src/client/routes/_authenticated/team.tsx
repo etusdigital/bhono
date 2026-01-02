@@ -1,10 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import { toast } from 'sonner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
@@ -16,15 +18,31 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Icons } from '@/components/icons'
 import { useAuth } from '@/hooks/use-auth'
+
+const InviteFormSchema = z.object({
+  email: z.string().min(1, 'Email é obrigatório').email('Email inválido'),
+  role: z.enum(['member', 'admin']),
+})
+
+type InviteFormInput = z.infer<typeof InviteFormSchema>
 
 export const Route = createFileRoute('/_authenticated/team')({
   component: TeamPage,
 })
 
 // Mock data for team members
-const mockTeamMembers = [
+const mockTeamMembers: {
+  id: string
+  name: string
+  email: string
+  role: string
+  avatarUrl: string | null
+  joinedAt: string
+  isCurrentUser: boolean
+}[] = [
   {
     id: '1',
     name: 'You',
@@ -53,15 +71,20 @@ type Invitation = typeof mockInvitations[0]
 function TeamPage() {
   const { user } = useAuth()
   const [isInviteOpen, setIsInviteOpen] = useState(false)
-  const [inviteEmail, setInviteEmail] = useState('')
-  const [inviteRole, setInviteRole] = useState<'member' | 'admin'>('member')
-  const [isInviting, setIsInviting] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+
+  const form = useForm<InviteFormInput>({
+    resolver: zodResolver(InviteFormSchema),
+    defaultValues: {
+      email: '',
+      role: 'member',
+    },
+  })
 
   // Populate current user data
   const teamMembers: TeamMember[] = mockTeamMembers.map((m) =>
     m.isCurrentUser
-      ? { ...m, name: user?.name || 'You', email: user?.email || '', avatarUrl: user?.avatarUrl || null }
+      ? { ...m, name: user?.name ?? 'You', email: user?.email ?? '', avatarUrl: user?.avatarUrl ?? null }
       : m
   )
 
@@ -73,25 +96,25 @@ function TeamPage() {
       m.email.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const handleInvite = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsInviting(true)
+  const handleOpenChange = (open: boolean) => {
+    setIsInviteOpen(open)
+    if (!open) form.reset()
+  }
+
+  const onSubmit = async (data: InviteFormInput) => {
     try {
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1000))
-      toast.success(`Invitation sent to ${inviteEmail}`)
+      toast.success(`Invitation sent to ${data.email}`)
       setIsInviteOpen(false)
-      setInviteEmail('')
-      setInviteRole('member')
+      form.reset()
     } catch {
       toast.error('Failed to send invitation. Please try again.')
-    } finally {
-      setIsInviting(false)
     }
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Page Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -101,7 +124,7 @@ function TeamPage() {
           </p>
         </div>
 
-        <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
+        <Dialog open={isInviteOpen} onOpenChange={handleOpenChange}>
           <DialogTrigger asChild>
             <Button>
               <Icons.userPlus className="mr-2 h-4 w-4" />
@@ -109,67 +132,84 @@ function TeamPage() {
             </Button>
           </DialogTrigger>
           <DialogContent>
-            <form onSubmit={handleInvite}>
-              <DialogHeader>
-                <DialogTitle>Invite Team Member</DialogTitle>
-                <DialogDescription>
-                  Send an invitation to join your workspace. They'll receive an email with a link to accept.
-                </DialogDescription>
-              </DialogHeader>
+            <Form {...form}>
+              <form onSubmit={(e) => { void form.handleSubmit(onSubmit)(e) }}>
+                <DialogHeader>
+                  <DialogTitle>Invite Team Member</DialogTitle>
+                  <DialogDescription>
+                    Send an invitation to join your workspace. They'll receive an email with a link to accept.
+                  </DialogDescription>
+                </DialogHeader>
 
-              <div className="grid gap-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="colleague@example.com"
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                    required
+                <div className="grid gap-4 py-4">
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email Address</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="email"
+                            placeholder="colleague@example.com"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="role"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Role</FormLabel>
+                        <FormControl>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant={field.value === 'member' ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => { field.onChange('member'); }}
+                              className="flex-1"
+                            >
+                              Member
+                            </Button>
+                            <Button
+                              type="button"
+                              variant={field.value === 'admin' ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => { field.onChange('admin'); }}
+                              className="flex-1"
+                            >
+                              Admin
+                            </Button>
+                          </div>
+                        </FormControl>
+                        <FormDescription>
+                          {field.value === 'member'
+                            ? 'Members can view and collaborate on projects.'
+                            : 'Admins can manage team settings and members.'}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Role</Label>
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant={inviteRole === 'member' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setInviteRole('member')}
-                      className="flex-1"
-                    >
-                      Member
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={inviteRole === 'admin' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setInviteRole('admin')}
-                      className="flex-1"
-                    >
-                      Admin
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {inviteRole === 'member'
-                      ? 'Members can view and collaborate on projects.'
-                      : 'Admins can manage team settings and members.'}
-                  </p>
-                </div>
-              </div>
-
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsInviteOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isInviting || !inviteEmail}>
-                  {isInviting && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
-                  Send Invitation
-                </Button>
-              </DialogFooter>
-            </form>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => { setIsInviteOpen(false); }}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={form.formState.isSubmitting}>
+                    {form.formState.isSubmitting && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
+                    Send Invitation
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
           </DialogContent>
         </Dialog>
       </div>
@@ -180,7 +220,7 @@ function TeamPage() {
         <Input
           placeholder="Search members..."
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e) => { setSearchQuery(e.target.value); }}
           className="pl-9"
         />
       </div>
@@ -231,11 +271,10 @@ function TeamPage() {
 
 function TeamMemberRow({ member }: { member: TeamMember }) {
   const initials = member.name
-    ?.split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2) || member.email?.[0].toUpperCase() || '?'
+    ? member.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
+    : member.email
+      ? member.email[0].toUpperCase()
+      : '?'
 
   const roleColors: Record<string, 'default' | 'secondary' | 'outline'> = {
     owner: 'default',
@@ -247,7 +286,7 @@ function TeamMemberRow({ member }: { member: TeamMember }) {
     <div className="flex items-center justify-between py-4 first:pt-0 last:pb-0">
       <div className="flex items-center gap-4">
         <Avatar>
-          <AvatarImage src={member.avatarUrl || undefined} alt={member.name} />
+          <AvatarImage src={member.avatarUrl ?? undefined} alt={member.name} />
           <AvatarFallback>{initials}</AvatarFallback>
         </Avatar>
         <div>
@@ -326,7 +365,7 @@ function InvitationRow({ invitation }: { invitation: Invitation }) {
         <Button
           variant="ghost"
           size="sm"
-          onClick={handleResend}
+          onClick={() => { void handleResend() }}
           disabled={isResending}
         >
           {isResending ? (
@@ -339,7 +378,7 @@ function InvitationRow({ invitation }: { invitation: Invitation }) {
         <Button
           variant="ghost"
           size="sm"
-          onClick={handleRevoke}
+          onClick={() => { void handleRevoke() }}
           disabled={isRevoking}
           className="text-destructive hover:text-destructive"
         >

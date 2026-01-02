@@ -39,19 +39,19 @@ export const auditsService = {
     }
 
     if (filters.action) {
-      conditions.push(eq(auditLogs.action, filters.action as any))
+      conditions.push(eq(auditLogs.action, filters.action as AuditLog['action']))
     }
 
     // Build where clause
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined
 
     // Get total count
-    const [countResult] = await db
+    const countResults = await db
       .select({ count: sql<number>`count(*)` })
       .from(auditLogs)
       .where(whereClause)
 
-    const totalItems = countResult?.count ?? 0
+    const totalItems = countResults.at(0)?.count ?? 0
 
     // Get paginated data
     const data = await db

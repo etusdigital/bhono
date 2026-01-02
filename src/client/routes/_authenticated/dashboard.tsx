@@ -9,13 +9,13 @@ export const Route = createFileRoute('/_authenticated/dashboard')({
 
 function DashboardPage() {
   const { user } = useAuth()
-  const firstName = user?.name?.split(' ')[0] || 'there'
+  const firstName = user?.name ? user.name.split(' ')[0] : 'there'
 
   return (
     <div className="space-y-8">
       {/* Welcome section */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">
+        <h1 className="text-2xl font-semibold tracking-tight">
           Welcome back, {firstName}
         </h1>
         <p className="text-muted-foreground">

@@ -29,7 +29,7 @@ function expiryDate(): string {
 function generateToken(): string {
   const array = new Uint8Array(32)
   crypto.getRandomValues(array)
-  return Array.from(array)
+  return [...array]
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('')
 }
@@ -123,15 +123,19 @@ const auditLogsData = [
 // ============================================================================
 
 function escapeString(str: string): string {
-  return str.replace(/'/g, "''")
+  return str.replaceAll('\'', "''")
 }
 
 function toSqlValue(value: unknown): string {
   if (value === null || value === undefined) return 'NULL'
   if (typeof value === 'boolean') return value ? '1' : '0'
   if (typeof value === 'number') return String(value)
+  if (typeof value === 'string') return `'${escapeString(value)}'`
   if (typeof value === 'object') return `'${escapeString(JSON.stringify(value))}'`
-  return `'${escapeString(String(value))}'`
+  if (typeof value === 'bigint') return String(value)
+  if (typeof value === 'symbol') return `'${escapeString(value.toString())}'`
+  // function type - should not occur in seed data
+  return 'NULL'
 }
 
 function generateSQL(): string {
@@ -189,7 +193,7 @@ function generateSQL(): string {
 
   lines.push('-- ============================================================================')
   lines.push('-- SEED COMPLETE')
-  lines.push(`-- Created: ${accountsData.length} accounts, ${usersData.length} users, ${userAccountsData.length} user-accounts, ${invitationsData.length} invitations, ${auditLogsData.length} audit logs`)
+  lines.push(`-- Created: ${String(accountsData.length)} accounts, ${String(usersData.length)} users, ${String(userAccountsData.length)} user-accounts, ${String(invitationsData.length)} invitations, ${String(auditLogsData.length)} audit logs`)
   lines.push('-- ============================================================================')
 
   return lines.join('\n')
@@ -214,14 +218,14 @@ function printSummary(): void {
   }
 
   console.log('\n🔗 User-Account Relationships:')
-  const byAccount: Record<string, string[]> = {}
+  const byAccount = new Map<string, string[]>()
   for (const ua of userAccountsData) {
-    const accountName = accountsData.find(a => a.id === ua.accountId)?.name || 'Unknown'
-    const userName = usersData.find(u => u.id === ua.userId)?.name || 'Unknown'
-    if (!byAccount[accountName]) byAccount[accountName] = []
-    byAccount[accountName].push(`${userName} (${ua.role})`)
+    const accountName = accountsData.find(a => a.id === ua.accountId)?.name ?? 'Unknown'
+    const userName = usersData.find(u => u.id === ua.userId)?.name ?? 'Unknown'
+    if (!byAccount.has(accountName)) byAccount.set(accountName, [])
+    byAccount.get(accountName)?.push(`${userName} (${ua.role})`)
   }
-  for (const [account, users] of Object.entries(byAccount)) {
+  for (const [account, users] of byAccount.entries()) {
     console.log(`   ${account}:`)
     for (const user of users) {
       console.log(`     • ${user}`)
@@ -230,11 +234,11 @@ function printSummary(): void {
 
   console.log('\n📨 Pending Invitations:')
   for (const inv of invitationsData) {
-    const accountName = accountsData.find(a => a.id === inv.accountId)?.name || 'Unknown'
+    const accountName = accountsData.find(a => a.id === inv.accountId)?.name ?? 'Unknown'
     console.log(`   • ${inv.email} → ${accountName} (${inv.role})`)
   }
 
-  console.log('\n📋 Audit Logs: ' + auditLogsData.length + ' entries')
+  console.log(`\n📋 Audit Logs: ${String(auditLogsData.length)} entries`)
 
   console.log('\n🔐 Sample Strong Password:', generateStrongPassword())
 
@@ -249,9 +253,9 @@ function printSummary(): void {
 const sql = generateSQL()
 
 // Write to file
-import { writeFileSync } from 'fs'
-import { join, dirname } from 'path'
-import { fileURLToPath } from 'url'
+import { writeFileSync } from 'node:fs'
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)

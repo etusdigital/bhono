@@ -962,7 +962,7 @@ describe('Storage Integration', () => {
   // ============================================================================
 
   describe('Role permission matrix for storage', () => {
-    const storagePermissionTests: Array<{
+    const storagePermissionTests: {
       role: Role
       operation: string
       endpoint: string
@@ -970,7 +970,7 @@ describe('Storage Integration', () => {
       shouldSucceed: boolean
       body?: string | Record<string, unknown>
       contentType?: string
-    }> = [
+    }[] = [
       // ADMIN - full access
       { role: 'ADMIN', operation: 'Generate upload URL', endpoint: '/api/storage/upload-url', method: 'POST', shouldSucceed: true, body: { filename: 'test.txt', contentType: 'text/plain' }, contentType: 'application/json' },
 
@@ -1026,10 +1026,10 @@ describe('Storage Integration', () => {
     }
 
     // Delete permission tests (need to create files first)
-    const deletePermissionTests: Array<{
+    const deletePermissionTests: {
       role: Role
       shouldSucceed: boolean
-    }> = [
+    }[] = [
       { role: 'ADMIN', shouldSucceed: true },
       { role: 'MANAGER', shouldSucceed: true },
       { role: 'EDITOR', shouldSucceed: true },

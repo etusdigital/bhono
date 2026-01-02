@@ -1,5 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -8,8 +10,10 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Icons } from '@/components/icons'
 import { useAuth } from '@/hooks/use-auth'
+import { UpdateProfileSchema, type UpdateProfileInput } from '@shared/schemas'
 
 export const Route = createFileRoute('/_authenticated/settings')({
   component: SettingsPage,
@@ -17,31 +21,33 @@ export const Route = createFileRoute('/_authenticated/settings')({
 
 function SettingsPage() {
   const { user } = useAuth()
-  const [isUpdating, setIsUpdating] = useState(false)
+
+  const form = useForm<UpdateProfileInput>({
+    resolver: zodResolver(UpdateProfileSchema),
+    defaultValues: {
+      name: user?.name ?? '',
+    },
+  })
 
   const initials = user?.name
-    ?.split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2) || user?.email?.[0].toUpperCase() || '?'
+    ? user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
+    : user?.email
+      ? user.email[0].toUpperCase()
+      : '?'
 
-  const handleUpdateProfile = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsUpdating(true)
+  const onSubmit = async (data: UpdateProfileInput) => {
     try {
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1000))
       toast.success('Profile updated successfully')
+      console.log('Profile data:', data)
     } catch {
       toast.error('Failed to update profile. Please try again.')
-    } finally {
-      setIsUpdating(false)
     }
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Page Header */}
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
@@ -77,7 +83,7 @@ function SettingsPage() {
             </CardHeader>
             <CardContent className="flex items-center gap-6">
               <Avatar className="h-20 w-20">
-                <AvatarImage src={user?.avatarUrl || undefined} alt={user?.name || ''} />
+                <AvatarImage src={user?.avatarUrl ?? undefined} alt={user?.name ?? ''} />
                 <AvatarFallback className="text-lg">{initials}</AvatarFallback>
               </Avatar>
               <div className="space-y-2">
@@ -100,40 +106,46 @@ function SettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleUpdateProfile} className="space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Full Name</Label>
-                    <Input
-                      id="name"
-                      defaultValue={user?.name || ''}
-                      placeholder="Enter your name"
+              <Form {...form}>
+                <form onSubmit={(e) => { void form.handleSubmit(onSubmit)(e) }} className="space-y-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Full Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter your name" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
+                    <div className="space-y-2">
+                      <Label>Email Address</Label>
+                      <Input
+                        type="email"
+                        defaultValue={user?.email ?? ''}
+                        placeholder="Enter your email"
+                        disabled
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Email cannot be changed.
+                      </p>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email Address</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      defaultValue={user?.email || ''}
-                      placeholder="Enter your email"
-                      disabled
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Email cannot be changed.
-                    </p>
-                  </div>
-                </div>
 
-                <div className="flex justify-end">
-                  <Button type="submit" disabled={isUpdating}>
-                    {isUpdating && (
-                      <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-                    )}
-                    Save Changes
-                  </Button>
-                </div>
-              </form>
+                  <div className="flex justify-end">
+                    <Button type="submit" disabled={form.formState.isSubmitting}>
+                      {form.formState.isSubmitting && (
+                        <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                      )}
+                      Save Changes
+                    </Button>
+                  </div>
+                </form>
+              </Form>
             </CardContent>
           </Card>
         </TabsContent>
@@ -278,7 +290,7 @@ function NotificationToggle({
         role="switch"
         aria-checked={checked}
         disabled={disabled}
-        onClick={() => setChecked(!checked)}
+        onClick={() => { setChecked(!checked); }}
         className={`
           relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent
           transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2

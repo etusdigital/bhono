@@ -1,4 +1,6 @@
 // src/routes/auth/handlers.ts
+import type { RouteHandler } from '@hono/zod-openapi'
+import type { Context } from 'hono'
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie'
 import { HTTPException } from 'hono/http-exception'
 import {
@@ -14,19 +16,26 @@ import { createSession, destroySession, getSession } from '../../lib/session'
 import { authService } from '../../services/auth'
 import { invitationsService } from '../../services/invitations'
 import type { AuthEventContext } from '../../lib/audit'
+import type { HonoEnv } from '../../types'
+import type {
+  loginRoute,
+  callbackRoute,
+  refreshRoute,
+  logoutRoute,
+  meRoute,
+  inviteRoute,
+} from './routes'
 
 // Helper to extract auth context from Hono context
-function getAuthContext(c: any): AuthEventContext {
+function getAuthContext(c: Context<HonoEnv>): AuthEventContext {
   return {
-    transactionId: c.get('transactionId') || crypto.randomUUID(),
-    ip: c.get('ip') || 'unknown',
-    userAgent: c.get('userAgent') || 'unknown',
+    transactionId: c.get('transactionId') ?? crypto.randomUUID(),
+    ip: c.get('ip') ?? 'unknown',
+    userAgent: c.get('userAgent') ?? 'unknown',
   }
 }
 
-// Note: Handler types are inferred from route definitions by @hono/zod-openapi
-// Using 'any' is the standard pattern for openapi handlers
-export const loginHandler = async (c: any) => {
+export const loginHandler: RouteHandler<typeof loginRoute, HonoEnv> = async (c) => {
   const env = c.env
   const { redirect } = c.req.valid('query')
 
@@ -40,7 +49,7 @@ export const loginHandler = async (c: any) => {
   const oauthData = JSON.stringify({
     codeVerifier,
     state,
-    redirect: redirect || null,
+    redirect: redirect ?? null,
   })
 
   setCookie(c, 'oauth_state', oauthData, setOAuthStateCookieOptions(isProduction))
@@ -49,13 +58,15 @@ export const loginHandler = async (c: any) => {
   return c.redirect(authUrl)
 }
 
-export const callbackHandler = async (c: any) => {
+export const callbackHandler: RouteHandler<typeof callbackRoute, HonoEnv> = async (c) => {
   const db = c.get('db')
   const env = c.env
   const { code, state } = c.req.valid('query')
   const ctx = getAuthContext(c)
 
-  const isProduction = env.ENVIRONMENT === 'production'
+  if (!db) {
+    throw new HTTPException(500, { message: 'Database not initialized' })
+  }
 
   // Get stored OAuth state
   const oauthCookie = getCookie(c, 'oauth_state')
@@ -66,7 +77,7 @@ export const callbackHandler = async (c: any) => {
 
   let oauthData: { codeVerifier: string; state: string; redirect: string | null }
   try {
-    oauthData = JSON.parse(oauthCookie)
+    oauthData = JSON.parse(oauthCookie) as typeof oauthData
   } catch (e) {
     console.error('[AUTH CALLBACK] Invalid OAuth state cookie:', e)
     throw new HTTPException(400, { message: 'Invalid OAuth state cookie' })
@@ -106,21 +117,25 @@ export const callbackHandler = async (c: any) => {
     userId: result.user.id,
     email: result.user.email,
     name: result.user.name,
-    avatarUrl: (result.user as any).avatarUrl || null,
+    avatarUrl: result.user.avatarUrl ?? null,
     isSuperAdmin: result.user.isSuperAdmin,
   })
 
   // Redirect to SPA (session cookie will be set automatically)
-  const baseUrl = env.APP_URL || `${new URL(c.req.url).origin}`
-  const redirectPath = oauthData.redirect || '/dashboard'
+  const baseUrl = env.APP_URL || new URL(c.req.url).origin
+  const redirectPath = oauthData.redirect ?? '/dashboard'
   const redirectUrl = new URL(redirectPath, baseUrl)
   return c.redirect(redirectUrl.toString(), 302)
 }
 
-export const refreshHandler = async (c: any) => {
+export const refreshHandler: RouteHandler<typeof refreshRoute, HonoEnv> = async (c) => {
   const db = c.get('db')
   const env = c.env
   const refreshToken = getCookie(c, 'refresh_token')
+
+  if (!db) {
+    throw new HTTPException(500, { message: 'Database not initialized' })
+  }
 
   if (!refreshToken) {
     throw new HTTPException(401, { message: 'No refresh token' })
@@ -129,13 +144,17 @@ export const refreshHandler = async (c: any) => {
   const ctx = getAuthContext(c)
   const tokens = await authService.refreshAccessToken(db, env, refreshToken, ctx)
 
-  return c.json({ tokens })
+  return c.json({ tokens }, 200)
 }
 
-export const logoutHandler = async (c: any) => {
+export const logoutHandler: RouteHandler<typeof logoutRoute, HonoEnv> = async (c) => {
   const db = c.get('db')
   const ctx = getAuthContext(c)
   const session = getSession(c)
+
+  if (!db) {
+    throw new HTTPException(500, { message: 'Database not initialized' })
+  }
 
   // Log logout event if we have a session
   if (session) {
@@ -149,7 +168,7 @@ export const logoutHandler = async (c: any) => {
   return c.json({ message: 'Logged out successfully' })
 }
 
-export const meHandler = async (c: any) => {
+export const meHandler: RouteHandler<typeof meRoute, HonoEnv> = (c) => {
   const session = getSession(c)
 
   if (!session) {
@@ -168,10 +187,14 @@ export const meHandler = async (c: any) => {
   })
 }
 
-export const inviteHandler = async (c: any) => {
+export const inviteHandler: RouteHandler<typeof inviteRoute, HonoEnv> = async (c) => {
   const db = c.get('db')
   const env = c.env
   const { token } = c.req.valid('param')
+
+  if (!db) {
+    throw new HTTPException(500, { message: 'Database not initialized' })
+  }
 
   const isProduction = env.ENVIRONMENT === 'production'
 

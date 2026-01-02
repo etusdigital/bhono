@@ -12,7 +12,7 @@ import type { ServiceContext } from '../types'
 function generateToken(): string {
   const array = new Uint8Array(32)
   crypto.getRandomValues(array)
-  return Array.from(array)
+  return [...array]
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('')
 }
@@ -48,13 +48,18 @@ export const invitationsService = {
   async create(db: Database, env: Env, ctx: ServiceContext, input: CreateInvitationInput): Promise<InvitationResult> {
     const { email, role } = input
 
+    // Check inviter has a role in this account
+    if (!ctx.userRole) {
+      throw new ForbiddenError('User must have a role in this account to invite others')
+    }
+
     // Check inviter can assign this role (can't assign higher than own role)
-    if (!hasMinimumRole(ctx.userRole!, role)) {
+    if (!hasMinimumRole(ctx.userRole, role)) {
       throw new ForbiddenError('Cannot assign a role higher than your own')
     }
 
     // Check if user already in this account
-    const [existingMembership] = await db
+    const membershipResults = await db
       .select()
       .from(userAccounts)
       .innerJoin(users, eq(users.id, userAccounts.userId))
@@ -67,17 +72,18 @@ export const invitationsService = {
       )
       .limit(1)
 
-    if (existingMembership) {
+    if (membershipResults.at(0)) {
       throw new ConflictError('User is already a member of this account')
     }
 
     // Check if user exists in system
-    const [existingUser] = await db
+    const existingUserResults = await db
       .select()
       .from(users)
       .where(and(eq(users.email, email), isNull(users.deletedAt)))
       .limit(1)
 
+    const existingUser = existingUserResults.at(0)
     if (existingUser) {
       // Link immediately
       await db.insert(userAccounts).values({
@@ -98,7 +104,7 @@ export const invitationsService = {
     }
 
     // Check for existing pending invitation
-    const [existingInvitation] = await db
+    const existingInvitationResults = await db
       .select()
       .from(invitations)
       .where(
@@ -111,22 +117,27 @@ export const invitationsService = {
       )
       .limit(1)
 
-    if (existingInvitation) {
+    if (existingInvitationResults.at(0)) {
       throw new ConflictError('Pending invitation already exists for this email')
     }
 
     // Get account name for email
-    const [account] = await db
+    const accountResults = await db
       .select()
       .from(accounts)
       .where(eq(accounts.id, ctx.accountId))
       .limit(1)
 
+    const account = accountResults.at(0)
+    if (!account) {
+      throw new Error('Account not found')
+    }
+
     // Create invitation
     const token = generateToken()
     const expiresAt = getExpiryDate()
 
-    const [invitation] = await db
+    const insertResults = await db
       .insert(invitations)
       .values({
         accountId: ctx.accountId,
@@ -138,9 +149,14 @@ export const invitationsService = {
       })
       .returning()
 
+    const invitation = insertResults.at(0)
+    if (!invitation) {
+      throw new Error('Failed to create invitation')
+    }
+
     // Send email
     const inviteUrl = `${env.APP_URL}/auth/invite/${token}`
-    await sendInvitationEmail(env, email, ctx.user.name, account!.name, inviteUrl)
+    await sendInvitationEmail(env, email, ctx.user.name, account.name, inviteUrl)
 
     return {
       linked: false,
@@ -154,14 +170,14 @@ export const invitationsService = {
     }
   },
 
-  async list(db: Database, ctx: ServiceContext): Promise<Array<{
+  async list(db: Database, ctx: ServiceContext): Promise<{
     id: string
     email: string
     role: Role
     invitedBy: { id: string; name: string }
     expiresAt: string
     createdAt: string
-  }>> {
+  }[]> {
     const results = await db
       .select({
         id: invitations.id,
@@ -194,7 +210,7 @@ export const invitationsService = {
   },
 
   async revoke(db: Database, ctx: ServiceContext, id: string): Promise<void> {
-    const [invitation] = await db
+    const invitationResults = await db
       .select()
       .from(invitations)
       .where(
@@ -206,6 +222,7 @@ export const invitationsService = {
       )
       .limit(1)
 
+    const invitation = invitationResults.at(0)
     if (!invitation) {
       throw new NotFoundError('Invitation')
     }
@@ -220,7 +237,7 @@ export const invitationsService = {
     role: Role
     accountName: string
   } | null> {
-    const [result] = await db
+    const tokenResults = await db
       .select({
         id: invitations.id,
         accountId: invitations.accountId,
@@ -235,6 +252,7 @@ export const invitationsService = {
       .where(eq(invitations.token, token))
       .limit(1)
 
+    const result = tokenResults.at(0)
     if (!result) return null
     if (result.acceptedAt) return null
     if (new Date(result.expiresAt) < new Date()) return null
@@ -254,12 +272,13 @@ export const invitationsService = {
     userId: string,
     ctx: AuthEventContext
   ): Promise<void> {
-    const [invitation] = await db
+    const invitationResults = await db
       .select()
       .from(invitations)
       .where(eq(invitations.id, invitationId))
       .limit(1)
 
+    const invitation = invitationResults.at(0)
     if (!invitation) {
       throw new NotFoundError('Invitation')
     }

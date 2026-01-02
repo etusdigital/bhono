@@ -9,8 +9,8 @@ async function checkDatabase(c: Context<HonoEnv>): Promise<'up' | 'down'> {
       return 'down'
     }
 
-    // Simple connectivity check
-    await db.execute(sql`SELECT 1`)
+    // Simple connectivity check using run() for D1
+    await db.run(sql`SELECT 1`)
     return 'up'
   } catch {
     return 'down'
@@ -37,17 +37,17 @@ export const handleHealth = async (c: Context<HonoEnv>) => {
   const checkPromises = [
     Promise.race([
       checkDatabase(c),
-      new Promise<'down'>((resolve) => setTimeout(() => resolve('down'), 5000))
+      new Promise<'down'>((resolve) => setTimeout(() => { resolve('down'); }, 5000))
     ]),
     Promise.race([
       checkStorage(c),
-      new Promise<'down'>((resolve) => setTimeout(() => resolve('down'), 5000))
+      new Promise<'down'>((resolve) => setTimeout(() => { resolve('down'); }, 5000))
     ])
   ]
 
   const [database, storage] = await Promise.all(checkPromises)
 
-  const status = database === 'up' && storage === 'up' ? 'healthy' : 'unhealthy'
+  const status: 'healthy' | 'unhealthy' = database === 'up' && storage === 'up' ? 'healthy' : 'unhealthy'
   const statusCode = status === 'healthy' ? 200 : 503
 
   return c.json({
@@ -65,7 +65,7 @@ export const handleReady = async (c: Context<HonoEnv>) => {
   try {
     const dbStatus = await Promise.race([
       checkDatabase(c),
-      new Promise<'down'>((resolve) => setTimeout(() => resolve('down'), 5000))
+      new Promise<'down'>((resolve) => setTimeout(() => { resolve('down'); }, 5000))
     ])
 
     if (dbStatus === 'up') {

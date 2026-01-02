@@ -60,7 +60,7 @@ describe('Accounts Routes', () => {
   })
 
   // Helper to setup authenticated app with specific role
-  function setupAuthenticatedApp(userRole: string = 'VIEWER', isSuperAdmin: boolean = false) {
+  function setupAuthenticatedApp(userRole = 'VIEWER', isSuperAdmin = false) {
     const authenticatedApp = new Hono<HonoEnv>()
 
     authenticatedApp.use('*', async (c, next) => {
@@ -376,7 +376,7 @@ describe('Accounts Routes', () => {
 
   describe('DELETE /accounts/:id', () => {
     it('soft deletes account with ADMIN role', async () => {
-      vi.mocked(accountsService.delete).mockResolvedValue(undefined)
+      vi.mocked(accountsService.delete).mockResolvedValue()
 
       const authenticatedApp = setupAuthenticatedApp('ADMIN', true)
 

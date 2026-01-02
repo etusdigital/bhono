@@ -63,7 +63,7 @@ describe('Token Utility Functions', () => {
       const token = await createAccessToken(env, userId, email)
       const payload = await verify(token, env.JWT_SECRET)
 
-      const expiryMinutes = parseInt(String(env.JWT_EXPIRY_MINUTES) || '15', 10)
+      const expiryMinutes = Number.parseInt(String(env.JWT_EXPIRY_MINUTES) || '15', 10)
       const expectedExpiry = payload.iat + expiryMinutes * 60
 
       expect(payload.exp).toBe(expectedExpiry)
@@ -188,7 +188,7 @@ describe('Token Utility Functions', () => {
 
     it('should respect REFRESH_TOKEN_EXPIRY_DAYS setting', () => {
       const expiry = getRefreshTokenExpiry(env)
-      const expiryDays = parseInt(String(env.REFRESH_TOKEN_EXPIRY_DAYS) || '30', 10)
+      const expiryDays = Number.parseInt(String(env.REFRESH_TOKEN_EXPIRY_DAYS) || '30', 10)
 
       const now = new Date()
       const expectedDate = new Date(now)
@@ -235,7 +235,7 @@ describe('Token Utility Functions', () => {
 
     it('should calculate maxAge based on REFRESH_TOKEN_EXPIRY_DAYS', () => {
       const options = setCookieOptions(env, true)
-      const expiryDays = parseInt(String(env.REFRESH_TOKEN_EXPIRY_DAYS) || '30', 10)
+      const expiryDays = Number.parseInt(String(env.REFRESH_TOKEN_EXPIRY_DAYS) || '30', 10)
 
       expect(options.maxAge).toBe(expiryDays * 24 * 60 * 60)
     })

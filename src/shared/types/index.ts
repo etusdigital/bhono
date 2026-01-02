@@ -1,4 +1,4 @@
 // src/shared/types/index.ts
-export * from './user'
+export type * from './user'
 export * from './auth'
-export * from './account'
+export type * from './account'

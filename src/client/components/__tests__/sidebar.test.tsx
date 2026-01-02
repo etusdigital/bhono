@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach, Mock } from "vitest"
+import type { Mock } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen } from "../../__tests__/test-utils"
 import userEvent from "@testing-library/user-event"
 import { Sidebar } from "../sidebar"
@@ -114,10 +115,6 @@ describe("Sidebar", () => {
 
     // Find the logout button (by finding the button in the user profile area)
     const logoutButtons = screen.getAllByRole("button")
-    // The logout button is one of the buttons in the sidebar
-    const logoutButton = logoutButtons.find(
-      (btn) => btn.querySelector('[class*="logout"]') || btn.closest('[class*="p-3"]')
-    )
 
     // Click the last button in the profile area which should trigger logout
     await user.click(logoutButtons[logoutButtons.length - 1])

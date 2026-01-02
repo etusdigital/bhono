@@ -1,42 +1,69 @@
 // src/routes/invitations/handlers.ts
+import type { RouteHandler } from '@hono/zod-openapi'
+import type { Context } from 'hono'
+import { HTTPException } from 'hono/http-exception'
 import { invitationsService } from '../../services/invitations'
-import type { ServiceContext } from '../../types'
+import type { ServiceContext, HonoEnv } from '../../types'
+import type {
+  createInvitationRoute,
+  listInvitationsRoute,
+  revokeInvitationRoute,
+} from './routes'
 
-function getServiceContext(c: any): ServiceContext {
+function getServiceContext(c: Context<HonoEnv>): ServiceContext {
+  const accountId = c.get('accountId')
+  const user = c.get('user')
+
+  if (!accountId || !user) {
+    throw new HTTPException(500, { message: 'Missing required context' })
+  }
+
   return {
-    accountId: c.get('accountId'),
-    user: c.get('user'),
+    accountId,
+    user,
     userRole: c.get('userRole'),
-    transactionId: c.get('transactionId'),
-    ip: c.get('ip'),
-    userAgent: c.get('userAgent'),
+    transactionId: c.get('transactionId') ?? '',
+    ip: c.get('ip') ?? '',
+    userAgent: c.get('userAgent') ?? '',
   }
 }
 
-export const createInvitationHandler = async (c: any) => {
+export const createInvitationHandler: RouteHandler<typeof createInvitationRoute, HonoEnv> = async (c) => {
   const body = c.req.valid('json')
   const db = c.get('db')
   const env = c.env
   const ctx = getServiceContext(c)
+
+  if (!db) {
+    throw new HTTPException(500, { message: 'Database not initialized' })
+  }
 
   const result = await invitationsService.create(db, env, ctx, body)
 
   return c.json(result, 200)
 }
 
-export const listInvitationsHandler = async (c: any) => {
+export const listInvitationsHandler: RouteHandler<typeof listInvitationsRoute, HonoEnv> = async (c) => {
   const db = c.get('db')
   const ctx = getServiceContext(c)
+
+  if (!db) {
+    throw new HTTPException(500, { message: 'Database not initialized' })
+  }
 
   const invitations = await invitationsService.list(db, ctx)
 
   return c.json({ data: invitations }, 200)
 }
 
-export const revokeInvitationHandler = async (c: any) => {
+export const revokeInvitationHandler: RouteHandler<typeof revokeInvitationRoute, HonoEnv> = async (c) => {
   const { id } = c.req.valid('param')
   const db = c.get('db')
   const ctx = getServiceContext(c)
+
+  if (!db) {
+    throw new HTTPException(500, { message: 'Database not initialized' })
+  }
 
   await invitationsService.revoke(db, ctx, id)
 

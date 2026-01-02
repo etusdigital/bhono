@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import type { ReactNode } from 'react'
+import { createContext, use, useEffect, useState, useCallback } from 'react'
 
 type Theme = 'light' | 'dark' | 'system'
 
@@ -26,53 +27,50 @@ function getStoredTheme(): Theme {
   return 'system'
 }
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(() => getStoredTheme())
-  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>(() => {
-    const stored = getStoredTheme()
-    return stored === 'system' ? getSystemTheme() : stored
-  })
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  const [theme, setTheme] = useState<Theme>(() => getStoredTheme())
+  const [systemTheme, setSystemTheme] = useState<'light' | 'dark'>(() => getSystemTheme())
 
-  const applyTheme = useCallback((newTheme: Theme) => {
-    const resolved = newTheme === 'system' ? getSystemTheme() : newTheme
-    setResolvedTheme(resolved)
+  // Compute resolved theme from preference and system theme
+  const resolvedTheme = theme === 'system' ? systemTheme : theme
 
-    // Apply class to document
+  // Apply theme class to document
+  const applyThemeClass = useCallback((resolved: 'light' | 'dark') => {
     const root = document.documentElement
     root.classList.remove('light', 'dark')
     root.classList.add(resolved)
   }, [])
 
-  const setTheme = useCallback((newTheme: Theme) => {
-    setThemeState(newTheme)
+  const handleSetTheme = useCallback((newTheme: Theme) => {
+    setTheme(newTheme)
     localStorage.setItem(STORAGE_KEY, newTheme)
-    applyTheme(newTheme)
-  }, [applyTheme])
+  }, [])
 
-  // Apply theme on mount and listen for system changes
+  // Apply theme class on mount and when resolved theme changes
   useEffect(() => {
-    applyTheme(theme)
+    applyThemeClass(resolvedTheme)
+  }, [resolvedTheme, applyThemeClass])
 
+  // Listen for system theme changes
+  useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-    const handleChange = () => {
-      if (theme === 'system') {
-        applyTheme('system')
-      }
+    const handleChange = (e: MediaQueryListEvent) => {
+      setSystemTheme(e.matches ? 'dark' : 'light')
     }
 
     mediaQuery.addEventListener('change', handleChange)
-    return () => mediaQuery.removeEventListener('change', handleChange)
-  }, [theme, applyTheme])
+    return () => { mediaQuery.removeEventListener('change', handleChange) }
+  }, [])
 
   return (
-    <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme }}>
+    <ThemeContext value={{ theme, resolvedTheme, setTheme: handleSetTheme }}>
       {children}
-    </ThemeContext.Provider>
+    </ThemeContext>
   )
 }
 
 export function useTheme() {
-  const context = useContext(ThemeContext)
+  const context = use(ThemeContext)
   if (context === undefined) {
     throw new Error('useTheme must be used within a ThemeProvider')
   }

@@ -1,5 +1,5 @@
 // src/db/schema/users.ts
-import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, text, integer, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core'
 import { sql } from 'drizzle-orm'
 
 export const users = sqliteTable('users', {
@@ -24,9 +24,9 @@ export const users = sqliteTable('users', {
   createdAt: text('created_at').default(sql`(datetime('now'))`).notNull(),
   updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
   deletedAt: text('deleted_at'),
-  createdById: text('created_by_id').references((): any => users.id),
-  updatedById: text('updated_by_id').references((): any => users.id),
-  deletedById: text('deleted_by_id').references((): any => users.id),
+  createdById: text('created_by_id').references((): AnySQLiteColumn => users.id),
+  updatedById: text('updated_by_id').references((): AnySQLiteColumn => users.id),
+  deletedById: text('deleted_by_id').references((): AnySQLiteColumn => users.id),
 })
 
 export type UserRecord = typeof users.$inferSelect

@@ -36,7 +36,10 @@ export const accountMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 
   // Check user-account membership in database
   const db = c.get('db')
-  const [membership] = await db
+  if (!db) {
+    throw new HTTPException(500, { message: 'Database not initialized' })
+  }
+  const membershipResults = await db
     .select()
     .from(userAccounts)
     .where(
@@ -47,6 +50,7 @@ export const accountMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
     )
     .limit(1)
 
+  const membership = membershipResults.at(0)
   if (!membership) {
     throw new HTTPException(403, {
       message: 'Forbidden: User does not have access to this account',

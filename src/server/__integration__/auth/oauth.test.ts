@@ -22,8 +22,8 @@ import { users } from '../../db/schema'
 // Mock ID token for testing (base64url encoded)
 function createMockIdToken(payload: Record<string, unknown>): string {
   const header = { alg: 'RS256', typ: 'JWT' }
-  const headerB64 = btoa(JSON.stringify(header)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
-  const payloadB64 = btoa(JSON.stringify(payload)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+  const headerB64 = btoa(JSON.stringify(header)).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '')
+  const payloadB64 = btoa(JSON.stringify(payload)).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '')
   const signature = 'mock_signature'
   return `${headerB64}.${payloadB64}.${signature}`
 }

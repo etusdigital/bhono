@@ -14,7 +14,7 @@ function createMockDb(data: AuditLog[] = [], count = 0) {
   return {
     select: vi.fn().mockImplementation((fields?: any) => {
       // Check if it's a count query (first call)
-      if (fields && Object.keys(fields).some((k) => k === 'count')) {
+      if (fields && Object.keys(fields).includes('count')) {
         return {
           from: vi.fn().mockReturnValue({
             where: vi.fn().mockResolvedValue([{ count }]),

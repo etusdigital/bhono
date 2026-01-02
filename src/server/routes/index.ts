@@ -16,6 +16,7 @@ api.use('/*', async (c, next) => {
   if (c.req.path === '/api/doc' || c.req.path === '/api/swagger') {
     return next()
   }
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Hono wildcard route typing
   return sessionAuth(c, next)
 })
 api.use('/*', async (c, next) => {
@@ -23,6 +24,7 @@ api.use('/*', async (c, next) => {
   if (c.req.path === '/api/doc' || c.req.path === '/api/swagger') {
     return next()
   }
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Hono wildcard route typing
   return accountMiddleware(c, next)
 })
 

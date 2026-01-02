@@ -80,7 +80,7 @@ function createMockDb() {
       }),
     }),
     delete: vi.fn().mockReturnValue({
-      where: vi.fn().mockResolvedValue(undefined),
+      where: vi.fn().mockResolvedValue(),
     }),
     // Helper to set mock results
     _setSelectResult: (result: any[]) => {
@@ -599,7 +599,7 @@ describe('usersService', () => {
         return membershipChain
       })
 
-      ;(auditedDelete as Mock).mockResolvedValue(undefined)
+      ;(auditedDelete as Mock).mockResolvedValue()
 
       await usersService.delete(mockDb, ctx, 'user-123')
 
@@ -692,7 +692,7 @@ describe('usersService', () => {
 
       // Mock insert
       mockDb.insert = vi.fn().mockReturnValue({
-        values: vi.fn().mockResolvedValue(undefined),
+        values: vi.fn().mockResolvedValue(),
       })
 
       const items = [
@@ -721,7 +721,7 @@ describe('usersService', () => {
       // Mock update
       mockDb.update = vi.fn().mockReturnValue({
         set: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue(undefined),
+          where: vi.fn().mockResolvedValue(),
         }),
       })
 
@@ -738,7 +738,7 @@ describe('usersService', () => {
   describe('deleteUserAccounts', () => {
     it('should delete user-account relationships', async () => {
       mockDb.delete = vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue(undefined),
+        where: vi.fn().mockResolvedValue(),
       })
 
       const items = [

@@ -306,7 +306,7 @@ export function createMockR2(): MockR2Bucket {
       return {
         objects,
         truncated: objects.length >= limit,
-        delimitedPrefixes: Array.from(delimitedPrefixes).sort(),
+        delimitedPrefixes: [...delimitedPrefixes].sort(),
       }
     }),
 

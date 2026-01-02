@@ -23,24 +23,21 @@ const accountNavItems = [
   { to: '/settings', label: 'Settings', icon: Icons.settings },
 ]
 
+// Detect platform for keyboard shortcut display (use userAgent since platform is deprecated)
+const getIsMac = () => typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.userAgent)
+
 export function Sidebar({ defaultCollapsed = false }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed)
-  const [isMac, setIsMac] = useState(false)
+  const [isMac] = useState(getIsMac)
   const { user, logout, isLoggingOut } = useAuth()
   const location = useLocation()
   const { theme, setTheme, resolvedTheme } = useTheme()
 
-  // Detect platform for keyboard shortcut display
-  useEffect(() => {
-    setIsMac(navigator.platform.toUpperCase().includes('MAC'))
-  }, [])
-
   const initials = user?.name
-    ?.split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2) || user?.email?.[0].toUpperCase() || '?'
+    ? user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
+    : user?.email
+      ? user.email[0].toUpperCase()
+      : '?'
 
   // Keyboard shortcut to toggle sidebar
   useEffect(() => {
@@ -51,7 +48,7 @@ export function Sidebar({ defaultCollapsed = false }: SidebarProps) {
       }
     }
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    return () => { window.removeEventListener('keydown', handleKeyDown) }
   }, [])
 
   return (
@@ -84,7 +81,7 @@ export function Sidebar({ defaultCollapsed = false }: SidebarProps) {
             variant="ghost"
             size="icon"
             className="h-8 w-8 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-            onClick={() => setIsCollapsed(true)}
+            onClick={() => { setIsCollapsed(true) }}
           >
             <Icons.chevronRight className="h-4 w-4 rotate-180" />
           </Button>
@@ -98,7 +95,7 @@ export function Sidebar({ defaultCollapsed = false }: SidebarProps) {
             variant="ghost"
             size="icon"
             className="h-8 w-8 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-            onClick={() => setIsCollapsed(false)}
+            onClick={() => { setIsCollapsed(false) }}
           >
             <Icons.chevronRight className="h-4 w-4" />
           </Button>
@@ -189,11 +186,11 @@ export function Sidebar({ defaultCollapsed = false }: SidebarProps) {
             variant="ghost"
             size="icon"
             className="h-10 w-10 rounded-full p-0 hover:bg-sidebar-accent"
-            onClick={() => logout()}
+            onClick={() => { logout() }}
             disabled={isLoggingOut}
           >
             <Avatar className="h-8 w-8">
-              <AvatarImage src={user?.avatarUrl || undefined} alt={user?.name || ''} />
+              <AvatarImage src={user?.avatarUrl ?? undefined} alt={user?.name ?? ''} />
               <AvatarFallback className="text-xs bg-sidebar-accent text-sidebar-foreground">
                 {initials}
               </AvatarFallback>
@@ -202,7 +199,7 @@ export function Sidebar({ defaultCollapsed = false }: SidebarProps) {
         ) : (
           <div className="flex items-center gap-3 rounded-lg p-2 hover:bg-sidebar-accent transition-colors">
             <Avatar className="h-9 w-9 shrink-0">
-              <AvatarImage src={user?.avatarUrl || undefined} alt={user?.name || ''} />
+              <AvatarImage src={user?.avatarUrl ?? undefined} alt={user?.name ?? ''} />
               <AvatarFallback className="text-xs bg-sidebar-accent text-sidebar-foreground">
                 {initials}
               </AvatarFallback>
@@ -219,7 +216,7 @@ export function Sidebar({ defaultCollapsed = false }: SidebarProps) {
               variant="ghost"
               size="icon"
               className="h-8 w-8 shrink-0 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-              onClick={() => logout()}
+              onClick={() => { logout() }}
               disabled={isLoggingOut}
             >
               {isLoggingOut ? (

@@ -21,11 +21,13 @@ export const authService = {
     let isNewUser = false
 
     // Try to find existing user by googleId
-    let [userRecord] = await db
+    const existingUsers = await db
       .select()
       .from(users)
       .where(and(eq(users.googleId, googleUser.sub), isNull(users.deletedAt)))
       .limit(1)
+
+    let userRecord = existingUsers.at(0)
 
     if (userRecord) {
       // Update profile info if changed
@@ -34,39 +36,42 @@ export const authService = {
         userRecord.name !== googleUser.name ||
         userRecord.avatarUrl !== googleUser.picture
       ) {
-        ;[userRecord] = await db
+        const updated = await db
           .update(users)
           .set({
             email: googleUser.email,
             name: googleUser.name,
-            avatarUrl: googleUser.picture || null,
+            avatarUrl: googleUser.picture ?? null,
             updatedAt: new Date().toISOString(),
           })
           .where(eq(users.id, userRecord.id))
           .returning()
+        userRecord = updated[0]
       }
     } else {
       isNewUser = true
 
       // Create new user
-      ;[userRecord] = await db
+      const created = await db
         .insert(users)
         .values({
           googleId: googleUser.sub,
           email: googleUser.email,
           name: googleUser.name,
-          avatarUrl: googleUser.picture || null,
+          avatarUrl: googleUser.picture ?? null,
           status: 'active',
         })
         .returning()
+      userRecord = created[0]
 
       // Create personal account
-      const [accountRecord] = await db
+      const createdAccounts = await db
         .insert(accounts)
         .values({
           name: `${googleUser.name}'s Account`,
         })
         .returning()
+      const accountRecord = createdAccounts[0]
 
       // Link user to account with EDITOR role
       await db.insert(userAccounts).values({
@@ -108,7 +113,7 @@ export const authService = {
         email: userRecord.email,
         name: userRecord.name,
         status: userRecord.status,
-        providerIds: userRecord.providerIds || [],
+        providerIds: userRecord.providerIds ?? [],
         isSuperAdmin: userRecord.isSuperAdmin,
         createdAt: userRecord.createdAt,
         updatedAt: userRecord.updatedAt,
@@ -127,7 +132,7 @@ export const authService = {
     const tokenHash = await hashToken(refreshToken)
 
     // Find valid refresh token
-    const [tokenRecord] = await db
+    const tokenResults = await db
       .select()
       .from(refreshTokens)
       .where(
@@ -139,18 +144,20 @@ export const authService = {
       )
       .limit(1)
 
+    const tokenRecord = tokenResults.at(0)
     if (!tokenRecord) {
       throw new UnauthorizedError('Invalid or expired refresh token')
     }
 
     // Get user
-    const [userRecord] = await db
+    const userResults = await db
       .select()
       .from(users)
       .where(and(eq(users.id, tokenRecord.userId), isNull(users.deletedAt)))
       .limit(1)
 
-    if (!userRecord || userRecord.status !== 'active') {
+    const userRecord = userResults.at(0)
+    if (userRecord?.status !== 'active') {
       throw new UnauthorizedError('User not found or inactive')
     }
 
@@ -190,12 +197,13 @@ export const authService = {
   },
 
   async getCurrentUser(db: Database, userId: string): Promise<User> {
-    const [userRecord] = await db
+    const results = await db
       .select()
       .from(users)
       .where(and(eq(users.id, userId), isNull(users.deletedAt)))
       .limit(1)
 
+    const userRecord = results.at(0)
     if (!userRecord) {
       throw new UnauthorizedError('User not found')
     }
@@ -205,7 +213,7 @@ export const authService = {
       email: userRecord.email,
       name: userRecord.name,
       status: userRecord.status,
-      providerIds: userRecord.providerIds || [],
+      providerIds: userRecord.providerIds ?? [],
       isSuperAdmin: userRecord.isSuperAdmin,
       createdAt: userRecord.createdAt,
       updatedAt: userRecord.updatedAt,

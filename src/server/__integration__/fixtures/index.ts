@@ -57,7 +57,7 @@ export interface MultiTenantScenarioResult {
   sessionId: string
   headers: Record<string, string>
   accounts: {
-    withAccess: Array<{ account: CreatedAccount; role: Role }>
+    withAccess: { account: CreatedAccount; role: Role }[]
     withoutAccess: CreatedAccount[]
   }
 }

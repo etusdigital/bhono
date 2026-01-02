@@ -1,63 +1,72 @@
 // src/server/lib/audited-db.ts
-import { type SQL } from 'drizzle-orm'
+import { type SQL, getTableName as drizzleGetTableName, is, Table } from 'drizzle-orm'
 import type { SQLiteTable } from 'drizzle-orm/sqlite-core'
 import type { Database } from '../db/client'
 import type { ServiceContext } from '../types'
 import { logAudit, createChangeDiff } from './audit'
 
-type TableWithId = SQLiteTable & { id: any }
+/**
+ * Base interface for auditable records - requires an id field
+ */
+interface AuditableRecord {
+  id: string
+}
 
 /**
  * Get the table name from a Drizzle table definition
  */
 function getTableName(table: SQLiteTable): string {
-  return (table as any)[Symbol.for('drizzle:Name')] || 'unknown'
+  if (is(table, Table)) {
+    return drizzleGetTableName(table)
+  }
+  return 'unknown'
 }
 
 /**
  * Insert with automatic audit logging
  * Returns the inserted records (same as .returning())
  */
-export async function auditedInsert<T extends Record<string, unknown>>(
+export async function auditedInsert<TRecord extends AuditableRecord>(
   db: Database,
   ctx: ServiceContext,
-  table: TableWithId,
-  values: T | T[]
-): Promise<T[]> {
+  table: SQLiteTable,
+  values: Record<string, unknown> | Record<string, unknown>[]
+): Promise<TRecord[]> {
   const tableName = getTableName(table)
   const valuesArray = Array.isArray(values) ? values : [values]
 
   const results = await db
     .insert(table)
-    .values(valuesArray as any)
+    .values(valuesArray)
     .returning()
 
   // Log audit for each inserted record
   for (const record of results) {
+    const typedRecord = record as unknown as TRecord
     await logAudit(
       db,
       ctx,
       tableName,
-      (record as any).id,
+      typedRecord.id,
       'INSERT',
       record as Record<string, unknown>
     )
   }
 
-  return results as T[]
+  return results as unknown as TRecord[]
 }
 
 /**
  * Update with automatic audit logging (includes diff of changes)
  * Returns the updated records (same as .returning())
  */
-export async function auditedUpdate<T extends Record<string, unknown>>(
+export async function auditedUpdate<TRecord extends AuditableRecord>(
   db: Database,
   ctx: ServiceContext,
-  table: TableWithId,
-  values: Partial<T>,
+  table: SQLiteTable,
+  values: Record<string, unknown>,
   where: SQL
-): Promise<T[]> {
+): Promise<TRecord[]> {
   const tableName = getTableName(table)
 
   // Get old data first for diff
@@ -67,19 +76,18 @@ export async function auditedUpdate<T extends Record<string, unknown>>(
     .where(where)
     .limit(100) // Safety limit
 
-  // Perform update
   const results = await db
     .update(table)
-    .set(values as any)
+    .set(values)
     .where(where)
     .returning()
 
   // Log audit for each updated record with diff
   for (let i = 0; i < results.length; i++) {
-    const oldData = oldRecords[i] || {}
-    const newData = results[i]
+    const oldData = (oldRecords[i] ?? {}) as Record<string, unknown>
+    const newData = results[i] as unknown as TRecord
     const diff = createChangeDiff(
-      oldData as Record<string, unknown>,
+      oldData,
       newData as Record<string, unknown>
     )
 
@@ -87,13 +95,23 @@ export async function auditedUpdate<T extends Record<string, unknown>>(
       db,
       ctx,
       tableName,
-      (newData as any).id,
+      newData.id,
       'UPDATE',
       diff
     )
   }
 
-  return results as T[]
+  return results as unknown as TRecord[]
+}
+
+/**
+ * Interface for soft-deletable tables with required audit fields
+ */
+interface SoftDeletableFields {
+  deletedAt: string | null
+  deletedById: string | null
+  updatedAt: string
+  updatedById: string | null
 }
 
 /**
@@ -103,30 +121,32 @@ export async function auditedUpdate<T extends Record<string, unknown>>(
 export async function auditedDelete(
   db: Database,
   ctx: ServiceContext,
-  table: TableWithId,
+  table: SQLiteTable,
   where: SQL
 ): Promise<void> {
   const tableName = getTableName(table)
 
-  // Perform soft delete
+  const softDeleteValues: SoftDeletableFields = {
+    deletedAt: new Date().toISOString(),
+    deletedById: ctx.user.id,
+    updatedAt: new Date().toISOString(),
+    updatedById: ctx.user.id,
+  }
+
   const results = await db
     .update(table)
-    .set({
-      deletedAt: new Date().toISOString(),
-      deletedById: ctx.user.id,
-      updatedAt: new Date().toISOString(),
-      updatedById: ctx.user.id,
-    } as any)
+    .set(softDeleteValues)
     .where(where)
     .returning()
 
   // Log audit for each deleted record
   for (const record of results) {
+    const typedRecord = record as unknown as AuditableRecord
     await logAudit(
       db,
       ctx,
       tableName,
-      (record as any).id,
+      typedRecord.id,
       'DELETE',
       { deleted: true }
     )

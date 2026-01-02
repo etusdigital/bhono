@@ -245,9 +245,9 @@ export function createSessionToken(): string {
     bytes[i] = Math.floor(Math.random() * 256)
   }
   return btoa(String.fromCharCode(...bytes))
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=/g, '')
+    .replaceAll('+', '-')
+    .replaceAll('/', '_')
+    .replaceAll('=', '')
 }
 
 // ============================================================================

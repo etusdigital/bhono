@@ -1,15 +1,21 @@
 // src/server/routes/audits/handlers.ts
-import type { ServiceContext } from '../../types'
+import type { RouteHandler } from '@hono/zod-openapi'
+import type { ServiceContext, HonoEnv } from '../../types'
 import { auditsService } from '../../services/audits'
+import type { listAuditLogsRoute } from './routes'
 
-export async function listAuditLogsHandler(c: any) {
+export const listAuditLogsHandler: RouteHandler<typeof listAuditLogsRoute, HonoEnv> = async (c) => {
   const query = c.req.valid('query')
   const db = c.get('db')
   const accountId = c.get('accountId')
-  const user = c.get('user')!
+  const user = c.get('user')
   const transactionId = c.get('transactionId')
   const ip = c.get('ip')
   const userAgent = c.get('userAgent')
+
+  if (!db || !accountId || !user) {
+    throw new Error('Missing required context')
+  }
 
   const ctx: ServiceContext = {
     accountId,

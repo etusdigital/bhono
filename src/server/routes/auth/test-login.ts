@@ -1,8 +1,10 @@
 // src/server/routes/auth/test-login.ts
+import type { RouteHandler } from '@hono/zod-openapi'
 import { createRoute, z } from '@hono/zod-openapi'
 import { eq } from 'drizzle-orm'
-import { users, accounts, userAccounts } from '../../db/schema'
+import { users, accounts, userAccounts, type UserRecord } from '../../db/schema'
 import { createSession } from '../../lib/session'
+import type { HonoEnv } from '../../types'
 
 const TestLoginSchema = z.object({
   email: z.string().email(),
@@ -32,7 +34,7 @@ export const testLoginRoute = createRoute({
               email: z.string(),
               name: z.string().nullable(),
             }),
-            accountId: z.string().describe('The default account ID for API requests'),
+            accountId: z.string().nullable().describe('The default account ID for API requests'),
           }),
         },
       },
@@ -50,9 +52,7 @@ export const testLoginRoute = createRoute({
   },
 })
 
-// Note: Handler types are inferred from route definitions by @hono/zod-openapi
-// Using 'any' is the standard pattern for openapi handlers
-export async function testLoginHandler(c: any) {
+export const testLoginHandler: RouteHandler<typeof testLoginRoute, HonoEnv> = async (c) => {
   // Only allow in development/test
   const env = c.env
   if (env.ENVIRONMENT === 'production') {
@@ -62,17 +62,21 @@ export async function testLoginHandler(c: any) {
   const { email, name } = c.req.valid('json')
   const db = c.get('db')
 
+  if (!db) {
+    throw new Error('Database not initialized')
+  }
+
   // Find or create user
-  let user = await db
+  const existingUsers = await db
     .select()
     .from(users)
     .where(eq(users.email, email))
     .limit(1)
-    .then((rows: any[]) => rows[0])
 
+  let user: UserRecord | undefined = existingUsers.at(0)
   let defaultAccountId: string | null = null
 
-  if (!user) {
+  if (user === undefined) {
     // Create test user
     const userId = crypto.randomUUID()
     const now = new Date().toISOString()
@@ -80,25 +84,26 @@ export async function testLoginHandler(c: any) {
     await db.insert(users).values({
       id: userId,
       email,
-      name: name || 'E2E Test User',
+      name: name ?? 'E2E Test User',
       googleId: `test-${userId}`,
       status: 'active',
       createdAt: now,
       updatedAt: now,
     })
 
-    user = await db
+    const createdUsers = await db
       .select()
       .from(users)
       .where(eq(users.id, userId))
       .limit(1)
-      .then((rows: any[]) => rows[0])
+
+    user = createdUsers.at(0)
 
     // Create a default account for the user
     defaultAccountId = crypto.randomUUID()
     await db.insert(accounts).values({
       id: defaultAccountId,
-      name: `${name || 'Test'}'s Workspace`,
+      name: `${name ?? 'Test'}'s Workspace`,
       createdAt: now,
       updatedAt: now,
     })
@@ -111,16 +116,20 @@ export async function testLoginHandler(c: any) {
     })
   } else {
     // Get the user's first account
-    const userAccount = await db
+    const userAccountResults = await db
       .select()
       .from(userAccounts)
       .where(eq(userAccounts.userId, user.id))
       .limit(1)
-      .then((rows: any[]) => rows[0])
 
-    if (userAccount) {
+    const userAccount = userAccountResults.at(0)
+    if (userAccount !== undefined) {
       defaultAccountId = userAccount.accountId
     }
+  }
+
+  if (user === undefined) {
+    throw new Error('Failed to create or find user')
   }
 
   // Create session
@@ -128,8 +137,8 @@ export async function testLoginHandler(c: any) {
     userId: user.id,
     email: user.email,
     name: user.name,
-    avatarUrl: user.avatarUrl || null,
-    isSuperAdmin: user.isSuperAdmin || false,
+    avatarUrl: user.avatarUrl ?? null,
+    isSuperAdmin: user.isSuperAdmin,
   })
 
   return c.json({

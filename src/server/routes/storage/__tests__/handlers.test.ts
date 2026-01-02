@@ -52,7 +52,7 @@ describe('Storage Routes', () => {
   })
 
   // Helper to setup authenticated app with specific role
-  function setupAuthenticatedApp(userRole: string = 'AUTHOR', isSuperAdmin: boolean = false) {
+  function setupAuthenticatedApp(userRole = 'AUTHOR', isSuperAdmin = false) {
     const app = new Hono<HonoEnv>()
 
     app.use('*', async (c, next) => {
@@ -73,7 +73,7 @@ describe('Storage Routes', () => {
   }
 
   // Helper to setup app without R2 configured
-  function setupAppWithoutR2(userRole: string = 'AUTHOR') {
+  function setupAppWithoutR2(userRole = 'AUTHOR') {
     const app = new Hono<HonoEnv>()
     const envWithoutR2 = { ...mockEnv, R2_BUCKET: undefined }
 
@@ -102,7 +102,7 @@ describe('Storage Routes', () => {
         publicUrl: 'https://r2-test.example.com/images/1703123456789-test.jpg',
       }
 
-      vi.mocked(generateUploadUrl).mockResolvedValue(mockResult)
+      vi.mocked(generateUploadUrl).mockReturnValue(mockResult)
 
       const app = setupAuthenticatedApp('AUTHOR')
 
@@ -173,7 +173,7 @@ describe('Storage Routes', () => {
         publicUrl: 'https://r2-test.example.com/test.jpg',
       }
 
-      vi.mocked(generateUploadUrl).mockResolvedValue(mockResult)
+      vi.mocked(generateUploadUrl).mockReturnValue(mockResult)
 
       const app = setupAuthenticatedApp('EDITOR')
 
@@ -301,7 +301,7 @@ describe('Storage Routes', () => {
       }
 
       vi.mocked(getFileMetadata).mockResolvedValue(mockMetadata as any)
-      vi.mocked(deleteFile).mockResolvedValue(undefined)
+      vi.mocked(deleteFile).mockResolvedValue()
 
       const app = setupAuthenticatedApp('EDITOR')
 
@@ -352,7 +352,7 @@ describe('Storage Routes', () => {
       }
 
       vi.mocked(getFileMetadata).mockResolvedValue(mockMetadata as any)
-      vi.mocked(deleteFile).mockResolvedValue(undefined)
+      vi.mocked(deleteFile).mockResolvedValue()
 
       const app = setupAuthenticatedApp('VIEWER', true)
 
@@ -372,7 +372,7 @@ describe('Storage Routes', () => {
       }
 
       vi.mocked(getFileMetadata).mockResolvedValue(mockMetadata as any)
-      vi.mocked(deleteFile).mockResolvedValue(undefined)
+      vi.mocked(deleteFile).mockResolvedValue()
 
       const app = setupAuthenticatedApp('ADMIN')
 
@@ -392,7 +392,7 @@ describe('Storage Routes', () => {
       }
 
       vi.mocked(getFileMetadata).mockResolvedValue(mockMetadata as any)
-      vi.mocked(deleteFile).mockResolvedValue(undefined)
+      vi.mocked(deleteFile).mockResolvedValue()
 
       const app = setupAuthenticatedApp('EDITOR')
 

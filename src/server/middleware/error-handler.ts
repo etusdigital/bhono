@@ -16,7 +16,7 @@ export const errorHandler: ErrorHandler = (err, c) => {
   const status = err instanceof HTTPException ? err.status : 500
   const message = err instanceof HTTPException ? err.message : 'Internal server error'
   const code = getErrorCode(err)
-  const details = err instanceof HTTPException ? err.cause : undefined
+  const details = err instanceof HTTPException ? (err as HTTPException & { cause?: unknown }).cause : undefined
 
   // Log the error for debugging (use console.log for Cloudflare Workers visibility)
   console.log(JSON.stringify({
@@ -26,7 +26,7 @@ export const errorHandler: ErrorHandler = (err, c) => {
     message,
     name: err.name,
     stack: err.stack?.substring(0, 500),
-    cause: String(err.cause),
+    cause: String((err as Error & { cause?: unknown }).cause),
   }))
 
   const response: ErrorResponse = {

@@ -1,10 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import { toast } from 'sonner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -16,6 +18,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Icons } from '@/components/icons'
 import { useAuth } from '@/hooks/use-auth'
 
@@ -163,7 +166,7 @@ function AccountPage() {
           </Button>
         </div>
 
-        <div className="grid gap-3">
+        <div className="grid gap-4">
           <SessionCard
             device="Chrome on macOS"
             location="San Francisco, CA"
@@ -248,7 +251,7 @@ function AccountPage() {
                 <p className="text-sm text-muted-foreground">
                   Permanently delete your account and data.
                 </p>
-                <DeleteAccountDialog userEmail={user?.email || ''} />
+                <DeleteAccountDialog userEmail={user?.email ?? ''} />
               </div>
             </div>
           </CardContent>
@@ -296,28 +299,45 @@ function SessionCard({
 
 function DeleteAccountDialog({ userEmail }: { userEmail: string }) {
   const [isOpen, setIsOpen] = useState(false)
-  const [confirmText, setConfirmText] = useState('')
-  const [isDeleting, setIsDeleting] = useState(false)
 
-  const canDelete = confirmText === userEmail
+  const DeleteConfirmSchema = useMemo(
+    () =>
+      z.object({
+        confirmText: z.string().refine((val) => val === userEmail, {
+          message: 'Digite seu email corretamente para confirmar',
+        }),
+      }),
+    [userEmail]
+  )
 
-  const handleDelete = async () => {
-    if (!canDelete) return
-    setIsDeleting(true)
+  type DeleteConfirmInput = z.infer<typeof DeleteConfirmSchema>
+
+  const form = useForm<DeleteConfirmInput>({
+    resolver: zodResolver(DeleteConfirmSchema),
+    defaultValues: {
+      confirmText: '',
+    },
+  })
+
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open)
+    if (!open) form.reset()
+  }
+
+  const onSubmit = async (_data: DeleteConfirmInput) => {
     try {
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 2000))
       toast.success('Account deleted successfully')
       setIsOpen(false)
+      form.reset()
     } catch {
       toast.error('Failed to delete account. Please try again.')
-    } finally {
-      setIsDeleting(false)
     }
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="destructive" size="sm">
           <Icons.trash className="mr-2 h-4 w-4" />
@@ -325,60 +345,71 @@ function DeleteAccountDialog({ userEmail }: { userEmail: string }) {
         </Button>
       </DialogTrigger>
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="text-destructive">Delete Account</DialogTitle>
-          <DialogDescription>
-            This action cannot be undone. This will permanently delete your account
-            and remove all associated data from our servers.
-          </DialogDescription>
-        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={(e) => { void form.handleSubmit(onSubmit)(e) }}>
+            <DialogHeader>
+              <DialogTitle className="text-destructive">Delete Account</DialogTitle>
+              <DialogDescription>
+                This action cannot be undone. This will permanently delete your account
+                and remove all associated data from our servers.
+              </DialogDescription>
+            </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          <div className="rounded-lg bg-destructive/10 p-4 text-sm">
-            <p className="font-medium text-destructive">Warning</p>
-            <ul className="mt-2 list-inside list-disc space-y-1 text-muted-foreground">
-              <li>All your data will be permanently deleted</li>
-              <li>You will lose access to all workspaces</li>
-              <li>This action is irreversible</li>
-            </ul>
-          </div>
+            <div className="space-y-4 py-4">
+              <div className="rounded-lg bg-destructive/10 p-4 text-sm">
+                <p className="font-medium text-destructive">Warning</p>
+                <ul className="mt-2 list-inside list-disc space-y-1 text-muted-foreground">
+                  <li>All your data will be permanently deleted</li>
+                  <li>You will lose access to all workspaces</li>
+                  <li>This action is irreversible</li>
+                </ul>
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="confirm">
-              Type <span className="font-mono font-medium">{userEmail}</span> to confirm
-            </Label>
-            <Input
-              id="confirm"
-              value={confirmText}
-              onChange={(e) => setConfirmText(e.target.value)}
-              placeholder="Enter your email"
-              className="font-mono"
-            />
-          </div>
-        </div>
+              <FormField
+                control={form.control}
+                name="confirmText"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Type <span className="font-mono font-medium">{userEmail}</span> to confirm
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter your email"
+                        className="font-mono"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setIsOpen(false)}>
-            Cancel
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={handleDelete}
-            disabled={!canDelete || isDeleting}
-          >
-            {isDeleting ? (
-              <>
-                <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-                Deleting...
-              </>
-            ) : (
-              <>
-                <Icons.trash className="mr-2 h-4 w-4" />
-                Delete Account
-              </>
-            )}
-          </Button>
-        </DialogFooter>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => { setIsOpen(false) }}>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="destructive"
+                disabled={form.formState.isSubmitting}
+              >
+                {form.formState.isSubmitting ? (
+                  <>
+                    <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Icons.trash className="mr-2 h-4 w-4" />
+                    Delete Account
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   )

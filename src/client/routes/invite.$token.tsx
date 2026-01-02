@@ -19,7 +19,7 @@ const mockInvitation = {
 }
 
 function AcceptInvitationPage() {
-  const { token } = Route.useParams()
+  const { token: _token } = Route.useParams()
   const [isAccepting, setIsAccepting] = useState(false)
   const [status, setStatus] = useState<'pending' | 'accepted' | 'error'>('pending')
 
@@ -151,7 +151,7 @@ function AcceptInvitationPage() {
             <div className="space-y-3">
               <Button
                 className="w-full"
-                onClick={handleAccept}
+                onClick={() => { void handleAccept() }}
                 disabled={isAccepting}
               >
                 {isAccepting ? (

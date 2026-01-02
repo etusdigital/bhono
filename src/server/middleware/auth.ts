@@ -29,12 +29,16 @@ export const sessionAuth = createMiddleware<HonoEnv>(async (c, next) => {
 
   // Look up user in database to ensure they still exist and are active
   const db = c.get('db')
-  const [user] = await db
+  if (!db) {
+    throw new HTTPException(500, { message: 'Database not initialized' })
+  }
+  const userResults = await db
     .select()
     .from(users)
     .where(and(eq(users.id, session.userId), isNull(users.deletedAt)))
     .limit(1)
 
+  const user = userResults.at(0)
   if (!user) {
     throw new HTTPException(401, {
       message: 'User not found',
@@ -53,7 +57,7 @@ export const sessionAuth = createMiddleware<HonoEnv>(async (c, next) => {
     email: user.email,
     name: user.name,
     status: user.status,
-    providerIds: user.providerIds || [],
+    providerIds: user.providerIds ?? [],
     isSuperAdmin: user.isSuperAdmin,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
@@ -89,7 +93,7 @@ export const jwtAuth = createMiddleware<HonoEnv>(async (c, next) => {
   let payload: JWTPayload
   try {
     payload = (await verify(token, c.env.JWT_SECRET)) as unknown as JWTPayload
-  } catch (error) {
+  } catch {
     throw new HTTPException(401, {
       message: 'Invalid or expired token',
     })
@@ -103,12 +107,16 @@ export const jwtAuth = createMiddleware<HonoEnv>(async (c, next) => {
 
   // Look up user in database by ID (from sub claim)
   const db = c.get('db')
-  const [user] = await db
+  if (!db) {
+    throw new HTTPException(500, { message: 'Database not initialized' })
+  }
+  const userResults = await db
     .select()
     .from(users)
     .where(and(eq(users.id, payload.sub), isNull(users.deletedAt)))
     .limit(1)
 
+  const user = userResults.at(0)
   if (!user) {
     throw new HTTPException(401, {
       message: 'User not found',
@@ -127,7 +135,7 @@ export const jwtAuth = createMiddleware<HonoEnv>(async (c, next) => {
     email: user.email,
     name: user.name,
     status: user.status,
-    providerIds: user.providerIds || [],
+    providerIds: user.providerIds ?? [],
     isSuperAdmin: user.isSuperAdmin,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,

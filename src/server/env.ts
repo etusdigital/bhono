@@ -1,17 +1,17 @@
 // src/server/env.ts
 export interface Env {
-  // D1 Database
-  DB: D1Database
+  // D1 Database (may be undefined in test environments)
+  DB?: D1Database
 
-  // KV Sessions
-  SESSIONS: KVNamespace
+  // KV Sessions (may be undefined in test environments)
+  SESSIONS?: KVNamespace
 
-  // Static Assets
-  ASSETS: Fetcher
+  // Static Assets (may be undefined in test environments)
+  ASSETS?: Fetcher
 
-  // R2 Storage
-  R2_BUCKET: R2Bucket
-  R2_PUBLIC_URL: string
+  // R2 Storage (may be undefined in test environments)
+  R2_BUCKET?: R2Bucket
+  R2_PUBLIC_URL?: string
 
   // Environment
   ENVIRONMENT: string
@@ -43,8 +43,8 @@ export interface Env {
 export function getEnv(env: Env) {
   return {
     ...env,
-    JWT_EXPIRY_MINUTES: parseInt(env.JWT_EXPIRY_MINUTES || '15', 10),
-    REFRESH_TOKEN_EXPIRY_DAYS: parseInt(env.REFRESH_TOKEN_EXPIRY_DAYS || '30', 10),
+    JWT_EXPIRY_MINUTES: Number.parseInt(env.JWT_EXPIRY_MINUTES || '15', 10),
+    REFRESH_TOKEN_EXPIRY_DAYS: Number.parseInt(env.REFRESH_TOKEN_EXPIRY_DAYS || '30', 10),
     CORS_ORIGINS_LIST: env.CORS_ORIGINS
       ? env.CORS_ORIGINS.split(',').map((o) => o.trim())
       : [],

@@ -351,7 +351,7 @@ describe('Refresh Token Integration', () => {
 
     it('getRefreshTokenExpiry should respect REFRESH_TOKEN_EXPIRY_DAYS env', () => {
       const expiry = getRefreshTokenExpiry(env)
-      const expectedDays = parseInt(String(env.REFRESH_TOKEN_EXPIRY_DAYS) || '30', 10)
+      const expectedDays = Number.parseInt(String(env.REFRESH_TOKEN_EXPIRY_DAYS) || '30', 10)
 
       const now = new Date()
       const expectedMinTime = now.getTime() + (expectedDays - 1) * 24 * 60 * 60 * 1000

@@ -53,9 +53,9 @@ function generateSessionId(): string {
   const bytes = new Uint8Array(32)
   crypto.getRandomValues(bytes)
   return btoa(String.fromCharCode(...bytes))
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=/g, '')
+    .replaceAll('+', '-')
+    .replaceAll('/', '_')
+    .replaceAll('=', '')
 }
 
 /**
@@ -63,16 +63,15 @@ function generateSessionId(): string {
  */
 function extractFingerprint(c: Context): { ip?: string; userAgent?: string } {
   let ip: string | undefined
-  let userAgent: string | undefined
 
   try {
     const connInfo = getConnInfo(c)
-    ip = connInfo?.remote?.address
+    ip = connInfo.remote.address
   } catch {
     // Ignore connection info errors in test/mocked contexts
   }
 
-  userAgent = c.req.header('user-agent') ?? undefined
+  const userAgent = c.req.header('user-agent') ?? undefined
 
   return { ip, userAgent }
 }
@@ -202,7 +201,7 @@ export async function createSession(
     domain: useHostPrefix ? undefined : cookie.domain,
     secure: useHostPrefix ? true : isSecure,
     httpOnly: cookie.httpOnly ?? true,
-    sameSite: (cookie.sameSite ?? 'lax') as 'lax' | 'strict' | 'none',
+    sameSite: (cookie.sameSite ?? 'lax'),
   })
 
   const cookieJar = (c.get('sessionCookies') as string[] | undefined) ?? []
@@ -227,7 +226,7 @@ export async function destroySession(c: Context, opts?: SessionOptions): Promise
     cookie = {},
   } = opts ?? {}
 
-  const sid = c.get('sessionId') ?? getCookie(c, cookieName)
+  const sid = (c.get('sessionId') as string | undefined) ?? getCookie(c, cookieName)
   const store = (c.env as Env).SESSIONS
 
   if (sid && store) {
@@ -242,7 +241,7 @@ export async function destroySession(c: Context, opts?: SessionOptions): Promise
     secure: useHostPrefix ? true : isSecure,
     httpOnly: cookie.httpOnly ?? true,
     expires: new Date(0),
-    sameSite: (cookie.sameSite ?? 'lax') as 'lax' | 'strict' | 'none',
+    sameSite: (cookie.sameSite ?? 'lax'),
   })
 
   const cookieJar = (c.get('sessionCookies') as string[] | undefined) ?? []
@@ -257,7 +256,7 @@ export async function destroySession(c: Context, opts?: SessionOptions): Promise
  * Get current session data from context
  */
 export function getSession(c: Context): SessionData | null {
-  return c.get('sessionData') ?? null
+  return (c.get('sessionData') as SessionData | undefined) ?? null
 }
 
 /**

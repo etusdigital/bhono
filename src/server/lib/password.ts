@@ -62,14 +62,14 @@ export function isStrongPassword(password: string): boolean {
   if (/[a-z]/.test(password)) typeCount++
   if (/[A-Z]/.test(password)) typeCount++
   if (/[0-9]/.test(password)) typeCount++
-  if (/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(password)) typeCount++
+  if (/[!@#$%^&*()_+\-=[\]{}|;:,.<>?]/.test(password)) typeCount++
 
   if (typeCount < MIN_CHAR_TYPES) {
     return false
   }
 
   // Check for consecutive repeating characters (max 2)
-  if (new RegExp(`(.)\\1{${MAX_CONSECUTIVE_REPEATS},}`).test(password)) {
+  if (new RegExp(`(.)\\1{${String(MAX_CONSECUTIVE_REPEATS)},}`).test(password)) {
     return false
   }
 

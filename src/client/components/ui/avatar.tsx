@@ -1,4 +1,6 @@
-import * as React from "react"
+import { createContext, use, useState } from "react"
+import type { HTMLAttributes, ImgHTMLAttributes, Ref } from "react"
+
 import { cn } from "@/lib/utils"
 
 interface AvatarContextValue {
@@ -6,16 +8,17 @@ interface AvatarContextValue {
   setImageLoaded: (loaded: boolean) => void
 }
 
-const AvatarContext = React.createContext<AvatarContextValue | undefined>(undefined)
+const AvatarContext = createContext<AvatarContextValue | undefined>(undefined)
 
-const Avatar = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => {
-  const [imageLoaded, setImageLoaded] = React.useState(false)
+function Avatar({
+  className,
+  ref,
+  ...props
+}: HTMLAttributes<HTMLDivElement> & { ref?: Ref<HTMLDivElement> }) {
+  const [imageLoaded, setImageLoaded] = useState(false)
 
   return (
-    <AvatarContext.Provider value={{ imageLoaded, setImageLoaded }}>
+    <AvatarContext value={{ imageLoaded, setImageLoaded }}>
       <div
         ref={ref}
         className={cn(
@@ -24,23 +27,29 @@ const Avatar = React.forwardRef<
         )}
         {...props}
       />
-    </AvatarContext.Provider>
+    </AvatarContext>
   )
-})
-Avatar.displayName = "Avatar"
+}
 
-const AvatarImage = React.forwardRef<
-  HTMLImageElement,
-  React.ImgHTMLAttributes<HTMLImageElement>
->(({ className, src, onLoad, onError, ...props }, ref) => {
-  const context = React.useContext(AvatarContext)
-  const [hasError, setHasError] = React.useState(false)
+function AvatarImage({
+  className,
+  src,
+  onLoad,
+  onError,
+  ref,
+  ...props
+}: ImgHTMLAttributes<HTMLImageElement> & { ref?: Ref<HTMLImageElement> }) {
+  const context = use(AvatarContext)
+  // Track previous src to detect changes
+  const [prevSrc, setPrevSrc] = useState(src)
+  const [hasError, setHasError] = useState(false)
 
-  // Reset error state when src changes
-  React.useEffect(() => {
+  // Reset error state when src changes (using derived state pattern)
+  if (src !== prevSrc) {
+    setPrevSrc(src)
     setHasError(false)
     context?.setImageLoaded(false)
-  }, [src])
+  }
 
   if (!src || hasError) {
     return null
@@ -63,14 +72,14 @@ const AvatarImage = React.forwardRef<
       {...props}
     />
   )
-})
-AvatarImage.displayName = "AvatarImage"
+}
 
-const AvatarFallback = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => {
-  const context = React.useContext(AvatarContext)
+function AvatarFallback({
+  className,
+  ref,
+  ...props
+}: HTMLAttributes<HTMLDivElement> & { ref?: Ref<HTMLDivElement> }) {
+  const context = use(AvatarContext)
 
   // Always show fallback if no context (standalone usage) or image not loaded
   if (context?.imageLoaded) {
@@ -87,7 +96,6 @@ const AvatarFallback = React.forwardRef<
       {...props}
     />
   )
-})
-AvatarFallback.displayName = "AvatarFallback"
+}
 
-export { Avatar, AvatarImage, AvatarFallback }
+export { Avatar, AvatarFallback, AvatarImage }

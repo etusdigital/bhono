@@ -1,7 +1,7 @@
 // src/services/accounts.ts
 import { eq, and, isNull, isNotNull, sql } from 'drizzle-orm'
 import type { Database } from '../db/client'
-import { accounts, userAccounts } from '../db/schema'
+import { accounts, userAccounts, type AccountRecord } from '../db/schema'
 import { auditedInsert, auditedUpdate, auditedDelete } from '../lib/audited-db'
 import { createPaginationMeta, calculateOffset } from '../lib/pagination'
 import { NotFoundError, ConflictError, ForbiddenError } from '../lib/errors'
@@ -46,12 +46,12 @@ export const accountsService = {
     }
 
     // Get count
-    const [countResult] = await db
+    const countResults = await db
       .select({ count: sql<number>`count(*)` })
       .from(accounts)
       .where(and(...conditions))
 
-    const totalItems = countResult?.count ?? 0
+    const totalItems = countResults.at(0)?.count ?? 0
 
     // Get data
     const data = await db
@@ -77,19 +77,20 @@ export const accountsService = {
   },
 
   async findById(db: Database, ctx: ServiceContext, id: string): Promise<Account> {
-    const [accountRecord] = await db
+    const accountResults = await db
       .select()
       .from(accounts)
       .where(and(eq(accounts.id, id), isNull(accounts.deletedAt)))
       .limit(1)
 
+    const accountRecord = accountResults.at(0)
     if (!accountRecord) {
       throw new NotFoundError('Account')
     }
 
     // Check access for non-super-admin
     if (!ctx.user.isSuperAdmin) {
-      const [membership] = await db
+      const membershipResults = await db
         .select()
         .from(userAccounts)
         .where(
@@ -100,6 +101,7 @@ export const accountsService = {
         )
         .limit(1)
 
+      const membership = membershipResults.at(0)
       if (!membership) {
         throw new NotFoundError('Account')
       }
@@ -124,28 +126,33 @@ export const accountsService = {
 
     // Check domain uniqueness if provided
     if (input.domain) {
-      const [existing] = await db
+      const existingResults = await db
         .select()
         .from(accounts)
         .where(eq(accounts.domain, input.domain))
         .limit(1)
 
-      if (existing) {
+      if (existingResults.at(0)) {
         throw new ConflictError('Account with this domain already exists')
       }
     }
 
     // Create account with audit
-    const [accountRecord] = await auditedInsert(
+    const insertResults = await auditedInsert<AccountRecord>(
       db,
       ctx,
       accounts,
       {
         name: input.name,
-        description: input.description || null,
-        domain: input.domain || null,
+        description: input.description ?? null,
+        domain: input.domain ?? null,
       }
     )
+
+    const accountRecord: AccountRecord | undefined = insertResults.at(0)
+    if (!accountRecord) {
+      throw new Error('Failed to create account')
+    }
 
     return {
       id: accountRecord.id,
@@ -163,19 +170,19 @@ export const accountsService = {
 
     // Check domain uniqueness if changing
     if (input.domain) {
-      const [existing] = await db
+      const existingResults = await db
         .select()
         .from(accounts)
         .where(and(eq(accounts.domain, input.domain), sql`${accounts.id} != ${id}`))
         .limit(1)
 
-      if (existing) {
+      if (existingResults.at(0)) {
         throw new ConflictError('Account with this domain already exists')
       }
     }
 
     // Update account with audit
-    const [accountRecord] = await auditedUpdate(
+    const updateResults = await auditedUpdate<AccountRecord>(
       db,
       ctx,
       accounts,
@@ -185,6 +192,11 @@ export const accountsService = {
       },
       eq(accounts.id, id)
     )
+
+    const accountRecord: AccountRecord | undefined = updateResults.at(0)
+    if (!accountRecord) {
+      throw new Error('Failed to update account')
+    }
 
     return {
       id: accountRecord.id,
@@ -216,7 +228,7 @@ export const accountsService = {
     }
 
     // Find deleted record
-    const [record] = await db
+    const recordResults = await db
       .select()
       .from(accounts)
       .where(and(
@@ -225,19 +237,21 @@ export const accountsService = {
       ))
       .limit(1)
 
+    const record = recordResults.at(0)
     if (!record) {
       throw new NotFoundError('Account not found or not deleted')
     }
 
     // Restore account
-    const [restored] = await auditedUpdate(
+    const restoreResults = await auditedUpdate<AccountRecord>(
       db,
       ctx,
       accounts,
-      { deletedAt: null, deletedById: null },
+      { deletedAt: null },
       eq(accounts.id, id)
     )
 
+    const restored: AccountRecord | undefined = restoreResults.at(0)
     if (!restored) {
       throw new NotFoundError('Failed to restore account')
     }

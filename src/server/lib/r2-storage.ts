@@ -10,24 +10,25 @@ export interface UploadUrlResponse {
  * Generates a presigned URL for uploading files to R2.
  * The URL is valid for 15 minutes.
  */
-export async function generateUploadUrl(
-  r2Bucket: R2Bucket,
+export function generateUploadUrl(
+  _r2Bucket: R2Bucket,
   publicUrl: string,
   filename: string,
   contentType: string
-): Promise<UploadUrlResponse> {
+): UploadUrlResponse {
   if (!filename || !contentType) {
     throw new Error('Filename and ContentType are required.')
   }
 
   // Extract filename and preserve folder structure
-  const extractedFilename = filename.split('/').pop() || filename
+  const extractedFilename = filename.split('/').pop() ?? filename
   const folders = filename.split('/').slice(0, -1).join('/')
 
   // Create unique filename with timestamp
+  const timestamp = String(Date.now())
   const uniqueFilename = folders
-    ? `${folders}/${Date.now()}-${extractedFilename}`
-    : `${Date.now()}-${extractedFilename}`
+    ? `${folders}/${timestamp}-${extractedFilename}`
+    : `${timestamp}-${extractedFilename}`
 
   // R2 doesn't support presigned URLs directly in Workers
   // We use a workaround: return the internal upload endpoint
@@ -56,17 +57,17 @@ export async function uploadFile(
   body: ArrayBuffer | ReadableStream,
   contentType: string
 ): Promise<R2Object> {
-  const object = await r2Bucket.put(key, body, {
+  const result = await r2Bucket.put(key, body, {
     httpMetadata: {
       contentType,
     },
   })
 
-  if (!object) {
+  if (!result) {
     throw new Error('Failed to upload file to R2')
   }
 
-  return object
+  return result
 }
 
 /**
@@ -99,6 +100,6 @@ export async function listFiles(
 ): Promise<R2Objects> {
   return r2Bucket.list({
     prefix,
-    limit: limit || 100,
+    limit: limit ?? 100,
   })
 }

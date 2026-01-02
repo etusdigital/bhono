@@ -27,7 +27,7 @@ export function generateState(): string {
 
 function base64UrlEncode(buffer: Uint8Array): string {
   const base64 = btoa(String.fromCharCode(...buffer))
-  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+  return base64.replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '')
 }
 
 export function buildGoogleAuthUrl(env: Env, state: string, codeChallenge: string): string {
@@ -91,7 +91,7 @@ export function decodeIdToken(idToken: string): GoogleUserInfo {
 
   // Decode base64url payload with UTF-8 support
   // 1. Convert base64url to standard base64
-  const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+  const base64 = parts[1].replaceAll('-', '+').replaceAll('_', '/')
   // 2. Decode to binary string (Latin-1 code points 0-255)
   const binary = atob(base64)
   // 3. Convert binary string to Uint8Array
@@ -99,7 +99,7 @@ export function decodeIdToken(idToken: string): GoogleUserInfo {
   // 4. Decode as UTF-8 to handle multi-byte characters
   const jsonStr = new TextDecoder('utf-8').decode(bytes)
   // 5. Parse JSON
-  const payload = JSON.parse(jsonStr)
+  const payload = JSON.parse(jsonStr) as GoogleUserInfo
 
   return {
     sub: payload.sub,

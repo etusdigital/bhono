@@ -38,7 +38,7 @@ function createMockDb() {
       }),
     }),
     delete: vi.fn().mockReturnValue({
-      where: vi.fn().mockResolvedValue(undefined),
+      where: vi.fn().mockResolvedValue(),
     }),
   }
 
@@ -667,7 +667,7 @@ describe('accountsService', () => {
 
       mockDb.select = vi.fn().mockReturnValue(accountChain)
 
-      ;(auditedDelete as Mock).mockResolvedValue(undefined)
+      ;(auditedDelete as Mock).mockResolvedValue()
 
       await accountsService.delete(mockDb, superAdminCtx, 'account-123')
 

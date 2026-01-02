@@ -16,7 +16,7 @@ vi.mock('../../../lib/session', async (importOriginal) => {
     ...original,
     getSession: vi.fn(),
     createSession: vi.fn().mockResolvedValue('test-session-id'),
-    destroySession: vi.fn().mockResolvedValue(undefined),
+    destroySession: vi.fn().mockResolvedValue(),
   }
 })
 
@@ -32,7 +32,7 @@ vi.mock('../../../lib/oauth', () => ({
 
 // Mock audit module
 vi.mock('../../../lib/audit', () => ({
-  logAuthEvent: vi.fn().mockResolvedValue(undefined),
+  logAuthEvent: vi.fn().mockResolvedValue(),
 }))
 
 // Mock auth service
@@ -213,7 +213,7 @@ describe('Auth Routes', () => {
     it('logs out user and returns success message', async () => {
       const sessionData = createSessionFixture({ userId: 'user-123' })
       vi.mocked(getSession).mockReturnValue(sessionData)
-      vi.mocked(destroySession).mockResolvedValue(undefined)
+      vi.mocked(destroySession).mockResolvedValue()
 
       const app = createApp()
       const res = await app.request('/auth/logout', {
@@ -231,7 +231,7 @@ describe('Auth Routes', () => {
 
     it('succeeds even when no session exists', async () => {
       vi.mocked(getSession).mockReturnValue(null)
-      vi.mocked(destroySession).mockResolvedValue(undefined)
+      vi.mocked(destroySession).mockResolvedValue()
 
       const app = createApp()
       const res = await app.request('/auth/logout', {

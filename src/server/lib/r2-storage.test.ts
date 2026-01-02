@@ -34,22 +34,22 @@ describe('r2-storage', () => {
       expect(result.publicUrl).toMatch(/^https:\/\/cdn\.example\.com\/\d+-test-image\.png$/)
     })
 
-    it('should throw error when filename is missing', async () => {
+    it('should throw error when filename is missing', () => {
       const r2Bucket = mockR2 as unknown as R2Bucket
       const publicUrl = 'https://cdn.example.com'
       const contentType = 'image/png'
 
-      await expect(generateUploadUrl(r2Bucket, publicUrl, '', contentType)).rejects.toThrow(
+      expect(() => generateUploadUrl(r2Bucket, publicUrl, '', contentType)).toThrow(
         'Filename and ContentType are required.'
       )
     })
 
-    it('should throw error when contentType is missing', async () => {
+    it('should throw error when contentType is missing', () => {
       const r2Bucket = mockR2 as unknown as R2Bucket
       const publicUrl = 'https://cdn.example.com'
       const filename = 'test-image.png'
 
-      await expect(generateUploadUrl(r2Bucket, publicUrl, filename, '')).rejects.toThrow(
+      expect(() => generateUploadUrl(r2Bucket, publicUrl, filename, '')).toThrow(
         'Filename and ContentType are required.'
       )
     })

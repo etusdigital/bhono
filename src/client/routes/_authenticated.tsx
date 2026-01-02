@@ -27,7 +27,7 @@ function AuthenticatedLayout() {
 
       {/* Main content */}
       <main className="flex-1 overflow-y-auto">
-        <div className="container max-w-screen-xl py-8 px-6">
+        <div className="container max-w-[var(--content-width)] p-8">
           <Outlet />
         </div>
       </main>
@@ -40,7 +40,7 @@ function AuthenticatedPendingComponent() {
     <div className="flex h-screen overflow-hidden">
       <SidebarSkeleton />
       <main className="flex-1 overflow-y-auto">
-        <div className="container max-w-screen-xl py-8 px-6">
+        <div className="container max-w-[var(--content-width)] p-8">
           <PageSkeleton />
         </div>
       </main>
@@ -59,9 +59,9 @@ function AuthenticatedErrorComponent({ error }: { error: Error }) {
           error={error}
           title="Something went wrong"
           message="An error occurred while loading this page. Please try again."
-          onRetry={() => router.invalidate()}
-          onGoBack={() => router.history.back()}
-          onGoHome={() => router.navigate({ to: '/dashboard' })}
+          onRetry={() => { void router.invalidate() }}
+          onGoBack={() => { router.history.back() }}
+          onGoHome={() => { void router.navigate({ to: '/dashboard' }) }}
         />
       </main>
     </div>

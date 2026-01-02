@@ -221,11 +221,10 @@ describe("useAuth", () => {
         ok: true,
         json: () => Promise.resolve({ user: mockUser }),
       } as Response)
-      .mockImplementationOnce(() =>
-        logoutPromise.then(() => ({
-          ok: true,
-        }))
-      )
+      .mockImplementationOnce(async () => {
+        await logoutPromise
+        return { ok: true }
+      })
 
     const { result } = renderHook(() => useAuth(), { wrapper: createWrapper() })
 

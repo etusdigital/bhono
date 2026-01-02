@@ -34,6 +34,7 @@ storage.use('/:key', async (c, next) => {
     return next()
   }
   // Apply EDITOR role check for delete operations
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Hono dynamic route typing
   return requireRole('EDITOR')(c, next)
 })
 storage.openapi(deleteFileRoute, deleteFileHandler)

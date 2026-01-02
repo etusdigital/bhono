@@ -1,16 +1,27 @@
-import type { HonoEnv, ServiceContext } from '../../types'
+import type { RouteHandler } from '@hono/zod-openapi'
+import type { ServiceContext, HonoEnv } from '../../types'
 import { accountsService } from '../../services'
+import type {
+  listAccountsRoute,
+  getAccountRoute,
+  createAccountRoute,
+  updateAccountRoute,
+  deleteAccountRoute,
+  restoreAccountRoute,
+} from './routes'
 
-// Note: Handler types are inferred from route definitions by @hono/zod-openapi
-// Using 'any' is the standard pattern for openapi handlers
-export async function listAccountsHandler(c: any) {
+export const listAccountsHandler: RouteHandler<typeof listAccountsRoute, HonoEnv> = async (c) => {
   const query = c.req.valid('query')
   const db = c.get('db')
   const accountId = c.get('accountId')
-  const user = c.get('user')!
+  const user = c.get('user')
   const transactionId = c.get('transactionId')
   const ip = c.get('ip')
   const userAgent = c.get('userAgent')
+
+  if (!db || !accountId || !user) {
+    throw new Error('Missing required context')
+  }
 
   const ctx: ServiceContext = {
     accountId,
@@ -31,14 +42,18 @@ export async function listAccountsHandler(c: any) {
   return c.json(result, 200)
 }
 
-export async function getAccountHandler(c: any) {
+export const getAccountHandler: RouteHandler<typeof getAccountRoute, HonoEnv> = async (c) => {
   const { id } = c.req.valid('param')
   const db = c.get('db')
   const accountId = c.get('accountId')
-  const user = c.get('user')!
+  const user = c.get('user')
   const transactionId = c.get('transactionId')
   const ip = c.get('ip')
   const userAgent = c.get('userAgent')
+
+  if (!db || !accountId || !user) {
+    throw new Error('Missing required context')
+  }
 
   const ctx: ServiceContext = {
     accountId,
@@ -52,14 +67,18 @@ export async function getAccountHandler(c: any) {
   return c.json({ data: account }, 200)
 }
 
-export async function createAccountHandler(c: any) {
+export const createAccountHandler: RouteHandler<typeof createAccountRoute, HonoEnv> = async (c) => {
   const data = c.req.valid('json')
   const db = c.get('db')
   const accountId = c.get('accountId')
-  const user = c.get('user')!
+  const user = c.get('user')
   const transactionId = c.get('transactionId')
   const ip = c.get('ip')
   const userAgent = c.get('userAgent')
+
+  if (!db || !accountId || !user) {
+    throw new Error('Missing required context')
+  }
 
   const ctx: ServiceContext = {
     accountId,
@@ -78,15 +97,19 @@ export async function createAccountHandler(c: any) {
   return c.json({ data: newAccount }, 201)
 }
 
-export async function updateAccountHandler(c: any) {
+export const updateAccountHandler: RouteHandler<typeof updateAccountRoute, HonoEnv> = async (c) => {
   const { id } = c.req.valid('param')
   const data = c.req.valid('json')
   const db = c.get('db')
   const accountId = c.get('accountId')
-  const user = c.get('user')!
+  const user = c.get('user')
   const transactionId = c.get('transactionId')
   const ip = c.get('ip')
   const userAgent = c.get('userAgent')
+
+  if (!db || !accountId || !user) {
+    throw new Error('Missing required context')
+  }
 
   const ctx: ServiceContext = {
     accountId,
@@ -105,14 +128,18 @@ export async function updateAccountHandler(c: any) {
   return c.json({ data: updatedAccount }, 200)
 }
 
-export async function deleteAccountHandler(c: any) {
+export const deleteAccountHandler: RouteHandler<typeof deleteAccountRoute, HonoEnv> = async (c) => {
   const { id } = c.req.valid('param')
   const db = c.get('db')
   const accountId = c.get('accountId')
-  const user = c.get('user')!
+  const user = c.get('user')
   const transactionId = c.get('transactionId')
   const ip = c.get('ip')
   const userAgent = c.get('userAgent')
+
+  if (!db || !accountId || !user) {
+    throw new Error('Missing required context')
+  }
 
   const ctx: ServiceContext = {
     accountId,
@@ -126,14 +153,18 @@ export async function deleteAccountHandler(c: any) {
   return c.body(null, 204)
 }
 
-export async function restoreAccountHandler(c: any) {
+export const restoreAccountHandler: RouteHandler<typeof restoreAccountRoute, HonoEnv> = async (c) => {
   const { id } = c.req.valid('param')
   const db = c.get('db')
   const accountId = c.get('accountId')
-  const user = c.get('user')!
+  const user = c.get('user')
   const transactionId = c.get('transactionId')
   const ip = c.get('ip')
   const userAgent = c.get('userAgent')
+
+  if (!db || !accountId || !user) {
+    throw new Error('Missing required context')
+  }
 
   const ctx: ServiceContext = {
     accountId,

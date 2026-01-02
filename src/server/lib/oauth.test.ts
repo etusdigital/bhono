@@ -23,9 +23,9 @@ const mockEnv = {
 function createMockIdToken(payload: object): string {
   const header = btoa(JSON.stringify({ alg: 'RS256', typ: 'JWT' }))
   const encodedPayload = btoa(JSON.stringify(payload))
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=/g, '')
+    .replaceAll('+', '-')
+    .replaceAll('/', '_')
+    .replaceAll('=', '')
   const signature = 'mock-signature'
   return `${header}.${encodedPayload}.${signature}`
 }
