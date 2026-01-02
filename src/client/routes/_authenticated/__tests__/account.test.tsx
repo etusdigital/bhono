@@ -225,6 +225,54 @@ describe('Account Page', () => {
         expect(screen.getByText('Deleting...')).toBeInTheDocument()
       })
     })
+
+    it('should show validation error when submitting empty form', async () => {
+      const user = userEvent.setup()
+      renderRoute({ initialEntries: ['/account'] })
+
+      await waitFor(() => {
+        expect(screen.getByText('Delete Account')).toBeInTheDocument()
+      })
+
+      // Open dialog
+      const deleteButton = screen.getByRole('button', { name: /Delete/i })
+      await user.click(deleteButton)
+
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
+      })
+
+      // Submit without typing anything
+      const submitButton = screen.getByRole('button', { name: /Delete Account/i })
+      await user.click(submitButton)
+
+      // Should show validation error
+      await waitFor(() => {
+        expect(screen.getByText('Digite seu email corretamente para confirmar')).toBeInTheDocument()
+      })
+    })
+
+    it('should show confirmation warning text in dialog', async () => {
+      const user = userEvent.setup()
+      renderRoute({ initialEntries: ['/account'] })
+
+      await waitFor(() => {
+        expect(screen.getByText('Delete Account')).toBeInTheDocument()
+      })
+
+      // Open dialog
+      const deleteButton = screen.getByRole('button', { name: /Delete/i })
+      await user.click(deleteButton)
+
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
+      })
+
+      // Check all warning items are displayed
+      expect(screen.getByText('All your data will be permanently deleted')).toBeInTheDocument()
+      expect(screen.getByText('You will lose access to all workspaces')).toBeInTheDocument()
+      expect(screen.getByText('This action is irreversible')).toBeInTheDocument()
+    })
   })
 
   describe('Connect buttons', () => {

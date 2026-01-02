@@ -452,6 +452,48 @@ describe('Guard Middleware Integration', () => {
   })
 
   describe('requirePermission middleware', () => {
+    it('should return 401 without authentication', async () => {
+      const res = await app.request('/api/manage-users')
+
+      expect(res.status).toBe(401)
+      const body = await res.json()
+      expect(body.error.message).toContain('Not authenticated')
+    })
+
+    it('should return 403 when user has no role for account', async () => {
+      const user = await createUser({ email: 'norole-perm@example.com', name: 'No Role Perm User' })
+      const { headers } = await createUserSession(user.id, { email: user.email, name: user.name })
+
+      const account = await createAccount({ name: 'Test Account Permissions' })
+
+      const res = await app.request('/api/manage-users', {
+        headers: {
+          ...headers,
+          'User-Agent': 'IntegrationTest/1.0',
+          'Account-ID': account.id,
+        },
+      })
+
+      expect(res.status).toBe(403)
+    })
+
+    it('should allow super admin to bypass all permission checks', async () => {
+      const { headers, account } = await createTestScenario({
+        isSuperAdmin: true,
+        role: 'VIEWER', // Even with VIEWER role, super admin should bypass
+      })
+
+      const res = await app.request('/api/manage-users', {
+        headers: {
+          ...headers,
+          'User-Agent': 'IntegrationTest/1.0',
+          'Account-ID': account.id,
+        },
+      })
+
+      expect(res.status).toBe(200)
+    })
+
     it('should allow access with required permission', async () => {
       const { headers, account } = await createTestScenario({ role: 'ADMIN' })
 

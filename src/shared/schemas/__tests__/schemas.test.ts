@@ -6,6 +6,7 @@ import {
   CreateAccountSchema,
   UpdateAccountSchema,
   CreateInvitationSchema,
+  CreateWebhookSchema,
 } from '../index'
 
 describe('User Schemas', () => {
@@ -428,6 +429,119 @@ describe('Invitation Schemas', () => {
         })
         expect(result.success).toBe(true)
       }
+    })
+  })
+})
+
+describe('Webhook Schemas', () => {
+  describe('CreateWebhookSchema', () => {
+    it('should accept valid webhook creation data', () => {
+      const validData = {
+        url: 'https://api.example.com/webhooks',
+        events: ['user.created', 'user.updated'],
+      }
+      const result = CreateWebhookSchema.safeParse(validData)
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data).toEqual(validData)
+      }
+    })
+
+    it('should accept HTTPS URLs', () => {
+      const httpsUrls = [
+        'https://example.com/hook',
+        'https://api.example.com/v1/webhooks',
+        'https://subdomain.example.co.uk/receive',
+        'https://localhost:3000/webhook',
+      ]
+      for (const url of httpsUrls) {
+        const result = CreateWebhookSchema.safeParse({
+          url,
+          events: ['event.test'],
+        })
+        expect(result.success).toBe(true)
+      }
+    })
+
+    it('should reject HTTP URLs (must be HTTPS)', () => {
+      const result = CreateWebhookSchema.safeParse({
+        url: 'http://api.example.com/webhooks',
+        events: ['user.created'],
+      })
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(result.error.issues[0].message).toContain('HTTPS')
+      }
+    })
+
+    it('should reject invalid URL format', () => {
+      const invalidUrls = ['not-a-url', 'ftp://example.com', 'example.com', '']
+      for (const url of invalidUrls) {
+        const result = CreateWebhookSchema.safeParse({
+          url,
+          events: ['user.created'],
+        })
+        expect(result.success).toBe(false)
+      }
+    })
+
+    it('should reject missing url field', () => {
+      const result = CreateWebhookSchema.safeParse({
+        events: ['user.created'],
+      })
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(result.error.issues[0].path).toContain('url')
+      }
+    })
+
+    it('should reject missing events field', () => {
+      const result = CreateWebhookSchema.safeParse({
+        url: 'https://api.example.com/webhooks',
+      })
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(result.error.issues[0].path).toContain('events')
+      }
+    })
+
+    it('should reject empty events array', () => {
+      const result = CreateWebhookSchema.safeParse({
+        url: 'https://api.example.com/webhooks',
+        events: [],
+      })
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(result.error.issues[0].path).toContain('events')
+        expect(result.error.issues[0].message).toContain('pelo menos um evento')
+      }
+    })
+
+    it('should accept single event in array', () => {
+      const result = CreateWebhookSchema.safeParse({
+        url: 'https://api.example.com/webhooks',
+        events: ['user.created'],
+      })
+      expect(result.success).toBe(true)
+    })
+
+    it('should accept multiple events', () => {
+      const result = CreateWebhookSchema.safeParse({
+        url: 'https://api.example.com/webhooks',
+        events: ['user.created', 'user.updated', 'user.deleted', 'team.member_added'],
+      })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.events).toHaveLength(4)
+      }
+    })
+
+    it('should accept events with various naming conventions', () => {
+      const result = CreateWebhookSchema.safeParse({
+        url: 'https://api.example.com/webhooks',
+        events: ['user.created', 'PAYMENT_RECEIVED', 'invoice-paid', 'order:completed'],
+      })
+      expect(result.success).toBe(true)
     })
   })
 })

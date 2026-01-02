@@ -248,4 +248,5 @@ describe('Authenticated Layout', () => {
       }, { timeout: 3000 })
     })
   })
+
 })

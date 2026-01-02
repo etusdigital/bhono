@@ -283,4 +283,92 @@ describe('Team Page', () => {
       }, waitOptions)
     })
   })
+
+  describe('Invite dialog form elements', () => {
+    it('should show email label and description in invite dialog', async () => {
+      const user = userEvent.setup()
+      renderRoute({ initialEntries: ['/team'] })
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /invite member/i })).toBeInTheDocument()
+      }, waitOptions)
+
+      // Open dialog
+      await user.click(screen.getByRole('button', { name: /invite member/i }))
+
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
+      })
+
+      // Check form labels are present
+      expect(screen.getByText('Email Address')).toBeInTheDocument()
+      expect(screen.getByText('Role')).toBeInTheDocument()
+    })
+
+    it('should display Send Invitation submit button', async () => {
+      const user = userEvent.setup()
+      renderRoute({ initialEntries: ['/team'] })
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /invite member/i })).toBeInTheDocument()
+      }, waitOptions)
+
+      // Open dialog
+      await user.click(screen.getByRole('button', { name: /invite member/i }))
+
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
+      })
+
+      // Check submit button exists
+      expect(screen.getByRole('button', { name: /send invitation/i })).toBeInTheDocument()
+    })
+  })
+
+  describe('Search functionality edge cases', () => {
+    it('should be case-insensitive when searching', async () => {
+      const user = userEvent.setup()
+      renderRoute({ initialEntries: ['/team'] })
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Search members...')).toBeInTheDocument()
+      }, waitOptions)
+
+      // Search with different case
+      const searchInput = screen.getByPlaceholderText('Search members...')
+      await user.type(searchInput, 'TEST')
+
+      // Should still find the user (case-insensitive)
+      await waitFor(() => {
+        // The current user email is test@example.com which should match TEST
+        expect(screen.queryByText(/no members found/i)).not.toBeInTheDocument()
+      })
+    })
+
+    it('should clear search results when input is cleared', async () => {
+      const user = userEvent.setup()
+      renderRoute({ initialEntries: ['/team'] })
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Search members...')).toBeInTheDocument()
+      }, waitOptions)
+
+      const searchInput = screen.getByPlaceholderText('Search members...')
+
+      // Search for something that doesn't exist
+      await user.type(searchInput, 'nonexistent')
+
+      await waitFor(() => {
+        expect(screen.getByText(/no members found/i)).toBeInTheDocument()
+      })
+
+      // Clear the search
+      await user.clear(searchInput)
+
+      // Results should reappear
+      await waitFor(() => {
+        expect(screen.queryByText(/no members found/i)).not.toBeInTheDocument()
+      })
+    })
+  })
 })

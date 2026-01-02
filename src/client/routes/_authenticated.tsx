@@ -35,7 +35,7 @@ function AuthenticatedLayout() {
   )
 }
 
-function AuthenticatedPendingComponent() {
+export function AuthenticatedPendingComponent() {
   return (
     <div className="flex h-screen overflow-hidden">
       <SidebarSkeleton />
@@ -48,7 +48,7 @@ function AuthenticatedPendingComponent() {
   )
 }
 
-function AuthenticatedErrorComponent({ error }: { error: Error }) {
+export function AuthenticatedErrorComponent({ error }: { error: Error }) {
   const router = useRouter()
 
   return (

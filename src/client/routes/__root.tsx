@@ -17,7 +17,7 @@ function RootComponent() {
   )
 }
 
-function RootErrorComponent({ error }: { error: Error }) {
+export function RootErrorComponent({ error }: { error: Error }) {
   const router = useRouter()
 
   return (

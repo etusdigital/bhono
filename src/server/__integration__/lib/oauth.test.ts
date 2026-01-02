@@ -9,7 +9,7 @@
  * - decodeIdToken
  */
 
-import { describe, it, expect, beforeAll } from 'vitest'
+import { describe, it, expect, beforeAll, vi } from 'vitest'
 import { getEnv, type TestEnv } from '../setup'
 import {
   generateCodeVerifier,
@@ -17,6 +17,8 @@ import {
   generateState,
   buildGoogleAuthUrl,
   decodeIdToken,
+  exchangeCodeForTokens,
+  getGoogleUserInfo,
 } from '../../lib/oauth'
 
 describe('OAuth Utility Functions', () => {
@@ -251,6 +253,116 @@ describe('OAuth Utility Functions', () => {
       const decoded = decodeIdToken(token)
 
       expect(decoded.name).toBe("O'Brien-Smith")
+    })
+  })
+
+  describe('exchangeCodeForTokens', () => {
+    it('should exchange authorization code for tokens', async () => {
+      const result = await exchangeCodeForTokens(env, 'auth-code-123', 'code-verifier-abc')
+
+      expect(result).toEqual({
+        access_token: 'mock_access_token',
+        refresh_token: 'mock_refresh_token',
+        expires_in: 3600,
+        token_type: 'Bearer',
+        scope: 'openid email profile',
+        id_token: 'mock_id_token',
+      })
+    })
+
+    it('should send correct request parameters', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch')
+
+      await exchangeCodeForTokens(env, 'test-code', 'test-verifier')
+
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'https://oauth2.googleapis.com/token',
+        expect.objectContaining({
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        })
+      )
+
+      // Verify body contains correct parameters
+      const callArgs = fetchSpy.mock.calls.find(call =>
+        (call[0] as string).includes('oauth2.googleapis.com/token')
+      )
+      expect(callArgs).toBeDefined()
+      const requestInit = callArgs![1] as RequestInit
+      const body = new URLSearchParams(requestInit.body as string)
+
+      expect(body.get('client_id')).toBe(env.GOOGLE_CLIENT_ID)
+      expect(body.get('client_secret')).toBe(env.GOOGLE_CLIENT_SECRET)
+      expect(body.get('code')).toBe('test-code')
+      expect(body.get('code_verifier')).toBe('test-verifier')
+      expect(body.get('grant_type')).toBe('authorization_code')
+      expect(body.get('redirect_uri')).toBe(env.GOOGLE_REDIRECT_URI)
+    })
+
+    it('should throw error on failed token exchange', async () => {
+      vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+        new Response('Invalid code', { status: 400 })
+      )
+
+      await expect(
+        exchangeCodeForTokens(env, 'invalid-code', 'verifier')
+      ).rejects.toThrow('Failed to exchange code: Invalid code')
+    })
+
+    it('should throw error on network failure', async () => {
+      vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new Error('Network error'))
+
+      await expect(
+        exchangeCodeForTokens(env, 'code', 'verifier')
+      ).rejects.toThrow('Network error')
+    })
+  })
+
+  describe('getGoogleUserInfo', () => {
+    it('should fetch user info with access token', async () => {
+      const result = await getGoogleUserInfo('mock_access_token')
+
+      expect(result).toEqual({
+        id: 'mock_google_id_123',
+        email: 'testuser@gmail.com',
+        verified_email: true,
+        name: 'Test User',
+        given_name: 'Test',
+        family_name: 'User',
+        picture: 'https://example.com/avatar.jpg',
+      })
+    })
+
+    it('should send authorization header with access token', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch')
+
+      await getGoogleUserInfo('my-access-token')
+
+      const callArgs = fetchSpy.mock.calls.find(call =>
+        (call[0] as string).includes('googleapis.com/oauth2')
+      )
+      expect(callArgs).toBeDefined()
+      const requestInit = callArgs![1] as RequestInit
+
+      expect(requestInit.headers).toEqual({
+        Authorization: 'Bearer my-access-token',
+      })
+    })
+
+    it('should throw error on failed request', async () => {
+      vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+        new Response('Unauthorized', { status: 401 })
+      )
+
+      await expect(getGoogleUserInfo('invalid-token')).rejects.toThrow(
+        'Failed to get user info from Google'
+      )
+    })
+
+    it('should throw error on network failure', async () => {
+      vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new Error('Connection refused'))
+
+      await expect(getGoogleUserInfo('token')).rejects.toThrow('Connection refused')
     })
   })
 })
