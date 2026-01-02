@@ -2,6 +2,8 @@ import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
+  // Vitest 4: Use cacheDir for faster subsequent runs
+  cacheDir: './node_modules/.vitest-cache',
   resolve: {
     alias: {
       '@server': fileURLToPath(new URL('../', import.meta.url)),
@@ -11,10 +13,6 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    // Vitest 4: File-system cache for faster subsequent runs
-    cache: {
-      dir: './node_modules/.vitest-cache',
-    },
     // Vitest 4: Schema matching with Zod
     setupFiles: [
       'src/test/vitest-zod-matcher.ts',

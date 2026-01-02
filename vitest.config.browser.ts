@@ -3,9 +3,12 @@
 import { defineConfig } from "vitest/config"
 import react from "@vitejs/plugin-react"
 import { fileURLToPath, URL } from "node:url"
+import { playwright } from "@vitest/browser-playwright"
 
 export default defineConfig({
   plugins: [react()],
+  // Vitest 4: Use cacheDir instead of cache.dir
+  cacheDir: "./node_modules/.vitest-cache",
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src/client", import.meta.url)),
@@ -14,16 +17,12 @@ export default defineConfig({
   },
   test: {
     globals: true,
-    // Vitest 4: Browser Mode with Playwright
+    // Vitest 4: Browser Mode with Playwright (new factory API)
     browser: {
       enabled: true,
-      provider: "playwright",
+      provider: playwright(),
       instances: [{ browser: "chromium" }],
       headless: true,
-    },
-    // Vitest 4: File-system cache
-    cache: {
-      dir: "./node_modules/.vitest-cache",
     },
     // Vitest 4: Schema matching with Zod
     setupFiles: [

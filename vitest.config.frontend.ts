@@ -4,6 +4,8 @@ import { fileURLToPath, URL } from "node:url"
 
 export default defineConfig({
   plugins: [react()],
+  // Vitest 4: Use cacheDir for faster subsequent runs
+  cacheDir: "./node_modules/.vitest-cache",
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src/client", import.meta.url)),
@@ -13,10 +15,6 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "jsdom",
-    // Vitest 4: File-system cache for faster subsequent runs
-    cache: {
-      dir: "./node_modules/.vitest-cache",
-    },
     setupFiles: ["./src/client/__tests__/setup.ts"],
     include: ["src/client/**/*.test.{ts,tsx}"],
     exclude: ["node_modules", ".claude", "dist"],
