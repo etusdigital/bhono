@@ -667,3 +667,215 @@ body {
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
+/* ========================================
+   Enter Animations (@starting-style)
+   ======================================== */
+
+/* Dialog/Modal Enter Animation */
+@utility dialog-enter {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  transition: opacity 200ms ease-out, transform 200ms ease-out;
+
+  @starting-style {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+}
+
+/* Popover Enter Animation */
+@utility popover-enter {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 150ms ease-out, transform 150ms ease-out;
+
+  @starting-style {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+/* Toast Enter Animation */
+@utility toast-enter {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 200ms ease-out, transform 200ms ease-out;
+
+  @starting-style {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+/* Fade Enter Animation */
+@utility fade-enter {
+  opacity: 1;
+  transition: opacity 150ms ease-out;
+
+  @starting-style {
+    opacity: 0;
+  }
+}
+
+/* ========================================
+   Container Query Utilities
+   ======================================== */
+
+/* Define container contexts */
+@utility container-query {
+  container-type: inline-size;
+}
+
+@utility container-query-size {
+  container-type: size;
+}
+
+/* Named containers */
+@utility container-card {
+  container-type: inline-size;
+  container-name: card;
+}
+
+@utility container-sidebar {
+  container-type: inline-size;
+  container-name: sidebar;
+}
+
+@utility container-main {
+  container-type: inline-size;
+  container-name: main;
+}
+
+/* ========================================
+   Advanced Gradient Utilities
+   ======================================== */
+
+/* Radial gradients for highlights */
+@utility gradient-radial-primary {
+  background: radial-gradient(circle at center, var(--color-green-400) 0%, transparent 70%);
+}
+
+@utility gradient-radial-accent {
+  background: radial-gradient(circle at center, var(--color-blue-400) 0%, transparent 70%);
+}
+
+@utility gradient-radial-glow {
+  background: radial-gradient(ellipse at top, var(--color-primary) 0%, transparent 50%);
+}
+
+/* Conic gradients for spinners/progress */
+@utility gradient-conic-spinner {
+  background: conic-gradient(from 0deg, transparent 0deg, var(--color-primary) 270deg, transparent 360deg);
+}
+
+@utility gradient-conic-progress {
+  background: conic-gradient(var(--color-primary) var(--progress, 0%), var(--color-muted) 0%);
+}
+
+@utility gradient-conic-rainbow {
+  background: conic-gradient(
+    in oklch,
+    var(--color-red-500) 0deg,
+    var(--color-yellow-500) 60deg,
+    var(--color-green-500) 120deg,
+    var(--color-blue-500) 180deg,
+    var(--color-main2-500) 240deg,
+    var(--color-pink-500) 300deg,
+    var(--color-red-500) 360deg
+  );
+}
+
+/* ========================================
+   Form Field Utilities
+   ======================================== */
+
+/* Auto-resize textarea */
+@utility field-sizing-content {
+  field-sizing: content;
+  min-height: 2.5rem;
+  max-height: 20rem;
+  resize: none;
+}
+
+/* Fixed height (default behavior) */
+@utility field-sizing-fixed {
+  field-sizing: fixed;
+}
+
+/* ========================================
+   not-* Variant Usage Examples
+   ======================================== */
+
+/*
+Tailwind v4 includes the not-* variant natively.
+Use directly in your components:
+
+Examples:
+- not-hover:opacity-100    → Full opacity when NOT hovering
+- not-focus:border-muted   → Muted border when NOT focused
+- not-disabled:cursor-pointer → Pointer cursor when NOT disabled
+- not-first:border-t       → Top border on all except first
+- not-last:border-b        → Bottom border on all except last
+- not-empty:pb-4           → Padding when NOT empty
+
+Combined:
+- hover:not-disabled:bg-primary → Hover effect only when not disabled
+- focus:not-invalid:ring-primary → Focus ring only when valid
+*/
+
+/* ========================================
+   Inert State Styling
+   ======================================== */
+
+/*
+The [inert] attribute makes elements non-interactive.
+Tailwind v4 includes the inert: variant natively.
+
+Use directly:
+- inert:opacity-50
+- inert:pointer-events-none
+- inert:grayscale
+
+Below are pre-composed utilities:
+*/
+
+@utility inert-overlay {
+  &[inert], [inert] & {
+    opacity: 0.5;
+    pointer-events: none;
+    user-select: none;
+    filter: grayscale(0.3);
+  }
+}
+
+@utility inert-disabled {
+  &[inert], [inert] & {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+/* ========================================
+   in-* Variant Usage Examples
+   ======================================== */
+
+/*
+Tailwind v4 includes the in-* variant for parent state matching.
+Similar to group-* but without needing the group class.
+
+Examples:
+- in-hover:text-primary    → When ANY ancestor is hovered
+- in-focus:ring-2          → When ANY ancestor is focused
+- in-[.open]:block         → When ancestor has .open class
+- in-data-[state=open]:opacity-100 → When ancestor has data-state="open"
+
+Comparison with group-*:
+- group-hover:text-primary → Needs <div class="group"> ancestor
+- in-hover:text-primary    → Works with any hoverable ancestor
+
+Use in-* when:
+- You don't control the parent markup
+- Parent is a third-party component
+- You want implicit parent state detection
+*/
