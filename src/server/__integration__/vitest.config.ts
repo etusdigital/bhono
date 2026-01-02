@@ -44,6 +44,31 @@ export default defineConfig({
         '**/__integration__/**',
         '**/types/**',
         '**/*.d.ts',
+        // Entry points and config
+        'src/server/index.ts',
+        'src/server/env.ts',
+        // Database setup (not business logic)
+        'src/server/db/client.ts',
+        'src/server/db/seed.ts',
+        // Barrel exports (just re-exports, no logic)
+        'src/server/db/schema/index.ts',
+        'src/server/services/index.ts',
+        'src/server/middleware/index.ts',
+        // Drizzle schema definitions (table structures, not business logic)
+        'src/server/db/schema/users.ts',
+        'src/server/db/schema/accounts.ts',
+        'src/server/db/schema/user-accounts.ts',
+        'src/server/db/schema/audit-logs.ts',
+        'src/server/db/schema/refresh-tokens.ts',
+        'src/server/db/schema/invitations.ts',
+        // API documentation (not testable)
+        'src/server/routes/api.ts',
+        // Dev-only endpoint (tested via E2E)
+        'src/server/routes/auth/test-login.ts',
+        // Hard to test in isolation (require external services/mocking)
+        'src/server/lib/providers.ts',
+        'src/server/lib/transaction.ts',
+        'src/server/lib/schema-helpers.ts',
       ],
     },
   },

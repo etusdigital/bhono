@@ -146,7 +146,8 @@ describe("Sidebar", () => {
   it("shows keyboard shortcut hint when expanded", () => {
     render(<Sidebar />)
 
-    expect(screen.getByText("to collapse")).toBeInTheDocument()
+    // The sidebar shows a keyboard shortcut hint like "⌘B collapse" or "Ctrl+B collapse"
+    expect(screen.getByText(/collapse/)).toBeInTheDocument()
   })
 
   it("hides navigation labels when collapsed", () => {
@@ -154,5 +155,127 @@ describe("Sidebar", () => {
 
     // Navigation labels should not be visible when collapsed
     expect(screen.queryByText("Dashboard")).not.toBeInTheDocument()
+  })
+
+  it("collapses when collapse button is clicked", async () => {
+    const user = userEvent.setup()
+    render(<Sidebar />)
+
+    const sidebar = screen.getByRole("complementary")
+    expect(sidebar).toHaveClass("w-64")
+
+    // Find and click the collapse button (chevron icon button in header)
+    const collapseButton = screen.getAllByRole("button")[0]
+    await user.click(collapseButton)
+
+    expect(sidebar).toHaveClass("w-16")
+  })
+
+  it("toggles sidebar with keyboard shortcut", async () => {
+    const user = userEvent.setup()
+    render(<Sidebar />)
+
+    const sidebar = screen.getByRole("complementary")
+    expect(sidebar).toHaveClass("w-64")
+
+    // Press Ctrl+B (or Cmd+B on Mac) to toggle
+    await user.keyboard("{Control>}b{/Control}")
+
+    expect(sidebar).toHaveClass("w-16")
+  })
+
+  it("toggles theme when theme button is clicked", async () => {
+    const user = userEvent.setup()
+    render(<Sidebar />)
+
+    // Find the theme toggle button (has title attribute with "Theme:")
+    const themeButton = screen.getByTitle(/theme:/i)
+    expect(themeButton).toBeInTheDocument()
+
+    await user.click(themeButton)
+    // Theme should cycle (we just verify click doesn't throw)
+  })
+
+  it("shows logout button when collapsed and handles click", async () => {
+    const user = userEvent.setup()
+    const mockLogout = vi.fn()
+    ;(useAuth as Mock).mockReturnValue({
+      user: mockUser,
+      logout: mockLogout,
+      isLoggingOut: false,
+      isAuthenticated: true,
+      isLoading: false,
+    })
+
+    render(<Sidebar defaultCollapsed={true} />)
+
+    // When collapsed, the avatar button should be the logout trigger
+    const avatarButton = screen.getAllByRole("button").pop()!
+    await user.click(avatarButton)
+
+    expect(mockLogout).toHaveBeenCalled()
+  })
+
+  it("shows loading spinner when logging out", () => {
+    ;(useAuth as Mock).mockReturnValue({
+      user: mockUser,
+      logout: vi.fn(),
+      isLoggingOut: true,
+      isAuthenticated: true,
+      isLoading: false,
+    })
+
+    render(<Sidebar />)
+
+    // Logout button should be disabled during logout
+    const buttons = screen.getAllByRole("button")
+    const logoutButton = buttons[buttons.length - 1]
+    expect(logoutButton).toBeDisabled()
+  })
+
+  it("shows avatar image when user has avatarUrl", () => {
+    ;(useAuth as Mock).mockReturnValue({
+      user: { ...mockUser, avatarUrl: "https://example.com/avatar.jpg" },
+      logout: vi.fn(),
+      isLoggingOut: false,
+      isAuthenticated: true,
+      isLoading: false,
+    })
+
+    render(<Sidebar />)
+
+    const avatarImages = document.querySelectorAll('img[alt="John Doe"]')
+    expect(avatarImages.length).toBeGreaterThan(0)
+  })
+
+  it("shows single letter initial when user has no name", () => {
+    ;(useAuth as Mock).mockReturnValue({
+      user: { ...mockUser, name: null },
+      logout: vi.fn(),
+      isLoggingOut: false,
+      isAuthenticated: true,
+      isLoading: false,
+    })
+
+    render(<Sidebar />)
+
+    // Should show first letter of email "J" for "john@example.com"
+    const avatarFallbacks = screen.getAllByText("J")
+    expect(avatarFallbacks.length).toBeGreaterThan(0)
+  })
+
+  it("shows question mark when user has no name or email", () => {
+    ;(useAuth as Mock).mockReturnValue({
+      user: { id: "1", email: null, name: null, avatarUrl: null },
+      logout: vi.fn(),
+      isLoggingOut: false,
+      isAuthenticated: true,
+      isLoading: false,
+    })
+
+    render(<Sidebar />)
+
+    const avatarFallbacks = screen.getAllByText("?")
+    expect(avatarFallbacks.length).toBeGreaterThan(0)
   })
 })

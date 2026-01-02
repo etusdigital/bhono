@@ -112,4 +112,175 @@ describe('Team Page', () => {
     expect(screen.getByRole('button', { name: /resend/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /revoke/i })).toBeInTheDocument()
   })
+
+  describe('Invite Dialog', () => {
+    it('should open invite dialog when clicking invite button', async () => {
+      const user = userEvent.setup()
+      renderRoute({ initialEntries: ['/team'] })
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /invite member/i })).toBeInTheDocument()
+      }, waitOptions)
+
+      const inviteButton = screen.getByRole('button', { name: /invite member/i })
+      await user.click(inviteButton)
+
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
+      })
+      expect(screen.getByText('Invite Team Member')).toBeInTheDocument()
+      expect(screen.getByText(/send an invitation to join your workspace/i)).toBeInTheDocument()
+    })
+
+    it('should close dialog when clicking cancel', async () => {
+      const user = userEvent.setup()
+      renderRoute({ initialEntries: ['/team'] })
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /invite member/i })).toBeInTheDocument()
+      }, waitOptions)
+
+      // Open dialog
+      await user.click(screen.getByRole('button', { name: /invite member/i }))
+
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
+      })
+
+      // Click cancel
+      await user.click(screen.getByRole('button', { name: /cancel/i }))
+
+      await waitFor(() => {
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      })
+    })
+
+    it('should show email input field in dialog', async () => {
+      const user = userEvent.setup()
+      renderRoute({ initialEntries: ['/team'] })
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /invite member/i })).toBeInTheDocument()
+      }, waitOptions)
+
+      // Open dialog
+      await user.click(screen.getByRole('button', { name: /invite member/i }))
+
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
+      })
+
+      // Email input should be present
+      expect(screen.getByPlaceholderText('colleague@example.com')).toBeInTheDocument()
+    })
+
+    it('should toggle between member and admin roles', async () => {
+      const user = userEvent.setup()
+      renderRoute({ initialEntries: ['/team'] })
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /invite member/i })).toBeInTheDocument()
+      }, waitOptions)
+
+      // Open dialog
+      await user.click(screen.getByRole('button', { name: /invite member/i }))
+
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
+      })
+
+      // Default should show member description
+      expect(screen.getByText(/members can view and collaborate on projects/i)).toBeInTheDocument()
+
+      // Click Admin button
+      await user.click(screen.getByRole('button', { name: /admin/i }))
+
+      // Should show admin description
+      await waitFor(() => {
+        expect(screen.getByText(/admins can manage team settings and members/i)).toBeInTheDocument()
+      })
+    })
+
+    it('should submit form with valid email', async () => {
+      const user = userEvent.setup()
+      renderRoute({ initialEntries: ['/team'] })
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /invite member/i })).toBeInTheDocument()
+      }, waitOptions)
+
+      // Open dialog
+      await user.click(screen.getByRole('button', { name: /invite member/i }))
+
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
+      })
+
+      // Type valid email
+      await user.type(screen.getByPlaceholderText('colleague@example.com'), 'newmember@example.com')
+
+      // Submit form
+      await user.click(screen.getByRole('button', { name: /send invitation/i }))
+
+      // Should show submitting state (spinner appears)
+      await waitFor(() => {
+        const submitButton = screen.getByRole('button', { name: /send invitation/i })
+        expect(submitButton).toBeDisabled()
+      })
+    })
+  })
+
+  describe('InvitationRow actions', () => {
+    it('should handle resend button click', async () => {
+      const user = userEvent.setup()
+      renderRoute({ initialEntries: ['/team'] })
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /resend/i })).toBeInTheDocument()
+      }, waitOptions)
+
+      // Click resend
+      const resendButton = screen.getByRole('button', { name: /resend/i })
+      await user.click(resendButton)
+
+      // Button should be disabled during action
+      expect(resendButton).toBeDisabled()
+    })
+
+    it('should handle revoke button click', async () => {
+      const user = userEvent.setup()
+      renderRoute({ initialEntries: ['/team'] })
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /revoke/i })).toBeInTheDocument()
+      }, waitOptions)
+
+      // Click revoke
+      const revokeButton = screen.getByRole('button', { name: /revoke/i })
+      await user.click(revokeButton)
+
+      // Button should be disabled during action
+      expect(revokeButton).toBeDisabled()
+    })
+  })
+
+  describe('TeamMemberRow', () => {
+    it('should display member info and (you) indicator', async () => {
+      renderRoute({ initialEntries: ['/team'] })
+
+      await waitFor(() => {
+        // "(you)" indicator should be present for current user
+        expect(screen.getByText('(you)')).toBeInTheDocument()
+      }, waitOptions)
+    })
+
+    it('should show role badge', async () => {
+      renderRoute({ initialEntries: ['/team'] })
+
+      await waitFor(() => {
+        const ownerBadge = screen.getByText('owner')
+        expect(ownerBadge).toBeInTheDocument()
+      }, waitOptions)
+    })
+  })
 })

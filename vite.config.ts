@@ -4,6 +4,9 @@ import react from "@vitejs/plugin-react"
 import { cloudflare } from "@cloudflare/vite-plugin"
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite"
 import tailwindcss from "@tailwindcss/vite"
+import istanbul from "vite-plugin-istanbul"
+
+const isE2ECoverage = process.env.E2E_COVERAGE === "true"
 
 export default defineConfig({
   plugins: [
@@ -16,6 +19,19 @@ export default defineConfig({
     }),
     react(),
     cloudflare(),
+    // Istanbul instrumentation for E2E coverage
+    // Only add plugin when E2E_COVERAGE is true, then it instruments without additional env check
+    ...(isE2ECoverage
+      ? [
+          istanbul({
+            include: "src/client/**/*",
+            exclude: ["node_modules", "**/*.test.*", "**/__tests__/**"],
+            extension: [".ts", ".tsx"],
+            requireEnv: false, // We already check E2E_COVERAGE above
+            forceBuildInstrument: false, // Use transform mode for dev server
+          }),
+        ]
+      : []),
   ],
   resolve: {
     alias: {

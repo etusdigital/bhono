@@ -266,4 +266,41 @@ describe("useAuth", () => {
       })
     })
   })
+
+  it("handles logout failure", async () => {
+    const mockUser: AuthUser = {
+      id: "user-fail",
+      email: "fail@example.com",
+      name: "Fail User",
+    }
+
+    // First call is for fetchMe (success), second for logout (failure)
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ user: mockUser }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+      } as Response)
+
+    const { result } = renderHook(() => useAuth(), { wrapper: createWrapper() })
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    await act(async () => {
+      result.current.logout()
+    })
+
+    // Wait for the mutation to complete and error to be handled
+    await waitFor(() => {
+      expect(result.current.isLoggingOut).toBe(false)
+    })
+
+    // User should still be logged in since logout failed
+    expect(result.current.user).toEqual(mockUser)
+  })
 })

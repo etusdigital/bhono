@@ -1,5 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { renderRoute } from '../../__tests__/test-utils'
 
 describe('Invite Token Page', () => {
@@ -95,6 +96,43 @@ describe('Invite Token Page', () => {
     })
   })
 
-  // Note: Acceptance flow tests removed due to timing issues in jsdom environment
-  // The render and interaction tests above verify the component works correctly
+  describe('acceptance flow', () => {
+    it('should show loading state when accepting invitation', async () => {
+      const user = userEvent.setup()
+
+      renderRoute({ initialEntries: ['/invite/test-token-123'] })
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /accept invitation/i })).toBeInTheDocument()
+      })
+
+      const acceptButton = screen.getByRole('button', { name: /accept invitation/i })
+      await user.click(acceptButton)
+
+      // Should show loading state
+      await waitFor(() => {
+        expect(screen.getByText(/accepting\.\.\./i)).toBeInTheDocument()
+      })
+    })
+
+    it('should disable button while accepting', async () => {
+      const user = userEvent.setup()
+
+      renderRoute({ initialEntries: ['/invite/test-token-123'] })
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /accept invitation/i })).toBeInTheDocument()
+      })
+
+      const acceptButton = screen.getByRole('button', { name: /accept invitation/i })
+      await user.click(acceptButton)
+
+      // Button should be disabled during loading
+      await waitFor(() => {
+        const buttons = screen.getAllByRole('button')
+        const acceptingButton = buttons.find(btn => btn.textContent?.includes('Accepting'))
+        expect(acceptingButton).toBeDisabled()
+      })
+    })
+  })
 })

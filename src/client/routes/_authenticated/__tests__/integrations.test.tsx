@@ -280,4 +280,241 @@ describe('Integrations Page', () => {
       expect(screen.getByRole('button', { name: /view api docs/i })).toBeInTheDocument()
     })
   })
+
+  describe('IntegrationCard toggle', () => {
+    it('should handle Connect button click', async () => {
+      const user = userEvent.setup()
+      renderRoute({ initialEntries: ['/integrations'] })
+
+      await waitFor(() => {
+        expect(screen.getByText('Discord')).toBeInTheDocument()
+      }, { timeout: 10000 })
+
+      // Find Discord card's Connect button (Discord is not connected)
+      const connectButtons = screen.getAllByRole('button', { name: /connect/i })
+      const discordConnectButton = connectButtons.find(btn =>
+        btn.textContent?.includes('Connect') && !btn.textContent?.includes('Configure')
+      )
+
+      expect(discordConnectButton).toBeInTheDocument()
+      await user.click(discordConnectButton!)
+
+      // Should show loading state
+      await waitFor(() => {
+        expect(discordConnectButton).toBeDisabled()
+      })
+    })
+
+    it('should handle Configure button click', async () => {
+      const user = userEvent.setup()
+      renderRoute({ initialEntries: ['/integrations'] })
+
+      await waitFor(() => {
+        expect(screen.getByText('Slack')).toBeInTheDocument()
+      }, { timeout: 10000 })
+
+      // Slack is connected, should have Configure button
+      const configureButtons = screen.getAllByRole('button', { name: /configure/i })
+      expect(configureButtons.length).toBeGreaterThan(0)
+
+      await user.click(configureButtons[0])
+
+      // Should show loading state during toggle
+      await waitFor(() => {
+        expect(configureButtons[0]).toBeDisabled()
+      })
+    })
+  })
+
+  describe('WebhookCard actions', () => {
+    it('should display edit and delete buttons', async () => {
+      renderRoute({ initialEntries: ['/integrations'] })
+
+      await waitFor(() => {
+        expect(screen.getByText('https://api.example.com/webhooks/receive')).toBeInTheDocument()
+      }, { timeout: 10000 })
+
+      // Should have edit button (pencil icon)
+      const buttons = screen.getAllByRole('button')
+      expect(buttons.length).toBeGreaterThan(0)
+    })
+
+    it('should handle delete button click', async () => {
+      const user = userEvent.setup()
+      renderRoute({ initialEntries: ['/integrations'] })
+
+      await waitFor(() => {
+        expect(screen.getByText('https://api.example.com/webhooks/receive')).toBeInTheDocument()
+      }, { timeout: 10000 })
+
+      // Find the delete button (trash icon button with destructive styling)
+      const deleteButtons = screen.getAllByRole('button').filter(btn =>
+        btn.className.includes('destructive')
+      )
+      expect(deleteButtons.length).toBeGreaterThan(0)
+
+      await user.click(deleteButtons[0])
+
+      // Button should be disabled during delete
+      await waitFor(() => {
+        expect(deleteButtons[0]).toBeDisabled()
+      })
+    })
+  })
+
+  describe('CreateWebhookDialog', () => {
+    it('should open create webhook dialog', async () => {
+      const user = userEvent.setup()
+      renderRoute({ initialEntries: ['/integrations'] })
+
+      await waitFor(() => {
+        expect(screen.getByText(/add webhook/i)).toBeInTheDocument()
+      }, { timeout: 10000 })
+
+      const addButton = screen.getByText(/add webhook/i).closest('button')!
+      await user.click(addButton)
+
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
+      })
+      // Dialog title should be visible
+      expect(screen.getByRole('heading', { name: 'Create Webhook' })).toBeInTheDocument()
+      expect(screen.getByText("Configure a URL to receive POST requests when events occur.")).toBeInTheDocument()
+    })
+
+    it('should close dialog when clicking cancel', async () => {
+      const user = userEvent.setup()
+      renderRoute({ initialEntries: ['/integrations'] })
+
+      await waitFor(() => {
+        expect(screen.getByText(/add webhook/i)).toBeInTheDocument()
+      }, { timeout: 10000 })
+
+      // Open dialog
+      const addButton = screen.getByText(/add webhook/i).closest('button')!
+      await user.click(addButton)
+
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
+      })
+
+      // Click cancel
+      await user.click(screen.getByRole('button', { name: /cancel/i }))
+
+      // Dialog should close
+      await waitFor(() => {
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      })
+    })
+
+    it('should display URL input field', async () => {
+      const user = userEvent.setup()
+      renderRoute({ initialEntries: ['/integrations'] })
+
+      await waitFor(() => {
+        expect(screen.getByText(/add webhook/i)).toBeInTheDocument()
+      }, { timeout: 10000 })
+
+      // Open dialog
+      const addButton = screen.getByText(/add webhook/i).closest('button')!
+      await user.click(addButton)
+
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
+      })
+
+      expect(screen.getByPlaceholderText('https://api.example.com/webhooks')).toBeInTheDocument()
+    })
+
+    it('should display event selection buttons', async () => {
+      const user = userEvent.setup()
+      renderRoute({ initialEntries: ['/integrations'] })
+
+      await waitFor(() => {
+        expect(screen.getByText(/add webhook/i)).toBeInTheDocument()
+      }, { timeout: 10000 })
+
+      // Open dialog
+      const addButton = screen.getByText(/add webhook/i).closest('button')!
+      await user.click(addButton)
+
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
+      })
+
+      // Event type buttons should be visible
+      expect(screen.getByText('User Created')).toBeInTheDocument()
+      expect(screen.getByText('User Updated')).toBeInTheDocument()
+      expect(screen.getByText('User Deleted')).toBeInTheDocument()
+      expect(screen.getByText('Team Member Added')).toBeInTheDocument()
+    })
+
+    it('should allow selecting events', async () => {
+      const user = userEvent.setup()
+      renderRoute({ initialEntries: ['/integrations'] })
+
+      await waitFor(() => {
+        expect(screen.getByText(/add webhook/i)).toBeInTheDocument()
+      }, { timeout: 10000 })
+
+      // Open dialog
+      const addButton = screen.getByText(/add webhook/i).closest('button')!
+      await user.click(addButton)
+
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
+      })
+
+      // Click on User Created event
+      const userCreatedButton = screen.getByText('User Created').closest('button')!
+      await user.click(userCreatedButton)
+
+      // Event should be selected (check for visual indicator)
+      await waitFor(() => {
+        expect(userCreatedButton).toHaveClass('border-primary')
+      })
+    })
+
+    it('should have Create Webhook submit button', async () => {
+      const user = userEvent.setup()
+      renderRoute({ initialEntries: ['/integrations'] })
+
+      await waitFor(() => {
+        expect(screen.getByText(/add webhook/i)).toBeInTheDocument()
+      }, { timeout: 10000 })
+
+      // Open dialog
+      const addButton = screen.getByText(/add webhook/i).closest('button')!
+      await user.click(addButton)
+
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
+      })
+
+      expect(screen.getByRole('button', { name: /create webhook/i })).toBeInTheDocument()
+    })
+  })
+
+  describe('category filter interaction', () => {
+    it('should filter by Communication category', async () => {
+      const user = userEvent.setup()
+      renderRoute({ initialEntries: ['/integrations'] })
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Communication' })).toBeInTheDocument()
+      }, { timeout: 10000 })
+
+      // Click Communication filter
+      await user.click(screen.getByRole('button', { name: 'Communication' }))
+
+      // Should show communication integrations (Slack, Discord)
+      await waitFor(() => {
+        expect(screen.getByText('Slack')).toBeInTheDocument()
+        expect(screen.getByText('Discord')).toBeInTheDocument()
+      })
+
+      // Should not show non-communication integrations
+      expect(screen.queryByText('Stripe')).not.toBeInTheDocument()
+    })
+  })
 })

@@ -2,10 +2,12 @@ import { test as base, expect, type Page, type BrowserContext } from '@playwrigh
 import * as fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { v4 as uuidv4 } from 'uuid'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const authFile = path.join(__dirname, '.auth/user.json')
 const accountFile = path.join(__dirname, '.auth/account.json')
+const coverageDir = path.join(__dirname, '..', '.nyc_output')
 
 /**
  * Custom Playwright fixtures for authenticated testing
@@ -40,6 +42,28 @@ type CustomFixtures = {
 }
 
 /**
+ * Collect coverage from the browser and save to .nyc_output
+ */
+async function collectCoverage(page: Page, testTitle: string): Promise<void> {
+  // Only collect coverage if instrumentation is enabled
+  const hasCoverage = await page.evaluate(() => '__coverage__' in window)
+  if (!hasCoverage) return
+
+  const coverage = await page.evaluate(() => (window as unknown as { __coverage__: unknown }).__coverage__)
+  if (!coverage) return
+
+  // Ensure coverage directory exists
+  if (!fs.existsSync(coverageDir)) {
+    fs.mkdirSync(coverageDir, { recursive: true })
+  }
+
+  // Save coverage with unique filename
+  const sanitizedTitle = testTitle.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 50)
+  const filename = `coverage-${sanitizedTitle}-${uuidv4()}.json`
+  fs.writeFileSync(path.join(coverageDir, filename), JSON.stringify(coverage))
+}
+
+/**
  * Check if auth file exists and has valid cookies
  */
 function hasValidAuthFile(): boolean {
@@ -69,10 +93,21 @@ function getAccountIdFromFile(): string | null {
 
 export const test = base.extend<CustomFixtures>({
   /**
+   * Override base page fixture to collect coverage after EVERY test
+   */
+  page: async ({ page }, use, testInfo) => {
+    await use(page)
+
+    // Collect coverage after every test completes
+    await collectCoverage(page, testInfo.title)
+  },
+
+  /**
    * Verified authenticated page fixture.
    * - Navigates to a protected route
    * - Verifies we're NOT redirected to login
    * - Returns the page ready for testing
+   * Note: Coverage is now collected by the page fixture automatically
    */
   authedPage: async ({ page }, use) => {
     // Navigate to dashboard to verify auth works

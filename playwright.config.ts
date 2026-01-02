@@ -139,9 +139,14 @@ export default defineConfig({
 
   /* Start dev server before tests */
   webServer: {
-    command: 'pnpm run dev',
+    command: process.env.E2E_COVERAGE === 'true'
+      ? 'E2E_COVERAGE=true pnpm run dev'
+      : 'pnpm run dev',
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    env: process.env.E2E_COVERAGE === 'true'
+      ? { E2E_COVERAGE: 'true' }
+      : {},
   },
 })

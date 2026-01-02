@@ -1,0 +1,20 @@
+{
+  "all": true,
+  "include": [
+    "src/client/**/*.ts",
+    "src/client/**/*.tsx",
+    "src/server/**/*.ts",
+    "src/shared/**/*.ts"
+  ],
+  "exclude": [
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/__tests__/**",
+    "**/__integration__/**",
+    "**/routeTree.gen.ts",
+    "**/*.d.ts"
+  ],
+  "reporter": ["text", "html", "lcov"],
+  "report-dir": "coverage/e2e",
+  "temp-dir": ".nyc_output"
+}

@@ -662,6 +662,413 @@ describe('Users CRUD Integration', () => {
   })
 
   // ============================================================================
+  // POST /api/users/accounts (Bulk Create User-Account Relationships)
+  // ============================================================================
+
+  describe('POST /api/users/accounts', () => {
+    describe('Authentication (401)', () => {
+      it('should return 401 without session cookie', async () => {
+        const res = await app.request('/api/users/accounts', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify([
+            { userId: crypto.randomUUID(), accountId: crypto.randomUUID(), role: 'VIEWER' },
+          ]),
+        })
+
+        expect(res.status).toBe(401)
+
+        const body = await res.json()
+        expect(body.error.message).toBe('Not authenticated')
+      })
+    })
+
+    describe('Authorization (403)', () => {
+      it('should return 403 if user lacks permission (VIEWER role)', async () => {
+        const scenario = await createMultiUserScenario()
+
+        const res = await app.request('/api/users/accounts', {
+          method: 'POST',
+          headers: {
+            ...scenario.viewer.headers,
+            'User-Agent': 'IntegrationTest/1.0',
+            'account-id': scenario.account.id,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify([
+            { userId: scenario.admin.user.id, accountId: scenario.account.id, role: 'VIEWER' },
+          ]),
+        })
+
+        expect(res.status).toBe(403)
+      })
+    })
+
+    describe('Validation (400)', () => {
+      it('should return 400 for empty array', async () => {
+        const scenario = await createTestScenario({
+          userName: 'Bulk Create User',
+          userEmail: 'bulkcreate@example.com',
+          role: 'MANAGER',
+        })
+
+        const res = await app.request('/api/users/accounts', {
+          method: 'POST',
+          headers: {
+            ...scenario.headers,
+            'User-Agent': 'IntegrationTest/1.0',
+            'account-id': scenario.account.id,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify([]),
+        })
+
+        expect(res.status).toBe(400)
+      })
+
+      it('should return 400 for invalid role', async () => {
+        const scenario = await createTestScenario({
+          userName: 'Invalid Role User',
+          userEmail: 'invalidrole@example.com',
+          role: 'MANAGER',
+        })
+
+        const res = await app.request('/api/users/accounts', {
+          method: 'POST',
+          headers: {
+            ...scenario.headers,
+            'User-Agent': 'IntegrationTest/1.0',
+            'account-id': scenario.account.id,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify([
+            { userId: crypto.randomUUID(), accountId: crypto.randomUUID(), role: 'INVALID_ROLE' },
+          ]),
+        })
+
+        expect(res.status).toBe(400)
+      })
+    })
+
+    describe('Successful Create (201)', () => {
+      it('should return 201 on successful bulk create', async () => {
+        const scenario = await createTestScenario({
+          userName: 'Bulk Admin',
+          userEmail: 'bulkadmin@example.com',
+          role: 'MANAGER',
+        })
+
+        // Create a new user to add to account
+        const newUser = await createUser({
+          email: 'newuserforaccount@example.com',
+          name: 'New User For Account',
+        })
+
+        // Create another account
+        const anotherAccount = await createAccount({
+          name: 'Another Account for Bulk',
+        })
+
+        const res = await app.request('/api/users/accounts', {
+          method: 'POST',
+          headers: {
+            ...scenario.headers,
+            'User-Agent': 'IntegrationTest/1.0',
+            'account-id': scenario.account.id,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify([
+            { userId: newUser.id, accountId: anotherAccount.id, role: 'VIEWER' },
+          ]),
+        })
+
+        expect(res.status).toBe(201)
+
+        const body = await res.json()
+        expect(body.success).toBe(true)
+        expect(body.count).toBe(1)
+      })
+
+      it('should update existing role if user-account relationship exists', async () => {
+        const scenario = await createTestScenario({
+          userName: 'Role Update Admin',
+          userEmail: 'roleupdate@example.com',
+          role: 'MANAGER',
+        })
+
+        // Create a user and add to the account with VIEWER role
+        const existingUser = await createUser({
+          email: 'existingforroleupdaet@example.com',
+          name: 'Existing For Role Update',
+        })
+        await addUserToAccount(existingUser.id, scenario.account.id, 'VIEWER')
+
+        // Now update the role to EDITOR via bulk operation
+        const res = await app.request('/api/users/accounts', {
+          method: 'POST',
+          headers: {
+            ...scenario.headers,
+            'User-Agent': 'IntegrationTest/1.0',
+            'account-id': scenario.account.id,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify([
+            { userId: existingUser.id, accountId: scenario.account.id, role: 'EDITOR' },
+          ]),
+        })
+
+        expect(res.status).toBe(201)
+
+        const body = await res.json()
+        expect(body.success).toBe(true)
+        expect(body.count).toBe(1)
+
+        // Verify role was updated in database
+        const sqlite = getSqlite()
+        const row = sqlite.prepare('SELECT role FROM user_accounts WHERE user_id = ? AND account_id = ?').get(existingUser.id, scenario.account.id) as { role: string }
+        expect(row.role).toBe('EDITOR')
+      })
+
+      it('should create multiple user-account relationships', async () => {
+        const scenario = await createTestScenario({
+          userName: 'Multi Bulk Admin',
+          userEmail: 'multibulk@example.com',
+          role: 'MANAGER',
+        })
+
+        // Create multiple users
+        const user1 = await createUser({
+          email: 'bulkuser1@example.com',
+          name: 'Bulk User 1',
+        })
+        const user2 = await createUser({
+          email: 'bulkuser2@example.com',
+          name: 'Bulk User 2',
+        })
+
+        // Create another account
+        const newAccount = await createAccount({
+          name: 'Bulk Account',
+        })
+
+        const res = await app.request('/api/users/accounts', {
+          method: 'POST',
+          headers: {
+            ...scenario.headers,
+            'User-Agent': 'IntegrationTest/1.0',
+            'account-id': scenario.account.id,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify([
+            { userId: user1.id, accountId: newAccount.id, role: 'VIEWER' },
+            { userId: user2.id, accountId: newAccount.id, role: 'EDITOR' },
+          ]),
+        })
+
+        expect(res.status).toBe(201)
+
+        const body = await res.json()
+        expect(body.success).toBe(true)
+        expect(body.count).toBe(2)
+      })
+    })
+  })
+
+  // ============================================================================
+  // DELETE /api/users/accounts (Bulk Delete User-Account Relationships)
+  // ============================================================================
+
+  describe('DELETE /api/users/accounts', () => {
+    describe('Authentication (401)', () => {
+      it('should return 401 without session cookie', async () => {
+        const res = await app.request('/api/users/accounts', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify([
+            { userId: crypto.randomUUID(), accountId: crypto.randomUUID(), role: 'VIEWER' },
+          ]),
+        })
+
+        expect(res.status).toBe(401)
+
+        const body = await res.json()
+        expect(body.error.message).toBe('Not authenticated')
+      })
+    })
+
+    describe('Authorization (403)', () => {
+      it('should return 403 if user lacks permission (VIEWER role)', async () => {
+        const scenario = await createMultiUserScenario()
+
+        const res = await app.request('/api/users/accounts', {
+          method: 'DELETE',
+          headers: {
+            ...scenario.viewer.headers,
+            'User-Agent': 'IntegrationTest/1.0',
+            'account-id': scenario.account.id,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify([
+            { userId: scenario.admin.user.id, accountId: scenario.account.id, role: 'ADMIN' },
+          ]),
+        })
+
+        expect(res.status).toBe(403)
+      })
+    })
+
+    describe('Validation (400)', () => {
+      it('should return 400 for empty array', async () => {
+        const scenario = await createTestScenario({
+          userName: 'Bulk Delete User',
+          userEmail: 'bulkdelete@example.com',
+          role: 'MANAGER',
+        })
+
+        const res = await app.request('/api/users/accounts', {
+          method: 'DELETE',
+          headers: {
+            ...scenario.headers,
+            'User-Agent': 'IntegrationTest/1.0',
+            'account-id': scenario.account.id,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify([]),
+        })
+
+        expect(res.status).toBe(400)
+      })
+    })
+
+    describe('Successful Delete (200)', () => {
+      it('should return 200 on successful bulk delete', async () => {
+        const scenario = await createTestScenario({
+          userName: 'Delete Admin',
+          userEmail: 'deleteadmin@example.com',
+          role: 'MANAGER',
+        })
+
+        // Create a user and add to another account
+        const userToRemove = await createUser({
+          email: 'usertoremove@example.com',
+          name: 'User To Remove',
+        })
+        const accountToRemoveFrom = await createAccount({
+          name: 'Account To Remove From',
+        })
+        await addUserToAccount(userToRemove.id, accountToRemoveFrom.id, 'VIEWER')
+
+        const res = await app.request('/api/users/accounts', {
+          method: 'DELETE',
+          headers: {
+            ...scenario.headers,
+            'User-Agent': 'IntegrationTest/1.0',
+            'account-id': scenario.account.id,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify([
+            { userId: userToRemove.id, accountId: accountToRemoveFrom.id, role: 'VIEWER' },
+          ]),
+        })
+
+        expect(res.status).toBe(200)
+
+        const body = await res.json()
+        expect(body.success).toBe(true)
+        expect(body.count).toBe(1)
+      })
+
+      it('should verify user-account relationship is deleted from database', async () => {
+        const scenario = await createTestScenario({
+          userName: 'Verify Delete Admin',
+          userEmail: 'verifydelete@example.com',
+          role: 'MANAGER',
+        })
+
+        // Create a user and add to another account
+        const userToCheck = await createUser({
+          email: 'usertocheck@example.com',
+          name: 'User To Check',
+        })
+        const accountToCheck = await createAccount({
+          name: 'Account To Check',
+        })
+        await addUserToAccount(userToCheck.id, accountToCheck.id, 'EDITOR')
+
+        // Verify relationship exists
+        const sqlite = getSqlite()
+        const beforeRow = sqlite.prepare('SELECT * FROM user_accounts WHERE user_id = ? AND account_id = ?').get(userToCheck.id, accountToCheck.id)
+        expect(beforeRow).toBeDefined()
+
+        // Delete the relationship
+        await app.request('/api/users/accounts', {
+          method: 'DELETE',
+          headers: {
+            ...scenario.headers,
+            'User-Agent': 'IntegrationTest/1.0',
+            'account-id': scenario.account.id,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify([
+            { userId: userToCheck.id, accountId: accountToCheck.id, role: 'EDITOR' },
+          ]),
+        })
+
+        // Verify relationship is deleted
+        const afterRow = sqlite.prepare('SELECT * FROM user_accounts WHERE user_id = ? AND account_id = ?').get(userToCheck.id, accountToCheck.id)
+        expect(afterRow).toBeUndefined()
+      })
+
+      it('should delete multiple user-account relationships', async () => {
+        const scenario = await createTestScenario({
+          userName: 'Multi Delete Admin',
+          userEmail: 'multidelete@example.com',
+          role: 'MANAGER',
+        })
+
+        // Create multiple users and add to an account
+        const user1 = await createUser({
+          email: 'deleteuser1@example.com',
+          name: 'Delete User 1',
+        })
+        const user2 = await createUser({
+          email: 'deleteuser2@example.com',
+          name: 'Delete User 2',
+        })
+        const accountForDelete = await createAccount({
+          name: 'Account For Delete',
+        })
+        await addUserToAccount(user1.id, accountForDelete.id, 'VIEWER')
+        await addUserToAccount(user2.id, accountForDelete.id, 'EDITOR')
+
+        const res = await app.request('/api/users/accounts', {
+          method: 'DELETE',
+          headers: {
+            ...scenario.headers,
+            'User-Agent': 'IntegrationTest/1.0',
+            'account-id': scenario.account.id,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify([
+            { userId: user1.id, accountId: accountForDelete.id, role: 'VIEWER' },
+            { userId: user2.id, accountId: accountForDelete.id, role: 'EDITOR' },
+          ]),
+        })
+
+        expect(res.status).toBe(200)
+
+        const body = await res.json()
+        expect(body.success).toBe(true)
+        expect(body.count).toBe(2)
+      })
+    })
+  })
+
+  // ============================================================================
   // POST /api/users/:id/restore
   // ============================================================================
 
