@@ -7,8 +7,11 @@ export const requestContext = createMiddleware<HonoEnv>(async (c, next) => {
   // Set transaction ID (UUIDv7)
   c.set('transactionId', uuidv7())
 
-  // Set IP address
-  const ip = c.req.header('x-forwarded-for') ?? c.req.header('x-real-ip') ?? 'unknown'
+  // Set IP address (take first IP from X-Forwarded-For if present)
+  const forwardedFor = c.req.header('x-forwarded-for')
+  const ip = forwardedFor
+    ? forwardedFor.split(',')[0].trim()
+    : (c.req.header('x-real-ip') ?? 'unknown')
   c.set('ip', ip)
 
   // Set User Agent

@@ -11,6 +11,8 @@ import {
   requestLogger,
   configurableCors,
   requestContext,
+  rateLimit,
+  authRateLimit,
 } from './middleware'
 import { sessionMiddleware } from './lib/session'
 
@@ -42,7 +44,13 @@ app.use('*', async (c, next) => {
 // 5. Security headers
 app.use('*', secureHeaders())
 
-// 6. Database middleware - create db instance per request
+// 6. Rate limiting - global limit of 100 requests per minute
+app.use('*', rateLimit())
+
+// 7. Stricter rate limiting for auth endpoints (10 requests per minute)
+app.use('/auth/*', authRateLimit())
+
+// 8. Database middleware - create db instance per request
 app.use('*', async (c, next) => {
   if (c.env.DB) {
     const db = createDb(c.env.DB)
@@ -51,7 +59,7 @@ app.use('*', async (c, next) => {
   await next()
 })
 
-// 7. Session middleware - read session from KV
+// 9. Session middleware - read session from KV
 app.use('*', sessionMiddleware())
 
 // Mount routes
