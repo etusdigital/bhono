@@ -5,6 +5,9 @@
   "bin": {
     "create-bhono-app": "./index.js"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@etus/bhono-app": "workspace:^"
   }
