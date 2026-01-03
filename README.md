@@ -7,6 +7,7 @@ A production-ready, fully-typed, multi-tenant SaaS boilerplate built with **Hono
 [![React](https://img.shields.io/badge/React-19-blue?logo=react)](https://react.dev/)
 [![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-F38020?logo=cloudflare)](https://workers.cloudflare.com/)
 [![Playwright](https://img.shields.io/badge/Playwright-1.57-green?logo=playwright)](https://playwright.dev/)
+[![Coverage](https://img.shields.io/badge/Coverage-94%25-brightgreen)](/)
 
 ---
 
@@ -19,7 +20,8 @@ This boilerplate provides everything you need to build a modern, secure, and sca
 - **Team collaboration** with email invitations
 - **Comprehensive audit logging** for compliance
 - **Full-stack type safety** from database to frontend
-- **130+ E2E tests** covering all critical paths
+- **363+ E2E tests** covering all critical paths
+- **94%+ test coverage** across all layers
 
 ---
 
@@ -31,6 +33,7 @@ This boilerplate provides everything you need to build a modern, secure, and sca
 - Secure httpOnly cookies with SameSite protection
 - Role-based access control: `ADMIN`, `EDITOR`, `VIEWER`
 - Token refresh mechanism
+- User-agent fingerprint validation
 
 ### Multi-Tenant Architecture
 - Workspaces/Organizations (Accounts)
@@ -45,12 +48,20 @@ This boilerplate provides everything you need to build a modern, secure, and sca
 - Comprehensive error handling
 - Hot module replacement in development
 
+### Security
+- Rate limiting middleware (in-memory with lazy cleanup)
+- CSRF protection via SameSite cookies
+- XSS prevention with secure headers
+- SQL injection protection via Drizzle ORM
+
 ### Testing
-- Unit tests with Vitest (90%+ coverage)
-- E2E tests with Playwright
+- Unit tests with Vitest (94%+ coverage)
+- Integration tests (93%+ coverage)
+- E2E tests with Playwright (363+ tests)
 - Visual regression testing
 - Accessibility testing (WCAG compliance)
 - Mobile device emulation
+- Production testing with OAuth session capture
 
 ---
 
@@ -77,7 +88,7 @@ This boilerplate provides everything you need to build a modern, secure, and sca
 ### Prerequisites
 
 - Node.js 20+
-- pnpm, npm, or yarn
+- pnpm (recommended), npm, or yarn
 - Cloudflare account (for deployment)
 - Google Cloud Console project (for OAuth)
 
@@ -89,19 +100,19 @@ git clone https://github.com/your-org/hono-boilerplate.git
 cd hono-boilerplate
 
 # Install dependencies
-npm install
+pnpm install
 
 # Copy environment variables
 cp .env.example .env
 
 # Apply database migrations
-npm run db:migrate:local
+pnpm db:migrate:local
 
 # Seed test data (optional)
-npm run db:seed
+pnpm db:seed
 
 # Start development server
-npm run dev
+pnpm dev
 ```
 
 The application will be available at `http://localhost:5173`
@@ -138,43 +149,67 @@ LOG_LEVEL=info
 ## Project Structure
 
 ```
-src/
-├── server/                 # Backend (Hono.js)
-│   ├── routes/             # API endpoints
-│   │   ├── auth/           # Authentication
-│   │   ├── users/          # User CRUD
-│   │   ├── accounts/       # Multi-tenant accounts
-│   │   ├── invitations/    # Team invitations
-│   │   ├── audits/         # Audit logs
-│   │   └── storage/        # File storage (R2)
-│   ├── services/           # Business logic
-│   ├── middleware/         # Request middleware
-│   ├── db/                 # Database (Drizzle ORM)
-│   │   ├── schema/         # Table definitions
-│   │   └── migrations/     # SQL migrations
-│   └── lib/                # Utilities
+├── config/                     # Configuration files
+│   ├── eslint.config.js        # ESLint configuration
+│   ├── wrangler.json           # Cloudflare Workers config
+│   ├── drizzle.config.ts       # Drizzle ORM config
+│   └── ...
 │
-├── client/                 # Frontend (React)
-│   ├── routes/             # File-based routing
-│   │   ├── _authenticated/ # Protected pages
-│   │   └── ...
-│   ├── components/         # UI components
-│   │   ├── ui/             # Base components
-│   │   └── layout/         # Layout components
-│   ├── hooks/              # React hooks
-│   └── lib/                # Client utilities
+├── src/
+│   ├── server/                 # Backend (Hono.js)
+│   │   ├── routes/             # API endpoints
+│   │   │   ├── auth/           # Authentication
+│   │   │   ├── users/          # User CRUD
+│   │   │   ├── accounts/       # Multi-tenant accounts
+│   │   │   ├── invitations/    # Team invitations
+│   │   │   ├── audits/         # Audit logs
+│   │   │   └── storage/        # File storage (R2)
+│   │   ├── services/           # Business logic
+│   │   ├── middleware/         # Request middleware
+│   │   ├── db/                 # Database (Drizzle ORM)
+│   │   │   └── schema/         # Table definitions
+│   │   ├── auth/               # Roles, permissions, guards
+│   │   └── lib/                # Utilities
+│   │
+│   ├── client/                 # Frontend (React)
+│   │   ├── routes/             # File-based routing
+│   │   │   ├── _authenticated/ # Protected pages
+│   │   │   └── ...
+│   │   ├── components/         # UI components
+│   │   │   ├── ui/             # Base components
+│   │   │   └── layout/         # Layout components
+│   │   ├── hooks/              # React hooks
+│   │   └── lib/                # Client utilities
+│   │
+│   └── shared/                 # Shared code
+│       ├── schemas/            # Zod validation
+│       └── types/              # TypeScript types
 │
-├── shared/                 # Shared code
-│   ├── schemas/            # Zod validation
-│   └── types/              # TypeScript types
+├── tests/                      # All tests
+│   ├── e2e/                    # End-to-end tests (Playwright)
+│   │   ├── crud/               # CRUD operations
+│   │   ├── journeys/           # User journeys
+│   │   ├── api/                # API tests
+│   │   ├── a11y/               # Accessibility
+│   │   ├── mobile/             # Mobile responsive
+│   │   ├── visual/             # Visual regression
+│   │   ├── .auth/              # Auth state files
+│   │   └── auth.setup.ts       # Auth setup
+│   │
+│   └── integration/            # Integration tests
+│       ├── auth/               # Auth tests
+│       ├── accounts/           # Account tests
+│       ├── users/              # User tests
+│       ├── security/           # Security tests
+│       └── ...
 │
-└── e2e/                    # End-to-end tests
-    ├── crud/               # CRUD operations
-    ├── journeys/           # User journeys
-    ├── api/                # API tests
-    ├── a11y/               # Accessibility
-    ├── mobile/             # Mobile responsive
-    └── visual/             # Visual regression
+├── scripts/                    # Utility scripts
+│   └── capture-prod-session.ts # OAuth session capture
+│
+├── docs/                       # Documentation
+│   └── testing.md              # Testing guide
+│
+└── migrations/                 # D1 SQL migrations
 ```
 
 ---
@@ -247,13 +282,13 @@ invitations (
 
 ```bash
 # Apply migrations locally
-npm run db:migrate:local
+pnpm db:migrate:local
 
 # Apply migrations to production
-npm run db:migrate:remote
+pnpm db:migrate:remote
 
 # Generate Cloudflare types
-npm run cf-typegen
+pnpm cf-typegen
 ```
 
 ---
@@ -312,40 +347,79 @@ npm run cf-typegen
 
 ## Testing
 
+### Test Coverage
+
+| Layer | Statements | Branches | Functions | Lines |
+|-------|------------|----------|-----------|-------|
+| **Server Unit** | 94.50% | 85.98% | 96.15% | 94.74% |
+| **Integration** | 93.19% | 84.88% | 92.48% | 93.51% |
+| **Client Unit** | 90.82% | 87.82% | 96.87% | 91.97% |
+| **E2E** | 363 tests | - | - | 100% pass |
+
 ### Unit Tests
 
 ```bash
-# Run tests in watch mode
-npm test
+# Run server tests in watch mode
+pnpm test
 
-# Run tests once
-npm run test:run
+# Run server tests once with coverage
+pnpm test:unit:server
 
-# Run with coverage
-npm run test:coverage
+# Run client tests with coverage
+pnpm test:unit:client
 
-# Frontend tests
-npm run test:client
+# Run all unit tests
+pnpm test:unit
+```
+
+### Integration Tests
+
+```bash
+# Run integration tests
+pnpm test:integration
+
+# Run integration tests in watch mode
+pnpm test:integration:watch
 ```
 
 ### End-to-End Tests
 
 ```bash
 # Run all E2E tests
-npm run test:e2e
+pnpm test:e2e
 
-# Interactive mode
-npm run test:e2e:ui
+# Interactive UI mode
+pnpm test:e2e:ui
 
 # Visible browser
-npm run test:e2e:headed
+pnpm test:e2e:headed
 
 # Debug mode
-npm run test:e2e:debug
+pnpm test:e2e:debug
 
-# Run specific tests
+# View HTML report
+pnpm test:e2e:report
+
+# Run specific tests by tag
 npx playwright test --grep "@smoke"
 npx playwright test --grep "@critical"
+npx playwright test --grep "@visual"
+npx playwright test --grep "@a11y"
+```
+
+### Production Testing
+
+Test against the live production deployment with OAuth authentication:
+
+```bash
+# Step 1: Capture OAuth session (opens browser for manual login)
+pnpm test:e2e:prod:auth
+
+# Step 2: Run tests against production
+pnpm test:e2e:prod
+
+# Or with custom URL
+BASE_URL=https://your-app.workers.dev pnpm test:e2e
 ```
 
 ### Test Categories
@@ -360,14 +434,6 @@ npx playwright test --grep "@critical"
 | `@a11y` | Accessibility |
 | `@api` | API integration |
 
-### Coverage Thresholds
-
-| Area | Statements | Branches | Functions | Lines |
-|------|-----------|----------|-----------|-------|
-| Backend | 90% | 85% | 85% | 90% |
-| Frontend | 85% | 70% | 60% | 85% |
-| Shared | 95% | 95% | 95% | 95% |
-
 ---
 
 ## Deployment
@@ -376,18 +442,18 @@ npx playwright test --grep "@critical"
 
 ```bash
 # Build the application
-npm run build
+pnpm build
 
 # Deploy to Cloudflare
-npm run deploy
+wrangler deploy --config config/wrangler.json
 ```
 
-### Cloudflare Configuration (`wrangler.json`)
+### Cloudflare Configuration (`config/wrangler.json`)
 
 ```json
 {
   "name": "hono-boilerplate",
-  "main": "./src/server/index.ts",
+  "main": "../src/server/index.ts",
   "compatibility_date": "2025-01-01",
   "compatibility_flags": ["nodejs_compat"],
   "d1_databases": [{
@@ -403,7 +469,7 @@ npm run deploy
     "id": "your-kv-namespace-id"
   }],
   "assets": {
-    "directory": "./dist/client",
+    "directory": "../dist",
     "run_worker_first": ["/api/*", "/auth/*"]
   }
 }
@@ -449,6 +515,7 @@ Client (React SPA)
 │  │  - Request Logger           │  │
 │  │  - CORS                     │  │
 │  │  - Security Headers         │  │
+│  │  - Rate Limiting            │  │
 │  │  - Session Auth             │  │
 │  │  - Account Context          │  │
 │  └─────────────────────────────┘  │
@@ -491,19 +558,27 @@ import { createUser } from '@server/services/users'  // Server
 
 | Script | Description |
 |--------|-------------|
-| `npm run dev` | Start development server |
-| `npm run build` | Build for production |
-| `npm run preview` | Preview production build |
-| `npm run deploy` | Deploy to Cloudflare |
-| `npm run db:migrate:local` | Apply local migrations |
-| `npm run db:migrate:remote` | Apply remote migrations |
-| `npm run db:seed` | Seed database |
-| `npm run cf-typegen` | Generate Cloudflare types |
-| `npm test` | Run backend tests |
-| `npm run test:client` | Run frontend tests |
-| `npm run test:e2e` | Run E2E tests |
-| `npm run test:coverage` | Generate coverage report |
-| `npm run lint` | Run ESLint |
+| `pnpm dev` | Start development server |
+| `pnpm build` | Build for production |
+| `pnpm preview` | Preview production build |
+| `pnpm lint` | Run ESLint |
+| `pnpm typecheck` | Run TypeScript checks |
+| **Database** | |
+| `pnpm db:migrate:local` | Apply local migrations |
+| `pnpm db:migrate:remote` | Apply remote migrations |
+| `pnpm db:seed` | Seed database |
+| `pnpm cf-typegen` | Generate Cloudflare types |
+| **Testing** | |
+| `pnpm test` | Run backend unit tests (watch) |
+| `pnpm test:unit:server` | Backend tests with coverage |
+| `pnpm test:unit:client` | Frontend tests with coverage |
+| `pnpm test:integration` | Integration tests |
+| `pnpm test:e2e` | Run E2E tests |
+| `pnpm test:e2e:ui` | E2E interactive mode |
+| `pnpm test:e2e:prod` | E2E against production |
+| `pnpm test:e2e:prod:auth` | Capture OAuth session |
+| **Deployment** | |
+| `wrangler deploy --config config/wrangler.json` | Deploy to Cloudflare |
 
 ---
 
@@ -515,7 +590,8 @@ import { createUser } from '@server/services/users'  // Server
 - **XSS**: Secure headers + React's built-in escaping
 - **Session Hijacking**: httpOnly cookies, secure flag in production
 - **SQL Injection**: Parameterized queries via Drizzle ORM
-- **Rate Limiting**: Configurable per route (not implemented by default)
+- **Rate Limiting**: In-memory store with configurable limits per route
+- **Fingerprint Validation**: User-agent validation for sessions
 
 ### Audit Logging
 
@@ -546,9 +622,9 @@ All state-changing operations are logged:
 
 ### Code Quality
 
-- Run `npm run lint` before committing
-- Ensure all tests pass: `npm test && npm run test:e2e`
-- Maintain coverage thresholds
+- Run `pnpm lint` before committing
+- Ensure all tests pass: `pnpm test:unit && pnpm test:integration && pnpm test:e2e`
+- Maintain coverage thresholds (90%+ for server, 85%+ for client)
 - Follow existing code patterns
 
 ---
@@ -566,3 +642,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 - [TanStack Router](https://tanstack.com/router) - Type-safe routing
 - [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS
 - [Cloudflare Workers](https://workers.cloudflare.com/) - Edge computing platform
+- [Playwright](https://playwright.dev/) - E2E testing framework
