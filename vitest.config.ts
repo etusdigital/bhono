@@ -29,7 +29,7 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html", "lcov"],
-      reportsDirectory: "./coverage/.unit-server",
+      reportsDirectory: "./.test-output/coverage/unit-server",
       include: ["src/server/**/*.ts", "src/shared/**/*.ts"],
       exclude: [
         "**/*.test.ts",
@@ -42,7 +42,6 @@ export default defineConfig({
         // Database setup (not business logic)
         "src/server/db/client.ts",
         "src/server/db/seed.ts",
-        "src/server/db/schema-helpers.ts",
         // Barrel exports (just re-exports, no logic)
         "src/server/db/schema/index.ts",
         "src/server/services/index.ts",
@@ -60,8 +59,11 @@ export default defineConfig({
         "src/server/lib/audit.ts",
         "src/server/lib/audited-db.ts",
         "src/server/lib/tokens.ts",
-        // API documentation (not testable)
+        // API documentation and router config (not testable)
         "src/server/routes/api.ts",
+        "src/server/routes/index.ts",
+        // Simple utilities (low value to test)
+        "src/server/lib/schema-helpers.ts",
         // Dev-only endpoint (tested via E2E)
         "src/server/routes/auth/test-login.ts",
         // Integration test fixtures

@@ -7,10 +7,17 @@ import { defineConfig, devices } from '@playwright/test'
  * - Low flake defaults (web-first assertions, artifacts on failure, retries only in CI)
  * - Fast feedback (projects, tags/grep, parallel workers)
  * - CI-ready (blob reports for sharding + merge-reports)
+ * - Production testing (set BASE_URL to skip local webServer)
  */
 
+// Check if running against an external URL (production/staging)
+const isExternalUrl = process.env.BASE_URL?.includes('workers.dev') ||
+                      process.env.BASE_URL?.includes('cloudflare') ||
+                      process.env.BASE_URL?.startsWith('https://')
+
 export default defineConfig({
-  testDir: './e2e',
+  testDir: './tests/e2e',
+  outputDir: './.test-output/results/e2e',
 
   /* Global timeouts - keep short for fast feedback */
   timeout: 15_000,  // 15s is plenty for most tests
@@ -28,10 +35,12 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0, // No retries locally - fix the tests instead
   workers: process.env.CI ? 1 : undefined, // Single worker in CI to avoid resource issues
 
-  /* Reporters */
-  reporter: process.env.CI
-    ? [['github'], ['blob'], ['html', { open: 'never' }]]
-    : [['html', { open: 'on-failure' }], ['list']],
+  /* Reporters - always generate HTML report */
+  reporter: [
+    ['list'],
+    ['html', { outputFolder: './.test-output/reports/playwright', open: 'never' }],
+    ...(process.env.CI ? [['github'] as const, ['blob'] as const] : []),
+  ],
 
   /* Shared settings for all projects */
   use: {
@@ -68,7 +77,7 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        storageState: 'e2e/.auth/user.json',
+        storageState: './tests/e2e/.auth/user.json',
       },
       dependencies: ['setup'],
       // Exclude unauth tests and setup files - they run in chromium-unauth
@@ -82,7 +91,7 @@ export default defineConfig({
       name: 'firefox',
       use: {
         ...devices['Desktop Firefox'],
-        storageState: 'e2e/.auth/user.json',
+        storageState: './tests/e2e/.auth/user.json',
       },
       dependencies: ['setup'],
       grep: /@critical/,
@@ -117,7 +126,7 @@ export default defineConfig({
       name: 'visual',
       use: {
         ...devices['Desktop Chrome'],
-        storageState: 'e2e/.auth/user.json',
+        storageState: './tests/e2e/.auth/user.json',
       },
       dependencies: ['setup'],
       grep: /@visual/,
@@ -129,7 +138,7 @@ export default defineConfig({
       name: 'a11y',
       use: {
         ...devices['Desktop Chrome'],
-        storageState: 'e2e/.auth/user.json',
+        storageState: './tests/e2e/.auth/user.json',
       },
       dependencies: ['setup'],
       grep: /@a11y/,
@@ -137,16 +146,13 @@ export default defineConfig({
     },
   ],
 
-  /* Start dev server before tests */
-  webServer: {
+  /* Start dev server before tests (skip when testing external URLs) */
+  webServer: isExternalUrl ? undefined : {
     command: process.env.E2E_COVERAGE === 'true'
       ? 'E2E_COVERAGE=true pnpm run dev'
       : 'pnpm run dev',
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
-    env: process.env.E2E_COVERAGE === 'true'
-      ? { E2E_COVERAGE: 'true' }
-      : {},
   },
 })

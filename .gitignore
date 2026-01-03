@@ -7,13 +7,10 @@ dist/
 .DS_Store
 .wrangler/
 .dev.vars
-seed.sql
 
-# Playwright
-e2e/.auth/
+# Test outputs
+.test-output/
+tests/e2e/.auth/
+coverage/
 playwright-report/
 test-results/
-blob-report/
-
-# Coverage
-coverage/

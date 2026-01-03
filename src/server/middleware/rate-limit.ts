@@ -47,9 +47,19 @@ interface RateLimitRecord {
 class RateLimitStore {
   private store = new Map<string, RateLimitRecord>()
   private cleanupInterval: ReturnType<typeof setInterval> | null = null
+  private lastCleanup = 0
 
   constructor() {
-    // Clean up expired entries every minute
+    // Don't use setInterval at construction time - Cloudflare Workers
+    // don't allow async I/O at global scope. Instead, we'll cleanup
+    // lazily during request processing.
+  }
+
+  /**
+   * Start periodic cleanup (call from within a handler, not at global scope)
+   */
+  startPeriodicCleanup(): void {
+    if (this.cleanupInterval) return
     this.cleanupInterval = setInterval(() => {
       this.cleanup()
     }, 60000)
@@ -65,6 +75,14 @@ class RateLimitStore {
 
   increment(key: string, windowMs: number): RateLimitRecord {
     const now = Date.now()
+
+    // Lazy cleanup: run cleanup every 60 seconds during request processing
+    // This avoids using setInterval at global scope (not allowed in Workers)
+    if (now - this.lastCleanup > 60000) {
+      this.cleanup()
+      this.lastCleanup = now
+    }
+
     const existing = this.store.get(key)
 
     if (!existing || now > existing.resetTime) {

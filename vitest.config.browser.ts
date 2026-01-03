@@ -34,7 +34,7 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html", "lcov"],
-      reportsDirectory: "./coverage/client-browser",
+      reportsDirectory: "./.test-output/coverage/client-browser",
       include: ["src/client/**/*.{ts,tsx}"],
       exclude: [
         "**/*.test.{ts,tsx}",

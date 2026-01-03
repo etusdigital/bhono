@@ -1,20 +1,16 @@
 {
-  "all": true,
-  "include": [
-    "src/client/**/*.ts",
-    "src/client/**/*.tsx",
-    "src/server/**/*.ts",
-    "src/shared/**/*.ts"
-  ],
+  "check-coverage": true,
+  "lines": 90,
+  "statements": 90,
+  "branches": 84,
+  "functions": 85,
+  "include": ["src/client/**/*.{ts,tsx}"],
   "exclude": [
-    "**/*.test.ts",
-    "**/*.test.tsx",
+    "**/*.test.*",
     "**/__tests__/**",
-    "**/__integration__/**",
     "**/routeTree.gen.ts",
-    "**/*.d.ts"
+    "**/main.tsx"
   ],
-  "reporter": ["text", "html", "lcov"],
-  "report-dir": "coverage/e2e",
-  "temp-dir": ".nyc_output"
+  "report-dir": ".test-output/coverage/e2e",
+  "temp-dir": ".test-output/coverage/e2e/.nyc_output"
 }

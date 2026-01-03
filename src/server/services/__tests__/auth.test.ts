@@ -684,4 +684,82 @@ describe('authService', () => {
       expect(logAuthEvent).not.toHaveBeenCalled()
     })
   })
+
+  describe('getCurrentUser', () => {
+    it('should return user when found', async () => {
+      // Arrange
+      const existingUser = createExistingUserRecord()
+      const mockDb = createMockDb(existingUser)
+
+      // Override select to return user for getCurrentUser
+      mockDb.select = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([existingUser]),
+          }),
+        }),
+      })
+
+      // Act
+      const result = await authService.getCurrentUser(mockDb, existingUser.id)
+
+      // Assert
+      expect(result).toEqual(expect.objectContaining({
+        id: existingUser.id,
+        email: existingUser.email,
+        name: existingUser.name,
+        status: existingUser.status,
+        isSuperAdmin: existingUser.isSuperAdmin,
+      }))
+    })
+
+    it('should throw UnauthorizedError when user not found', async () => {
+      // Arrange
+      const mockDb = createMockDb()
+
+      // Override select to return empty
+      mockDb.select = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([]),
+          }),
+        }),
+      })
+
+      // Act & Assert
+      await expect(
+        authService.getCurrentUser(mockDb, 'non-existent-user-id')
+      ).rejects.toThrow('User not found')
+    })
+
+    it('should return user with correct structure', async () => {
+      // Arrange
+      const existingUser = createExistingUserRecord({
+        providerIds: null, // Test null providerIds fallback
+      })
+      const mockDb = createMockDb(existingUser)
+
+      mockDb.select = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([existingUser]),
+          }),
+        }),
+      })
+
+      // Act
+      const result = await authService.getCurrentUser(mockDb, existingUser.id)
+
+      // Assert - verify providerIds defaults to empty array
+      expect(result.providerIds).toEqual([])
+      expect(result).toHaveProperty('id')
+      expect(result).toHaveProperty('email')
+      expect(result).toHaveProperty('name')
+      expect(result).toHaveProperty('status')
+      expect(result).toHaveProperty('isSuperAdmin')
+      expect(result).toHaveProperty('createdAt')
+      expect(result).toHaveProperty('updatedAt')
+      expect(result).toHaveProperty('deletedAt')
+    })
+  })
 })

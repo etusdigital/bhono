@@ -356,4 +356,118 @@ describe('Invitations Routes', () => {
       expect(res.status).toBe(404)
     })
   })
+
+  describe('Error handling - missing context', () => {
+    // Helper to setup app without db
+    function setupAppWithoutDb() {
+      const brokenApp = new Hono<HonoEnv>()
+      const testUser = createUserFixture({ id: TEST_USER_ID })
+      const testAccount = createAccountFixture({ id: TEST_ACCOUNT_ID })
+
+      brokenApp.use('*', async (c, next) => {
+        ;(c as any).env = createMockEnv()
+        c.set('db', null) // No database
+        c.set('transactionId', 'test-transaction-id')
+        c.set('ip', '127.0.0.1')
+        c.set('userAgent', 'TestAgent/1.0')
+        c.set('user', testUser)
+        c.set('accountId', testAccount.id)
+        c.set('userRole', 'ADMIN')
+        await next()
+      })
+
+      brokenApp.route('/invitations', invitationsRouter)
+      return brokenApp
+    }
+
+    // Helper to setup app without user context
+    function setupAppWithoutUser() {
+      const brokenApp = new Hono<HonoEnv>()
+      const testAccount = createAccountFixture({ id: TEST_ACCOUNT_ID })
+      const mockEnv = createMockEnv()
+
+      brokenApp.use('*', async (c, next) => {
+        ;(c as any).env = mockEnv
+        c.set('db', {
+          select: vi.fn().mockReturnThis(),
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockResolvedValue([]),
+        })
+        c.set('transactionId', 'test-transaction-id')
+        c.set('ip', '127.0.0.1')
+        c.set('userAgent', 'TestAgent/1.0')
+        c.set('user', null) // No user
+        c.set('accountId', testAccount.id)
+        c.set('userRole', 'ADMIN')
+        await next()
+      })
+
+      brokenApp.route('/invitations', invitationsRouter)
+      return brokenApp
+    }
+
+    it('should throw 500 when db is not initialized for create', async () => {
+      const brokenApp = setupAppWithoutDb()
+
+      const res = await brokenApp.request('/invitations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'test@example.com', role: 'VIEWER' }),
+      })
+
+      expect(res.status).toBe(500)
+    })
+
+    it('should throw 500 when db is not initialized for list', async () => {
+      const brokenApp = setupAppWithoutDb()
+
+      const res = await brokenApp.request('/invitations', { method: 'GET' })
+
+      expect(res.status).toBe(500)
+    })
+
+    it('should throw 500 when db is not initialized for revoke', async () => {
+      const brokenApp = setupAppWithoutDb()
+
+      const res = await brokenApp.request(`/invitations/${TEST_INVITATION_ID}`, {
+        method: 'DELETE',
+      })
+
+      expect(res.status).toBe(500)
+    })
+
+    it('should throw 401 when user context is missing for create (auth guard)', async () => {
+      const brokenApp = setupAppWithoutUser()
+
+      const res = await brokenApp.request('/invitations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'test@example.com', role: 'VIEWER' }),
+      })
+
+      // Auth middleware returns 401 before handler runs
+      expect(res.status).toBe(401)
+    })
+
+    it('should throw 401 when user context is missing for list (auth guard)', async () => {
+      const brokenApp = setupAppWithoutUser()
+
+      const res = await brokenApp.request('/invitations', { method: 'GET' })
+
+      // Auth middleware returns 401 before handler runs
+      expect(res.status).toBe(401)
+    })
+
+    it('should throw 401 when user context is missing for revoke (auth guard)', async () => {
+      const brokenApp = setupAppWithoutUser()
+
+      const res = await brokenApp.request(`/invitations/${TEST_INVITATION_ID}`, {
+        method: 'DELETE',
+      })
+
+      // Auth middleware returns 401 before handler runs
+      expect(res.status).toBe(401)
+    })
+  })
 })

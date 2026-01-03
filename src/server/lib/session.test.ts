@@ -399,5 +399,360 @@ describe('session library', () => {
 
       expect(contextVars.get('sessionCookies')).toEqual([])
     })
+
+    it('should apply cookies from sessionCookies after next()', async () => {
+      const mockKv = createMockKV()
+      const contextVars = new Map<string, unknown>()
+      // Pre-set a cookie in the jar that should be applied
+      contextVars.set('sessionCookies', ['test-cookie=value; Path=/', 'another-cookie=value2; Path=/'])
+
+      const c = {
+        req: {
+          url: 'http://localhost:3000/test',
+          header: vi.fn().mockReturnValue(),
+          raw: {
+            headers: new Headers(),
+          },
+        },
+        env: { SESSIONS: mockKv },
+        get: vi.fn().mockImplementation((key: string) => contextVars.get(key)),
+        set: vi.fn().mockImplementation((key: string, value: unknown) => contextVars.set(key, value)),
+        header: vi.fn(),
+      }
+
+      const middleware = sessionMiddleware()
+      await middleware(c as never, async () => {})
+
+      // Should have set both cookies
+      expect(c.header).toHaveBeenCalledTimes(2)
+      expect(c.header).toHaveBeenCalledWith('Set-Cookie', 'test-cookie=value; Path=/', { append: true })
+      expect(c.header).toHaveBeenCalledWith('Set-Cookie', 'another-cookie=value2; Path=/', { append: true })
+    })
+
+    it('should NOT apply cookies when sessionCookies is empty', async () => {
+      const mockKv = createMockKV()
+      const contextVars = new Map<string, unknown>()
+      contextVars.set('sessionCookies', [])
+
+      const c = {
+        req: {
+          url: 'http://localhost:3000/test',
+          header: vi.fn().mockReturnValue(),
+          raw: {
+            headers: new Headers(),
+          },
+        },
+        env: { SESSIONS: mockKv },
+        get: vi.fn().mockImplementation((key: string) => contextVars.get(key)),
+        set: vi.fn().mockImplementation((key: string, value: unknown) => contextVars.set(key, value)),
+        header: vi.fn(),
+      }
+
+      const middleware = sessionMiddleware()
+      await middleware(c as never, async () => {})
+
+      // Should NOT have set any cookies
+      expect(c.header).not.toHaveBeenCalled()
+    })
+
+    it('should skip sliding expiration when sliding is false', async () => {
+      const mockKv = createMockKV()
+      const sessionId = 'no-slide-session'
+      const sessionData: SessionData = {
+        userId: 'user-123',
+        email: 'test@example.com',
+        name: 'Test User',
+        isSuperAdmin: false,
+        fingerprint: { userAgent: 'TestAgent/1.0' },
+      }
+      await mockKv.put(`sid:${sessionId}`, JSON.stringify(sessionData))
+
+      const contextVars = new Map<string, unknown>()
+      const c = {
+        req: {
+          url: 'http://localhost:3000/test',
+          header: vi.fn().mockImplementation((name: string) => {
+            if (name === 'user-agent') return 'TestAgent/1.0'
+            return
+          }),
+          raw: {
+            headers: new Headers(),
+          },
+        },
+        env: { SESSIONS: mockKv },
+        get: vi.fn().mockImplementation((key: string) => contextVars.get(key)),
+        set: vi.fn().mockImplementation((key: string, value: unknown) => contextVars.set(key, value)),
+        header: vi.fn(),
+      }
+
+      c.req.raw.headers.set('Cookie', `sid=${sessionId}`)
+
+      // Clear put calls to track only sliding behavior
+      mockKv.put.mockClear()
+
+      const middleware = sessionMiddleware({ sliding: false })
+      await middleware(c as never, async () => {})
+
+      // Should NOT have called put again (no sliding expiration)
+      expect(mockKv.put).not.toHaveBeenCalled()
+      // But session should still be valid
+      expect(contextVars.get('sessionId')).toBe(sessionId)
+    })
+
+    it('should handle invalid JSON in session store gracefully', async () => {
+      const mockKv = createMockKV()
+      const sessionId = 'invalid-json-session'
+      // Store invalid JSON
+      await mockKv.put(`sid:${sessionId}`, 'not valid json {{{')
+
+      const contextVars = new Map<string, unknown>()
+      const c = {
+        req: {
+          url: 'http://localhost:3000/test',
+          header: vi.fn().mockReturnValue('TestAgent/1.0'),
+          raw: {
+            headers: new Headers(),
+          },
+        },
+        env: { SESSIONS: mockKv },
+        get: vi.fn().mockImplementation((key: string) => contextVars.get(key)),
+        set: vi.fn().mockImplementation((key: string, value: unknown) => contextVars.set(key, value)),
+        header: vi.fn(),
+      }
+
+      c.req.raw.headers.set('Cookie', `sid=${sessionId}`)
+
+      const middleware = sessionMiddleware()
+      // Should not throw
+      await middleware(c as never, async () => {})
+
+      // Session should NOT be populated due to invalid JSON
+      expect(contextVars.get('sessionId')).toBeUndefined()
+      expect(contextVars.get('sessionData')).toBeUndefined()
+    })
+
+    it('should handle missing SESSIONS store gracefully', async () => {
+      const contextVars = new Map<string, unknown>()
+      const c = {
+        req: {
+          url: 'http://localhost:3000/test',
+          header: vi.fn().mockReturnValue(),
+          raw: {
+            headers: new Headers(),
+          },
+        },
+        env: { SESSIONS: undefined }, // No store
+        get: vi.fn().mockImplementation((key: string) => contextVars.get(key)),
+        set: vi.fn().mockImplementation((key: string, value: unknown) => contextVars.set(key, value)),
+        header: vi.fn(),
+      }
+
+      c.req.raw.headers.set('Cookie', `sid=some-session-id`)
+
+      const middleware = sessionMiddleware()
+      // Should not throw
+      await middleware(c as never, async () => {})
+
+      // Session should NOT be populated
+      expect(contextVars.get('sessionId')).toBeUndefined()
+    })
+  })
+
+  describe('createSession edge cases', () => {
+    it('should handle missing SESSIONS store gracefully', async () => {
+      const contextVars = new Map<string, unknown>()
+      contextVars.set('sessionCookies', [])
+
+      const c = {
+        req: {
+          url: 'http://localhost:3000/test',
+          header: vi.fn().mockReturnValue('TestAgent/1.0'),
+        },
+        env: { SESSIONS: undefined }, // No store
+        get: vi.fn().mockImplementation((key: string) => contextVars.get(key)),
+        set: vi.fn().mockImplementation((key: string, value: unknown) => contextVars.set(key, value)),
+        header: vi.fn(),
+      }
+
+      const sessionData = {
+        userId: 'user-123',
+        email: 'test@example.com',
+        name: 'Test User',
+        isSuperAdmin: false,
+      }
+
+      // Should not throw even without store
+      const sid = await createSession(c as never, sessionData)
+
+      expect(sid).toBeDefined()
+      // Cookie should still be set
+      const cookieJar = contextVars.get('sessionCookies') as string[]
+      expect(cookieJar.length).toBeGreaterThan(0)
+    })
+
+    it('should use secure cookie name for HTTPS URLs', async () => {
+      const mockKv = createMockKV()
+      const contextVars = new Map<string, unknown>()
+      contextVars.set('sessionCookies', [])
+
+      const c = {
+        req: {
+          url: 'https://example.com/test', // HTTPS
+          header: vi.fn().mockReturnValue('TestAgent/1.0'),
+        },
+        env: { SESSIONS: mockKv },
+        get: vi.fn().mockImplementation((key: string) => contextVars.get(key)),
+        set: vi.fn().mockImplementation((key: string, value: unknown) => contextVars.set(key, value)),
+        header: vi.fn(),
+      }
+
+      const sessionData = {
+        userId: 'user-123',
+        email: 'test@example.com',
+        name: 'Test User',
+        isSuperAdmin: false,
+      }
+
+      await createSession(c as never, sessionData)
+
+      // Cookie should use __Host- prefix for secure
+      const cookieJar = contextVars.get('sessionCookies') as string[]
+      expect(cookieJar[0]).toContain('__Host-sid=')
+      expect(cookieJar[0]).toContain('Secure')
+    })
+  })
+
+  describe('destroySession edge cases', () => {
+    it('should handle missing session ID gracefully', async () => {
+      const mockKv = createMockKV()
+      const contextVars = new Map<string, unknown>()
+      contextVars.set('sessionCookies', [])
+      // No sessionId set
+
+      const c = {
+        req: {
+          url: 'http://localhost:3000/test',
+          header: vi.fn().mockReturnValue(),
+          raw: {
+            headers: new Headers(),
+          },
+        },
+        env: { SESSIONS: mockKv },
+        get: vi.fn().mockImplementation((key: string) => contextVars.get(key)),
+        set: vi.fn().mockImplementation((key: string, value: unknown) => contextVars.set(key, value)),
+        header: vi.fn(),
+      }
+
+      // Should not throw
+      await destroySession(c as never)
+
+      // Should still clear cookie even without session
+      const cookieJar = contextVars.get('sessionCookies') as string[]
+      expect(cookieJar.length).toBeGreaterThan(0)
+      expect(cookieJar[0]).toContain('Expires=')
+    })
+
+    it('should handle missing SESSIONS store gracefully', async () => {
+      const contextVars = new Map<string, unknown>()
+      contextVars.set('sessionId', 'some-session')
+      contextVars.set('sessionCookies', [])
+
+      const c = {
+        req: {
+          url: 'http://localhost:3000/test',
+          header: vi.fn().mockReturnValue(),
+        },
+        env: { SESSIONS: undefined }, // No store
+        get: vi.fn().mockImplementation((key: string) => contextVars.get(key)),
+        set: vi.fn().mockImplementation((key: string, value: unknown) => contextVars.set(key, value)),
+        header: vi.fn(),
+      }
+
+      // Should not throw
+      await destroySession(c as never)
+
+      // Should still set cleared session in context
+      const setCalls = c.set.mock.calls
+      const sessionIdCall = setCalls.find((call: unknown[]) => call[0] === 'sessionId' && call[1] === undefined)
+      expect(sessionIdCall).toBeDefined()
+    })
+  })
+
+  describe('fingerprint validation', () => {
+    it('should allow session when both fingerprints are undefined', async () => {
+      const mockKv = createMockKV()
+      const sessionId = 'no-fingerprint-session'
+      const sessionData: SessionData = {
+        userId: 'user-123',
+        email: 'test@example.com',
+        name: 'Test User',
+        isSuperAdmin: false,
+        // No fingerprint stored
+      }
+      await mockKv.put(`sid:${sessionId}`, JSON.stringify(sessionData))
+
+      const contextVars = new Map<string, unknown>()
+      const c = {
+        req: {
+          url: 'http://localhost:3000/test',
+          header: vi.fn().mockReturnValue(undefined), // No user-agent
+          raw: {
+            headers: new Headers(),
+          },
+        },
+        env: { SESSIONS: mockKv },
+        get: vi.fn().mockImplementation((key: string) => contextVars.get(key)),
+        set: vi.fn().mockImplementation((key: string, value: unknown) => contextVars.set(key, value)),
+        header: vi.fn(),
+      }
+
+      c.req.raw.headers.set('Cookie', `sid=${sessionId}`)
+
+      const middleware = sessionMiddleware()
+      await middleware(c as never, async () => {})
+
+      // Session should be valid
+      expect(contextVars.get('sessionId')).toBe(sessionId)
+      expect(contextVars.get('sessionData')).toEqual(sessionData)
+    })
+
+    it('should allow session when only stored fingerprint is undefined', async () => {
+      const mockKv = createMockKV()
+      const sessionId = 'stored-no-fingerprint'
+      const sessionData: SessionData = {
+        userId: 'user-123',
+        email: 'test@example.com',
+        name: 'Test User',
+        isSuperAdmin: false,
+        // No stored fingerprint
+      }
+      await mockKv.put(`sid:${sessionId}`, JSON.stringify(sessionData))
+
+      const contextVars = new Map<string, unknown>()
+      const c = {
+        req: {
+          url: 'http://localhost:3000/test',
+          header: vi.fn().mockImplementation((name: string) => {
+            if (name === 'user-agent') return 'SomeAgent/1.0'
+            return
+          }),
+          raw: {
+            headers: new Headers(),
+          },
+        },
+        env: { SESSIONS: mockKv },
+        get: vi.fn().mockImplementation((key: string) => contextVars.get(key)),
+        set: vi.fn().mockImplementation((key: string, value: unknown) => contextVars.set(key, value)),
+        header: vi.fn(),
+      }
+
+      c.req.raw.headers.set('Cookie', `sid=${sessionId}`)
+
+      const middleware = sessionMiddleware()
+      await middleware(c as never, async () => {})
+
+      // Session should be valid (stored fingerprint is undefined)
+      expect(contextVars.get('sessionId')).toBe(sessionId)
+    })
   })
 })
