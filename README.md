@@ -214,6 +214,30 @@ LOG_LEVEL=info
 
 ---
 
+## Documentation
+
+- `docs/app_spec.txt` - Canonical app specification and architecture overview
+- `docs/architecture/README.md` - Architecture docs index
+- `docs/testing.md` - Testing guide
+
+---
+
+## Internal CLI (BHono)
+
+Use the internal CLI to scaffold new apps:
+
+```bash
+# Recommended (no global install)
+pnpm dlx @etus/bhono-app <project-name>
+
+# npm shortcut (uses create-bhono-app)
+npm init bhono-app <project-name>
+```
+
+If the CLI cannot find local templates, it will clone the default Bhono template repo. You can override this by setting `BHONO_TEMPLATE_REPO` (or `ETUS_TEMPLATE_REPO`) to a git URL.
+
+---
+
 ## Database Schema
 
 ### Core Tables
@@ -568,6 +592,9 @@ import { createUser } from '@server/services/users'  // Server
 | `pnpm db:migrate:remote` | Apply remote migrations |
 | `pnpm db:seed` | Seed database |
 | `pnpm cf-typegen` | Generate Cloudflare types |
+| **API** | |
+| `pnpm api:spec` | Generate OpenAPI spec (docs/openapi.json) |
+| `pnpm api:types` | Generate TypeScript types from OpenAPI |
 | **Testing** | |
 | `pnpm test` | Run backend unit tests (watch) |
 | `pnpm test:unit:server` | Backend tests with coverage |

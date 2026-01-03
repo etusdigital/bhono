@@ -1,0 +1,11 @@
+{
+  "name": "create-bhono-app",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "create-bhono-app": "./index.js"
+  },
+  "dependencies": {
+    "@etus/bhono-app": "workspace:^"
+  }
+}

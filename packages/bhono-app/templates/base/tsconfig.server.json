@@ -1,0 +1,26 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "composite": true,
+    "noEmit": false,
+    "emitDeclarationOnly": true,
+    "declaration": true,
+    "declarationMap": true,
+    "outDir": "./node_modules/.tmp/types/server",
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.server.tsbuildinfo",
+    "types": ["node", "@cloudflare/workers-types"],
+    "baseUrl": ".",
+    "paths": {
+      "@server/*": ["./src/server/*"],
+      "@shared/*": ["./src/shared/*"]
+    }
+  },
+  "include": ["src/server/**/*", "src/shared/**/*"],
+  "exclude": [
+    "src/server/__integration__/**",
+    "src/server/__tests__/**",
+    "src/server/**/__tests__/**",
+    "src/server/**/*.test.ts",
+    "src/server/**/*.spec.ts"
+  ]
+}

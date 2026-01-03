@@ -1,10 +1,10 @@
-# create-etus-app CLI Implementation Plan
+# bhono-app CLI Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Build an interactive CLI that scaffolds new projects from the boilerplate with module selection, Cloudflare provisioning, and GitHub integration.
 
-**Architecture:** Monorepo package at `packages/create-etus-app/`. CLI uses Clack for prompts, copies template files from `templates/`, applies module selection via file merging, and provisions Cloudflare/GitHub via their APIs.
+**Architecture:** Monorepo package at `packages/bhono-app/`. CLI uses Clack for prompts, copies template files from `templates/`, applies module selection via file merging, and provisions Cloudflare/GitHub via their APIs.
 
 **Tech Stack:** Node.js, TypeScript, Clack (prompts), Commander (CLI), Handlebars (templating), Octokit (GitHub), Wrangler SDK (Cloudflare)
 
@@ -15,26 +15,26 @@
 ### Task 1: Initialize Package Structure
 
 **Files:**
-- Create: `packages/create-etus-app/package.json`
-- Create: `packages/create-etus-app/tsconfig.json`
-- Create: `packages/create-etus-app/src/index.ts`
+- Create: `packages/bhono-app/package.json`
+- Create: `packages/bhono-app/tsconfig.json`
+- Create: `packages/bhono-app/src/index.ts`
 - Modify: `package.json` (root - add workspace)
 
 **Step 1: Create packages directory**
 
 ```bash
-mkdir -p packages/create-etus-app/src
+mkdir -p packages/bhono-app/src
 ```
 
 **Step 2: Create package.json**
 
 ```json
 {
-  "name": "@etus/create-app",
+  "name": "@etus/bhono-app",
   "version": "0.1.0",
   "type": "module",
   "bin": {
-    "create-etus-app": "./dist/index.js"
+    "bhono-app": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc",
@@ -83,9 +83,9 @@ mkdir -p packages/create-etus-app/src
 
 ```typescript
 #!/usr/bin/env node
-// packages/create-etus-app/src/index.ts
+// packages/bhono-app/src/index.ts
 
-console.log('create-etus-app v0.1.0')
+console.log('bhono-app v0.1.0')
 ```
 
 **Step 5: Update root package.json for workspaces**
@@ -100,17 +100,17 @@ Add to root `package.json`:
 **Step 6: Install and verify**
 
 ```bash
-cd packages/create-etus-app && pnpm install && pnpm build
+cd packages/bhono-app && pnpm install && pnpm build
 node dist/index.js
 ```
 
-Expected: `create-etus-app v0.1.0`
+Expected: `bhono-app v0.1.0`
 
 **Step 7: Commit**
 
 ```bash
-git add packages/create-etus-app package.json
-git commit -m "feat(cli): initialize create-etus-app package structure"
+git add packages/bhono-app package.json
+git commit -m "feat(cli): initialize bhono-app package structure"
 ```
 
 ---
@@ -118,14 +118,14 @@ git commit -m "feat(cli): initialize create-etus-app package structure"
 ### Task 2: Implement CLI with Commander
 
 **Files:**
-- Create: `packages/create-etus-app/src/cli.ts`
-- Modify: `packages/create-etus-app/src/index.ts`
-- Test: `packages/create-etus-app/src/cli.test.ts`
+- Create: `packages/bhono-app/src/cli.ts`
+- Modify: `packages/bhono-app/src/index.ts`
+- Test: `packages/bhono-app/src/cli.test.ts`
 
 **Step 1: Write the failing test**
 
 ```typescript
-// packages/create-etus-app/src/cli.test.ts
+// packages/bhono-app/src/cli.test.ts
 import { describe, it, expect } from 'vitest'
 import { parseArgs } from './cli.js'
 
@@ -160,7 +160,7 @@ describe('CLI', () => {
 **Step 2: Run test to verify it fails**
 
 ```bash
-cd packages/create-etus-app && pnpm test:run
+cd packages/bhono-app && pnpm test:run
 ```
 
 Expected: FAIL with "Cannot find module './cli.js'"
@@ -168,7 +168,7 @@ Expected: FAIL with "Cannot find module './cli.js'"
 **Step 3: Implement cli.ts**
 
 ```typescript
-// packages/create-etus-app/src/cli.ts
+// packages/bhono-app/src/cli.ts
 import { Command } from 'commander'
 
 export interface CLIOptions {
@@ -193,7 +193,7 @@ const DEFAULT_OPTIONS: Partial<CLIOptions> = {
 
 export function parseArgs(args: string[]): CLIOptions {
   const program = new Command()
-    .name('create-etus-app')
+    .name('bhono-app')
     .description('Create a new project from the Etus boilerplate')
     .version('0.1.0')
     .argument('<project-name>', 'Name of the project')
@@ -204,7 +204,7 @@ export function parseArgs(args: string[]): CLIOptions {
     .option('--github <visibility>', 'Create GitHub repo: public, private, none', 'none')
     .option('--provision', 'Provision Cloudflare resources', false)
     .option('-y, --yes', 'Skip prompts, use defaults', false)
-    .parse(['node', 'create-etus-app', ...args])
+    .parse(['node', 'bhono-app', ...args])
 
   const opts = program.opts()
   const projectName = program.args[0]
@@ -224,7 +224,7 @@ export function parseArgs(args: string[]): CLIOptions {
 
 export function createCLI(): Command {
   return new Command()
-    .name('create-etus-app')
+    .name('bhono-app')
     .description('Create a new project from the Etus boilerplate')
     .version('0.1.0')
     .argument('<project-name>', 'Name of the project')
@@ -241,7 +241,7 @@ export function createCLI(): Command {
 **Step 4: Run tests to verify they pass**
 
 ```bash
-cd packages/create-etus-app && pnpm test:run
+cd packages/bhono-app && pnpm test:run
 ```
 
 Expected: All 5 tests PASS
@@ -250,7 +250,7 @@ Expected: All 5 tests PASS
 
 ```typescript
 #!/usr/bin/env node
-// packages/create-etus-app/src/index.ts
+// packages/bhono-app/src/index.ts
 
 import { createCLI } from './cli.js'
 
@@ -267,7 +267,7 @@ console.log('Options:', opts)
 **Step 6: Build and test manually**
 
 ```bash
-cd packages/create-etus-app && pnpm build
+cd packages/bhono-app && pnpm build
 node dist/index.js test-project --domain=test.com --modules=storage
 ```
 
@@ -276,7 +276,7 @@ Expected: Shows "Creating project: test-project" with options
 **Step 7: Commit**
 
 ```bash
-git add packages/create-etus-app
+git add packages/bhono-app
 git commit -m "feat(cli): add Commander-based argument parsing"
 ```
 
@@ -285,13 +285,13 @@ git commit -m "feat(cli): add Commander-based argument parsing"
 ### Task 3: Implement Interactive Prompts with Clack
 
 **Files:**
-- Create: `packages/create-etus-app/src/prompts.ts`
-- Test: `packages/create-etus-app/src/prompts.test.ts`
+- Create: `packages/bhono-app/src/prompts.ts`
+- Test: `packages/bhono-app/src/prompts.test.ts`
 
 **Step 1: Write the test**
 
 ```typescript
-// packages/create-etus-app/src/prompts.test.ts
+// packages/bhono-app/src/prompts.test.ts
 import { describe, it, expect } from 'vitest'
 import { MODULES, PROVIDERS, getModuleChoices, getAuthChoices } from './prompts.js'
 
@@ -329,7 +329,7 @@ describe('Prompts Configuration', () => {
 **Step 2: Run test to verify it fails**
 
 ```bash
-cd packages/create-etus-app && pnpm test:run
+cd packages/bhono-app && pnpm test:run
 ```
 
 Expected: FAIL
@@ -337,7 +337,7 @@ Expected: FAIL
 **Step 3: Implement prompts.ts**
 
 ```typescript
-// packages/create-etus-app/src/prompts.ts
+// packages/bhono-app/src/prompts.ts
 import * as p from '@clack/prompts'
 import pc from 'picocolors'
 import type { CLIOptions } from './cli.js'
@@ -388,7 +388,7 @@ export function getEmailChoices(): ProviderChoice[] {
 export async function runInteractivePrompts(
   projectName: string
 ): Promise<Omit<CLIOptions, 'interactive'>> {
-  p.intro(pc.bgCyan(pc.black(' create-etus-app ')))
+  p.intro(pc.bgCyan(pc.black(' bhono-app ')))
 
   const answers = await p.group(
     {
@@ -460,7 +460,7 @@ export async function runInteractivePrompts(
 **Step 4: Run tests to verify they pass**
 
 ```bash
-cd packages/create-etus-app && pnpm test:run
+cd packages/bhono-app && pnpm test:run
 ```
 
 Expected: All tests PASS
@@ -468,7 +468,7 @@ Expected: All tests PASS
 **Step 5: Commit**
 
 ```bash
-git add packages/create-etus-app
+git add packages/bhono-app
 git commit -m "feat(cli): add Clack interactive prompts"
 ```
 
@@ -479,24 +479,24 @@ git commit -m "feat(cli): add Clack interactive prompts"
 ### Task 4: Create Template Directory Structure
 
 **Files:**
-- Create: `packages/create-etus-app/templates/base/` (copy from main src/)
-- Create: `packages/create-etus-app/templates/modules/`
-- Create: `packages/create-etus-app/src/templates.ts`
+- Create: `packages/bhono-app/templates/base/` (copy from main src/)
+- Create: `packages/bhono-app/templates/modules/`
+- Create: `packages/bhono-app/src/templates.ts`
 
 **Step 1: Create template directories**
 
 ```bash
-mkdir -p packages/create-etus-app/templates/base
-mkdir -p packages/create-etus-app/templates/modules/invitations
-mkdir -p packages/create-etus-app/templates/modules/storage
-mkdir -p packages/create-etus-app/templates/providers/auth-google
-mkdir -p packages/create-etus-app/templates/providers/auth-github
+mkdir -p packages/bhono-app/templates/base
+mkdir -p packages/bhono-app/templates/modules/invitations
+mkdir -p packages/bhono-app/templates/modules/storage
+mkdir -p packages/bhono-app/templates/providers/auth-google
+mkdir -p packages/bhono-app/templates/providers/auth-github
 ```
 
 **Step 2: Create template config**
 
 ```typescript
-// packages/create-etus-app/src/templates.ts
+// packages/bhono-app/src/templates.ts
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import fs from 'fs-extra'
@@ -543,7 +543,7 @@ export async function templateExists(templatePath: string): Promise<boolean> {
 **Step 3: Write test**
 
 ```typescript
-// packages/create-etus-app/src/templates.test.ts
+// packages/bhono-app/src/templates.test.ts
 import { describe, it, expect } from 'vitest'
 import { getTemplateConfig, TEMPLATES_DIR } from './templates.js'
 
@@ -570,13 +570,13 @@ describe('Templates', () => {
 **Step 4: Run tests**
 
 ```bash
-cd packages/create-etus-app && pnpm test:run
+cd packages/bhono-app && pnpm test:run
 ```
 
 **Step 5: Commit**
 
 ```bash
-git add packages/create-etus-app
+git add packages/bhono-app
 git commit -m "feat(cli): add template directory structure and config"
 ```
 
@@ -585,13 +585,13 @@ git commit -m "feat(cli): add template directory structure and config"
 ### Task 5: Implement Project Generator
 
 **Files:**
-- Create: `packages/create-etus-app/src/generator.ts`
-- Test: `packages/create-etus-app/src/generator.test.ts`
+- Create: `packages/bhono-app/src/generator.ts`
+- Test: `packages/bhono-app/src/generator.test.ts`
 
 **Step 1: Write the test**
 
 ```typescript
-// packages/create-etus-app/src/generator.test.ts
+// packages/bhono-app/src/generator.test.ts
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import fs from 'fs-extra'
 import path from 'node:path'
@@ -671,13 +671,13 @@ describe('Generator', () => {
 **Step 2: Run test to verify it fails**
 
 ```bash
-cd packages/create-etus-app && pnpm test:run
+cd packages/bhono-app && pnpm test:run
 ```
 
 **Step 3: Implement generator.ts**
 
 ```typescript
-// packages/create-etus-app/src/generator.ts
+// packages/bhono-app/src/generator.ts
 import fs from 'fs-extra'
 import path from 'node:path'
 import Handlebars from 'handlebars'
@@ -870,13 +870,13 @@ export async function generateProject(
 **Step 4: Run tests**
 
 ```bash
-cd packages/create-etus-app && pnpm test:run
+cd packages/bhono-app && pnpm test:run
 ```
 
 **Step 5: Commit**
 
 ```bash
-git add packages/create-etus-app
+git add packages/bhono-app
 git commit -m "feat(cli): implement project generator with template processing"
 ```
 
@@ -887,20 +887,20 @@ git commit -m "feat(cli): implement project generator with template processing"
 ### Task 6: Implement Cloudflare Provisioning
 
 **Files:**
-- Create: `packages/create-etus-app/src/providers/cloudflare.ts`
-- Test: `packages/create-etus-app/src/providers/cloudflare.test.ts`
+- Create: `packages/bhono-app/src/providers/cloudflare.ts`
+- Test: `packages/bhono-app/src/providers/cloudflare.test.ts`
 
 **Step 1: Add wrangler as dependency**
 
 ```bash
-cd packages/create-etus-app
+cd packages/bhono-app
 pnpm add wrangler
 ```
 
 **Step 2: Write the test (mocked)**
 
 ```typescript
-// packages/create-etus-app/src/providers/cloudflare.test.ts
+// packages/bhono-app/src/providers/cloudflare.test.ts
 import { describe, it, expect, vi } from 'vitest'
 import { CloudflareProvisioner, type CloudflareResources } from './cloudflare.js'
 
@@ -924,7 +924,7 @@ describe('CloudflareProvisioner', () => {
 **Step 3: Implement cloudflare.ts**
 
 ```typescript
-// packages/create-etus-app/src/providers/cloudflare.ts
+// packages/bhono-app/src/providers/cloudflare.ts
 import { exec } from 'node:child_process'
 import { promisify } from 'node:util'
 
@@ -1022,13 +1022,13 @@ export function generateJwtSecret(): string {
 **Step 4: Run tests**
 
 ```bash
-cd packages/create-etus-app && pnpm test:run
+cd packages/bhono-app && pnpm test:run
 ```
 
 **Step 5: Commit**
 
 ```bash
-git add packages/create-etus-app
+git add packages/bhono-app
 git commit -m "feat(cli): add Cloudflare provisioning via wrangler"
 ```
 
@@ -1037,20 +1037,20 @@ git commit -m "feat(cli): add Cloudflare provisioning via wrangler"
 ### Task 7: Implement GitHub Integration
 
 **Files:**
-- Create: `packages/create-etus-app/src/providers/github.ts`
-- Test: `packages/create-etus-app/src/providers/github.test.ts`
+- Create: `packages/bhono-app/src/providers/github.ts`
+- Test: `packages/bhono-app/src/providers/github.test.ts`
 
 **Step 1: Add octokit dependency**
 
 ```bash
-cd packages/create-etus-app
+cd packages/bhono-app
 pnpm add @octokit/rest
 ```
 
 **Step 2: Write test**
 
 ```typescript
-// packages/create-etus-app/src/providers/github.test.ts
+// packages/bhono-app/src/providers/github.test.ts
 import { describe, it, expect } from 'vitest'
 import { GitHubProvisioner } from './github.js'
 
@@ -1069,7 +1069,7 @@ describe('GitHubProvisioner', () => {
 **Step 3: Implement github.ts**
 
 ```typescript
-// packages/create-etus-app/src/providers/github.ts
+// packages/bhono-app/src/providers/github.ts
 import { Octokit } from '@octokit/rest'
 import { exec } from 'node:child_process'
 import { promisify } from 'node:util'
@@ -1139,7 +1139,7 @@ export class GitHubProvisioner {
     const commands = [
       'git init',
       'git add .',
-      'git commit -m "Initial commit from create-etus-app"',
+      'git commit -m "Initial commit from bhono-app"',
       'git branch -M main',
       `git remote add origin https://github.com/${repoFullName}.git`,
       'git push -u origin main',
@@ -1155,13 +1155,13 @@ export class GitHubProvisioner {
 **Step 4: Run tests**
 
 ```bash
-cd packages/create-etus-app && pnpm test:run
+cd packages/bhono-app && pnpm test:run
 ```
 
 **Step 5: Commit**
 
 ```bash
-git add packages/create-etus-app
+git add packages/bhono-app
 git commit -m "feat(cli): add GitHub repo creation and secrets management"
 ```
 
@@ -1172,13 +1172,13 @@ git commit -m "feat(cli): add GitHub repo creation and secrets management"
 ### Task 8: Wire Everything Together in index.ts
 
 **Files:**
-- Modify: `packages/create-etus-app/src/index.ts`
+- Modify: `packages/bhono-app/src/index.ts`
 
 **Step 1: Implement full CLI flow**
 
 ```typescript
 #!/usr/bin/env node
-// packages/create-etus-app/src/index.ts
+// packages/bhono-app/src/index.ts
 
 import * as p from '@clack/prompts'
 import pc from 'picocolors'
@@ -1196,7 +1196,7 @@ async function main() {
 
   if (!projectName) {
     console.error(pc.red('Error: Project name is required'))
-    console.log('Usage: create-etus-app <project-name> [options]')
+    console.log('Usage: bhono-app <project-name> [options]')
     process.exit(1)
   }
 
@@ -1282,14 +1282,14 @@ main()
 **Step 2: Build and test manually**
 
 ```bash
-cd packages/create-etus-app && pnpm build
+cd packages/bhono-app && pnpm build
 node dist/index.js test-project --yes
 ```
 
 **Step 3: Commit**
 
 ```bash
-git add packages/create-etus-app
+git add packages/bhono-app
 git commit -m "feat(cli): wire up full CLI flow with all integrations"
 ```
 
@@ -1298,7 +1298,7 @@ git commit -m "feat(cli): wire up full CLI flow with all integrations"
 ### Task 9: Prepare Base Template
 
 **Files:**
-- Create: `packages/create-etus-app/templates/base/` (selective copy from src/)
+- Create: `packages/bhono-app/templates/base/` (selective copy from src/)
 
 **Step 1: Copy essential files from boilerplate**
 
@@ -1318,7 +1318,7 @@ Replace hardcoded values with Handlebars placeholders:
 **Step 2: Commit**
 
 ```bash
-git add packages/create-etus-app/templates
+git add packages/bhono-app/templates
 git commit -m "feat(cli): add base template from boilerplate"
 ```
 
@@ -1327,8 +1327,8 @@ git commit -m "feat(cli): add base template from boilerplate"
 ### Task 10: Add Module Templates
 
 **Files:**
-- Create: `packages/create-etus-app/templates/modules/invitations/`
-- Create: `packages/create-etus-app/templates/modules/storage/`
+- Create: `packages/bhono-app/templates/modules/invitations/`
+- Create: `packages/bhono-app/templates/modules/storage/`
 
 Each module contains:
 - Server routes
@@ -1360,7 +1360,7 @@ Each module contains:
 **Step 2: Commit**
 
 ```bash
-git add packages/create-etus-app/templates/modules
+git add packages/bhono-app/templates/modules
 git commit -m "feat(cli): add module templates for invitations and storage"
 ```
 

@@ -1,4 +1,4 @@
-# Design: create-etus-app CLI
+# Design: bhono-app CLI
 
 **Data:** 2025-12-31
 **Status:** Aprovado
@@ -27,16 +27,16 @@
 
 ```bash
 # Via npm privado
-pnpm add -g @etus/create-app
+pnpm add -g @etus/bhono-app
 
 # Ou direto do GitHub
-pnpx github:etus/create-etus-app my-saas
+pnpx github:etus/bhono-app my-saas
 ```
 
 ### Fluxo Principal
 
 ```
-create-etus-app my-saas
+bhono-app my-saas
     │
     ├─► Prompts interativos (nome, domínio, módulos, auth...)
     │
@@ -111,7 +111,7 @@ boilerplate/
 ### Modo Interativo
 
 ```
-┌  create-etus-app
+┌  bhono-app
 │
 ◆  Nome do projeto?
 │  my-awesome-saas
@@ -161,7 +161,7 @@ boilerplate/
 ### Modo Não-Interativo (CI/Automação)
 
 ```bash
-create-etus-app my-saas \
+bhono-app my-saas \
   --domain=mysaas.com \
   --modules=invitations,storage \
   --auth=google \
@@ -206,7 +206,7 @@ Cloudflare Account
 
 ```bash
 # Primeira vez - guarda token globalmente
-create-etus-app auth
+bhono-app auth
 
 # Usa CLOUDFLARE_API_TOKEN do ambiente ou ~/.etus/config.json
 ```
@@ -280,7 +280,7 @@ jobs:
 ## Output Final
 
 ```bash
-create-etus-app my-saas --provision --github=private
+bhono-app my-saas --provision --github=private
 
 ✔ Projeto gerado em ./my-saas
 ✔ Repo criado: github.com/etus/my-saas (privado)
@@ -299,7 +299,7 @@ Deploy: git push origin main
 ## Estrutura do Projeto CLI
 
 ```
-create-etus-app/
+bhono-app/
 ├── src/
 │   ├── index.ts              # Entry point
 │   ├── cli.ts                # Commander/Clack setup
@@ -319,7 +319,7 @@ create-etus-app/
 
 ## Próximos Passos
 
-1. Criar repo `create-etus-app`
+1. Criar repo `bhono-app`
 2. Setup inicial do CLI com Clack
 3. Implementar sistema de templates/módulos
 4. Integrar Cloudflare API

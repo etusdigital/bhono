@@ -1,0 +1,3128 @@
+[
+  {
+    "category": "functional",
+    "description": "Google OAuth login initiates redirect to Google authorization page",
+    "steps": [
+      "Step 1: Navigate to /auth/login",
+      "Step 2: Verify redirect to Google OAuth authorization URL",
+      "Step 3: Verify state parameter is included for CSRF protection",
+      "Step 4: Verify PKCE code_challenge parameter is present"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "OAuth callback creates user session and redirects to dashboard",
+    "steps": [
+      "Step 1: Complete Google OAuth authorization",
+      "Step 2: Redirect to /auth/callback with code and state",
+      "Step 3: Verify user session is created in KV store",
+      "Step 4: Verify session_id cookie is set with httpOnly flag",
+      "Step 5: Verify redirect to /dashboard"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "OAuth callback creates new user if first-time login",
+    "steps": [
+      "Step 1: Complete Google OAuth with new Google account",
+      "Step 2: Redirect to /auth/callback",
+      "Step 3: Verify new user record created in database",
+      "Step 4: Verify user's googleId is stored",
+      "Step 5: Verify email and name from OAuth provider are saved",
+      "Step 6: Verify SIGNUP audit event is logged",
+      "Step 7: Verify redirect to dashboard"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "OAuth callback links existing user if email matches",
+    "steps": [
+      "Step 1: Ensure user with matching email exists in database",
+      "Step 2: Complete Google OAuth with that email",
+      "Step 3: Verify user record is updated with googleId",
+      "Step 4: Verify LOGIN audit event is logged",
+      "Step 5: Verify session is created for existing user"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Super admin pre-registration grants isSuperAdmin flag on first login",
+    "steps": [
+      "Step 1: Configure SUPER_ADMIN_EMAILS environment variable",
+      "Step 2: Complete OAuth login with pre-registered email",
+      "Step 3: Verify user is created with isSuperAdmin=true",
+      "Step 4: Verify user can access super admin only endpoints"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Logout destroys session and clears cookies",
+    "steps": [
+      "Step 1: Log in and verify session exists",
+      "Step 2: Send POST request to /auth/logout",
+      "Step 3: Verify session is deleted from KV store",
+      "Step 4: Verify session_id cookie is cleared",
+      "Step 5: Verify LOGOUT audit event is logged",
+      "Step 6: Verify subsequent requests are unauthenticated"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Logout redirects to login page",
+    "steps": [
+      "Step 1: Log in as authenticated user",
+      "Step 2: Click logout button",
+      "Step 3: Verify redirect to /login page"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "/auth/me returns current user information",
+    "steps": [
+      "Step 1: Log in as authenticated user",
+      "Step 2: Send GET request to /auth/me",
+      "Step 3: Verify response contains user id, email, name, avatarUrl",
+      "Step 4: Verify response contains isSuperAdmin flag"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "/auth/me returns 401 for unauthenticated requests",
+    "steps": [
+      "Step 1: Clear all session cookies",
+      "Step 2: Send GET request to /auth/me without session",
+      "Step 3: Verify 401 Unauthorized response"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Session expiration requires re-authentication",
+    "steps": [
+      "Step 1: Log in and note session creation time",
+      "Step 2: Wait for session to expire (or manually expire in KV)",
+      "Step 3: Attempt to access protected endpoint",
+      "Step 4: Verify 401 response",
+      "Step 5: Verify redirect to login page"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Invitation token is stored in cookie during OAuth flow",
+    "steps": [
+      "Step 1: Navigate to /auth/invite/:token with valid token",
+      "Step 2: Verify invitation token is stored in cookie",
+      "Step 3: Verify redirect to /auth/login",
+      "Step 4: Complete OAuth login",
+      "Step 5: Verify user is automatically added to invited account"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Invalid invitation token shows error message",
+    "steps": [
+      "Step 1: Navigate to /auth/invite/:token with invalid token",
+      "Step 2: Verify error message is displayed",
+      "Step 3: Verify user is not added to any account"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Expired invitation token shows expiration error",
+    "steps": [
+      "Step 1: Create invitation with expired date",
+      "Step 2: Navigate to /auth/invite/:token",
+      "Step 3: Verify expiration error message",
+      "Step 4: Verify user is not added to account"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "List users returns paginated results",
+    "steps": [
+      "Step 1: Log in as authenticated user",
+      "Step 2: Send GET /api/users?page=1&limit=10",
+      "Step 3: Verify response contains data array",
+      "Step 4: Verify meta contains total, page, pages, hasMore",
+      "Step 5: Verify at most 10 users returned"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "List users supports search by email",
+    "steps": [
+      "Step 1: Log in as authenticated user",
+      "Step 2: Send GET /api/users?query=test@example.com",
+      "Step 3: Verify only matching users returned",
+      "Step 4: Verify partial email matches work"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "List users supports search by name",
+    "steps": [
+      "Step 1: Log in as authenticated user",
+      "Step 2: Send GET /api/users?query=John",
+      "Step 3: Verify users with matching names returned",
+      "Step 4: Verify case-insensitive search"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Get user by ID returns user details",
+    "steps": [
+      "Step 1: Log in as authenticated user",
+      "Step 2: Send GET /api/users/:id with valid user ID",
+      "Step 3: Verify response contains complete user object",
+      "Step 4: Verify all user fields are present"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Get user by ID returns 404 for non-existent user",
+    "steps": [
+      "Step 1: Log in as authenticated user",
+      "Step 2: Send GET /api/users/:id with non-existent UUID",
+      "Step 3: Verify 404 Not Found response"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Update user requires ADMIN role",
+    "steps": [
+      "Step 1: Log in as user with VIEWER role",
+      "Step 2: Attempt PATCH /api/users/:id with new name",
+      "Step 3: Verify 403 Forbidden response",
+      "Step 4: Log in as user with ADMIN role",
+      "Step 5: Attempt same PATCH request",
+      "Step 6: Verify 200 success response"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Update user changes name successfully",
+    "steps": [
+      "Step 1: Log in as ADMIN user",
+      "Step 2: Send PATCH /api/users/:id with { name: 'New Name' }",
+      "Step 3: Verify user name is updated in response",
+      "Step 4: Verify UPDATE audit event is logged",
+      "Step 5: Verify GET /api/users/:id returns updated name"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Update user changes status to inactive",
+    "steps": [
+      "Step 1: Log in as ADMIN user",
+      "Step 2: Send PATCH /api/users/:id with { status: 'inactive' }",
+      "Step 3: Verify user status is updated",
+      "Step 4: Verify audit event logged with status change"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Delete user performs soft delete",
+    "steps": [
+      "Step 1: Log in as ADMIN user",
+      "Step 2: Send DELETE /api/users/:id",
+      "Step 3: Verify 204 No Content response",
+      "Step 4: Verify user has deletedAt timestamp set",
+      "Step 5: Verify DELETE audit event is logged",
+      "Step 6: Verify user no longer appears in list"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Delete user requires ADMIN role",
+    "steps": [
+      "Step 1: Log in as VIEWER user",
+      "Step 2: Attempt DELETE /api/users/:id",
+      "Step 3: Verify 403 Forbidden response"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Restore user requires Super Admin",
+    "steps": [
+      "Step 1: Soft delete a user",
+      "Step 2: Log in as regular ADMIN (not super)",
+      "Step 3: Attempt POST /api/users/:id/restore",
+      "Step 4: Verify 403 Forbidden response",
+      "Step 5: Log in as Super Admin",
+      "Step 6: Attempt POST /api/users/:id/restore",
+      "Step 7: Verify user is restored (deletedAt = null)"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Bulk assign users to accounts",
+    "steps": [
+      "Step 1: Log in as MANAGER user",
+      "Step 2: Prepare list of user-account-role assignments",
+      "Step 3: Send POST /api/users/accounts with items array",
+      "Step 4: Verify response contains count of assignments",
+      "Step 5: Verify user_accounts records created",
+      "Step 6: Verify users can access their new accounts"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Bulk remove users from accounts",
+    "steps": [
+      "Step 1: Log in as MANAGER user",
+      "Step 2: Prepare list of user-account removals",
+      "Step 3: Send DELETE /api/users/accounts with items array",
+      "Step 4: Verify response contains count of removals",
+      "Step 5: Verify user_accounts records deleted",
+      "Step 6: Verify users can no longer access removed accounts"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "List accounts returns user's accounts",
+    "steps": [
+      "Step 1: Log in as authenticated user",
+      "Step 2: Send GET /api/accounts",
+      "Step 3: Verify only accounts user belongs to are returned",
+      "Step 4: Verify pagination meta is present"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Get account by ID returns account details",
+    "steps": [
+      "Step 1: Log in as account member",
+      "Step 2: Send GET /api/accounts/:id",
+      "Step 3: Verify account details returned",
+      "Step 4: Verify all account fields present"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Get account returns 403 for non-member",
+    "steps": [
+      "Step 1: Log in as user not in target account",
+      "Step 2: Send GET /api/accounts/:id for that account",
+      "Step 3: Verify 403 Forbidden response"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Create account requires Super Admin",
+    "steps": [
+      "Step 1: Log in as regular user",
+      "Step 2: Attempt POST /api/accounts with { name: 'New Account' }",
+      "Step 3: Verify 403 Forbidden response",
+      "Step 4: Log in as Super Admin",
+      "Step 5: Attempt same POST request",
+      "Step 6: Verify 201 Created response"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Create account validates required fields",
+    "steps": [
+      "Step 1: Log in as Super Admin",
+      "Step 2: Send POST /api/accounts with empty body",
+      "Step 3: Verify validation error for missing name",
+      "Step 4: Send POST /api/accounts with { name: '' }",
+      "Step 5: Verify validation error for empty name"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Update account requires Account ADMIN role",
+    "steps": [
+      "Step 1: Log in as account VIEWER",
+      "Step 2: Attempt PATCH /api/accounts/:id",
+      "Step 3: Verify 403 Forbidden",
+      "Step 4: Log in as account ADMIN",
+      "Step 5: Attempt PATCH /api/accounts/:id with { name: 'Updated' }",
+      "Step 6: Verify 200 success"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Delete account requires Super Admin",
+    "steps": [
+      "Step 1: Log in as account ADMIN (not super)",
+      "Step 2: Attempt DELETE /api/accounts/:id",
+      "Step 3: Verify 403 Forbidden",
+      "Step 4: Log in as Super Admin",
+      "Step 5: Attempt DELETE /api/accounts/:id",
+      "Step 6: Verify 204 No Content",
+      "Step 7: Verify soft delete with deletedAt set"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Restore account requires Super Admin",
+    "steps": [
+      "Step 1: Soft delete an account",
+      "Step 2: Log in as regular ADMIN",
+      "Step 3: Attempt POST /api/accounts/:id/restore",
+      "Step 4: Verify 403 Forbidden",
+      "Step 5: Log in as Super Admin",
+      "Step 6: Attempt POST /api/accounts/:id/restore",
+      "Step 7: Verify account restored"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Create invitation sends email to new user",
+    "steps": [
+      "Step 1: Log in as account member",
+      "Step 2: Send POST /api/invitations with { email: 'new@example.com', role: 'VIEWER' }",
+      "Step 3: Verify 201 Created response",
+      "Step 4: Verify invitation record created in database",
+      "Step 5: Verify invitation token generated (64 chars)",
+      "Step 6: Verify email sent via SendGrid",
+      "Step 7: Verify expiration set to 7 days",
+      "Step 8: Verify INSERT audit event logged"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Create invitation links existing user immediately",
+    "steps": [
+      "Step 1: Ensure target user exists in system",
+      "Step 2: Log in as account member",
+      "Step 3: Send POST /api/invitations for existing user's email",
+      "Step 4: Verify response { linked: true }",
+      "Step 5: Verify user_accounts record created",
+      "Step 6: Verify no email sent"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Create invitation prevents duplicate invitations",
+    "steps": [
+      "Step 1: Send invitation to email@example.com",
+      "Step 2: Attempt to send another invitation to same email for same account",
+      "Step 3: Verify error response about existing invitation"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "List invitations returns pending invitations for account",
+    "steps": [
+      "Step 1: Create multiple invitations for account",
+      "Step 2: Log in as account member",
+      "Step 3: Send GET /api/invitations",
+      "Step 4: Verify all pending invitations returned",
+      "Step 5: Verify accepted invitations not included"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Delete invitation revokes pending invitation",
+    "steps": [
+      "Step 1: Create an invitation",
+      "Step 2: Log in as MANAGER user",
+      "Step 3: Send DELETE /api/invitations/:id",
+      "Step 4: Verify 204 No Content",
+      "Step 5: Verify invitation deleted from database",
+      "Step 6: Verify DELETE audit event logged",
+      "Step 7: Verify token no longer works for acceptance"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Delete invitation requires MANAGER role",
+    "steps": [
+      "Step 1: Create an invitation",
+      "Step 2: Log in as VIEWER user",
+      "Step 3: Attempt DELETE /api/invitations/:id",
+      "Step 4: Verify 403 Forbidden"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Query audit logs returns paginated results",
+    "steps": [
+      "Step 1: Generate some audit events (login, create, update)",
+      "Step 2: Log in as ADMIN user",
+      "Step 3: Send GET /api/audits?page=1&limit=10",
+      "Step 4: Verify data array with audit logs",
+      "Step 5: Verify pagination meta"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Query audit logs filters by entity type",
+    "steps": [
+      "Step 1: Generate events for different entities",
+      "Step 2: Log in as ADMIN user",
+      "Step 3: Send GET /api/audits?entity=User",
+      "Step 4: Verify only User entity logs returned"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Query audit logs filters by action type",
+    "steps": [
+      "Step 1: Generate INSERT, UPDATE, DELETE events",
+      "Step 2: Log in as ADMIN user",
+      "Step 3: Send GET /api/audits?action=INSERT",
+      "Step 4: Verify only INSERT actions returned"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Query audit logs filters by entity ID",
+    "steps": [
+      "Step 1: Generate events for specific entity",
+      "Step 2: Log in as ADMIN user",
+      "Step 3: Send GET /api/audits?entityId=<uuid>",
+      "Step 4: Verify only logs for that entity returned"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Audit logs require ADMIN or ANALYTICS role",
+    "steps": [
+      "Step 1: Log in as VIEWER user",
+      "Step 2: Attempt GET /api/audits",
+      "Step 3: Verify 403 Forbidden",
+      "Step 4: Log in as ANALYTICS user",
+      "Step 5: Attempt GET /api/audits",
+      "Step 6: Verify 200 success"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Super admin sees audit logs for all accounts",
+    "steps": [
+      "Step 1: Create events in multiple accounts",
+      "Step 2: Log in as Super Admin",
+      "Step 3: Send GET /api/audits",
+      "Step 4: Verify logs from all accounts visible"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Regular admin sees only own account's audit logs",
+    "steps": [
+      "Step 1: Create events in multiple accounts",
+      "Step 2: Log in as regular ADMIN",
+      "Step 3: Send GET /api/audits",
+      "Step 4: Verify only current account's logs visible"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Generate presigned upload URL for R2",
+    "steps": [
+      "Step 1: Log in as authenticated user",
+      "Step 2: Send POST /api/storage/upload-url with { filename: 'test.jpg', contentType: 'image/jpeg' }",
+      "Step 3: Verify response contains uploadUrl",
+      "Step 4: Verify response contains key",
+      "Step 5: Verify response contains publicUrl"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Upload file directly to R2",
+    "steps": [
+      "Step 1: Log in as authenticated user",
+      "Step 2: Generate upload URL for file",
+      "Step 3: Send PUT /api/storage/upload/:key with file data",
+      "Step 4: Verify 200 response with key, url, size",
+      "Step 5: Verify file accessible at publicUrl"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Delete file from R2",
+    "steps": [
+      "Step 1: Upload a file to R2",
+      "Step 2: Log in as authenticated user",
+      "Step 3: Send DELETE /api/storage/:key",
+      "Step 4: Verify 204 No Content",
+      "Step 5: Verify file no longer accessible"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Storage endpoints require authentication",
+    "steps": [
+      "Step 1: Clear session cookies",
+      "Step 2: Attempt POST /api/storage/upload-url",
+      "Step 3: Verify 401 Unauthorized"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Health check returns status ok",
+    "steps": [
+      "Step 1: Send GET /health",
+      "Step 2: Verify 200 response",
+      "Step 3: Verify response contains { status: 'ok' }",
+      "Step 4: Verify timestamp is present",
+      "Step 5: Verify environment field present"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "OpenAPI documentation is accessible",
+    "steps": [
+      "Step 1: Send GET /api/doc",
+      "Step 2: Verify JSON response with OpenAPI schema",
+      "Step 3: Verify paths are documented",
+      "Step 4: Verify schemas are defined"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Swagger UI is accessible",
+    "steps": [
+      "Step 1: Navigate to /api/swagger",
+      "Step 2: Verify Swagger UI loads",
+      "Step 3: Verify endpoints are listed",
+      "Step 4: Verify Try It Out functionality works"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Request context includes transactionId for tracing",
+    "steps": [
+      "Step 1: Make an API request",
+      "Step 2: Check response headers for transaction ID",
+      "Step 3: Verify audit logs contain matching transactionId",
+      "Step 4: Verify related operations share same transactionId"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Account middleware extracts accountId from query parameter",
+    "steps": [
+      "Step 1: Log in as user with multiple accounts",
+      "Step 2: Send request with ?accountId=<uuid>",
+      "Step 3: Verify request is scoped to that account",
+      "Step 4: Verify response data from correct account"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Account middleware extracts accountId from header",
+    "steps": [
+      "Step 1: Log in as user with multiple accounts",
+      "Step 2: Send request with X-Account-Id header",
+      "Step 3: Verify request is scoped to that account"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Role hierarchy enforces permission levels",
+    "steps": [
+      "Step 1: Verify ADMIN > MANAGER > EDITOR > AUTHOR > VIEWER",
+      "Step 2: Test VIEWER cannot perform EDITOR actions",
+      "Step 3: Test EDITOR cannot perform MANAGER actions",
+      "Step 4: Test MANAGER cannot perform ADMIN actions",
+      "Step 5: Verify BILLING is non-hierarchical",
+      "Step 6: Verify ANALYTICS is non-hierarchical"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "VIEWER role has read-only access",
+    "steps": [
+      "Step 1: Log in as VIEWER user",
+      "Step 2: Verify GET requests succeed (list, get)",
+      "Step 3: Verify POST requests fail (create)",
+      "Step 4: Verify PATCH requests fail (update)",
+      "Step 5: Verify DELETE requests fail"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "EDITOR role can create and modify content",
+    "steps": [
+      "Step 1: Log in as EDITOR user",
+      "Step 2: Verify can create resources",
+      "Step 3: Verify can update resources",
+      "Step 4: Verify cannot manage users",
+      "Step 5: Verify cannot delete accounts"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "MANAGER role can manage team members",
+    "steps": [
+      "Step 1: Log in as MANAGER user",
+      "Step 2: Verify can create invitations",
+      "Step 3: Verify can revoke invitations",
+      "Step 4: Verify can assign users to accounts",
+      "Step 5: Verify cannot delete accounts"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "ADMIN role has full account management",
+    "steps": [
+      "Step 1: Log in as ADMIN user",
+      "Step 2: Verify can update account settings",
+      "Step 3: Verify can manage all users in account",
+      "Step 4: Verify can view audit logs",
+      "Step 5: Verify cannot create new accounts (super admin only)"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "BILLING role can access financial operations",
+    "steps": [
+      "Step 1: Log in as BILLING user",
+      "Step 2: Verify access to billing endpoints",
+      "Step 3: Verify cannot manage users",
+      "Step 4: Verify cannot modify account settings"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "ANALYTICS role can access reporting",
+    "steps": [
+      "Step 1: Log in as ANALYTICS user",
+      "Step 2: Verify can access audit logs",
+      "Step 3: Verify can access analytics endpoints",
+      "Step 4: Verify cannot modify data"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Landing page loads for unauthenticated users",
+    "steps": [
+      "Step 1: Clear all cookies",
+      "Step 2: Navigate to /",
+      "Step 3: Verify landing page displays",
+      "Step 4: Verify hero section visible",
+      "Step 5: Verify features section visible",
+      "Step 6: Verify CTA buttons work"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Login page displays Google OAuth button",
+    "steps": [
+      "Step 1: Navigate to /login",
+      "Step 2: Verify login card displays",
+      "Step 3: Verify Google sign-in button visible",
+      "Step 4: Click Google button",
+      "Step 5: Verify redirect to /auth/login"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Login page redirects authenticated users to dashboard",
+    "steps": [
+      "Step 1: Log in successfully",
+      "Step 2: Navigate to /login",
+      "Step 3: Verify automatic redirect to /dashboard"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Invitation page validates token and shows invitation details",
+    "steps": [
+      "Step 1: Create invitation for account",
+      "Step 2: Navigate to /invite/:token",
+      "Step 3: Verify invitation details displayed",
+      "Step 4: Verify account name shown",
+      "Step 5: Verify role shown",
+      "Step 6: Verify accept button visible"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Dashboard displays welcome message with user's name",
+    "steps": [
+      "Step 1: Log in as 'John Doe'",
+      "Step 2: Navigate to /dashboard",
+      "Step 3: Verify 'Welcome, John' or similar message displays"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Dashboard displays stats cards",
+    "steps": [
+      "Step 1: Log in as authenticated user",
+      "Step 2: Navigate to /dashboard",
+      "Step 3: Verify users count card visible",
+      "Step 4: Verify accounts count card visible",
+      "Step 5: Verify API requests card visible",
+      "Step 6: Verify uptime card visible"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Dashboard displays quick action cards",
+    "steps": [
+      "Step 1: Navigate to /dashboard",
+      "Step 2: Verify 'Invite Team' quick action visible",
+      "Step 3: Verify 'Database' quick action visible",
+      "Step 4: Verify 'Security' quick action visible",
+      "Step 5: Verify clicking action navigates correctly"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Team management page lists active members",
+    "steps": [
+      "Step 1: Add multiple users to account",
+      "Step 2: Navigate to /team",
+      "Step 3: Verify all active members listed",
+      "Step 4: Verify name, email, role displayed for each",
+      "Step 5: Verify avatar displayed for each"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Team management page supports search/filter",
+    "steps": [
+      "Step 1: Add multiple team members",
+      "Step 2: Navigate to /team",
+      "Step 3: Enter search query in search box",
+      "Step 4: Verify list filters by name/email",
+      "Step 5: Clear search and verify full list returns"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Team management invite member dialog opens",
+    "steps": [
+      "Step 1: Navigate to /team",
+      "Step 2: Click 'Invite Member' button",
+      "Step 3: Verify dialog opens",
+      "Step 4: Verify email input field present",
+      "Step 5: Verify role selector present",
+      "Step 6: Verify send button present"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Team management creates invitation from dialog",
+    "steps": [
+      "Step 1: Open invite dialog on /team",
+      "Step 2: Enter email address",
+      "Step 3: Select role from dropdown",
+      "Step 4: Click send button",
+      "Step 5: Verify success toast displayed",
+      "Step 6: Verify dialog closes",
+      "Step 7: Verify invitation appears in pending list"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Team management shows pending invitations with expiry",
+    "steps": [
+      "Step 1: Create several invitations",
+      "Step 2: Navigate to /team",
+      "Step 3: Scroll to pending invitations section",
+      "Step 4: Verify each invitation shows email",
+      "Step 5: Verify each shows expiry countdown",
+      "Step 6: Verify resend button visible",
+      "Step 7: Verify revoke button visible"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Team management can revoke pending invitation",
+    "steps": [
+      "Step 1: Create an invitation",
+      "Step 2: Navigate to /team",
+      "Step 3: Click revoke button on invitation",
+      "Step 4: Confirm in dialog if prompted",
+      "Step 5: Verify success toast",
+      "Step 6: Verify invitation removed from list"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Settings page displays user profile",
+    "steps": [
+      "Step 1: Navigate to /settings",
+      "Step 2: Verify profile card displays avatar",
+      "Step 3: Verify name displayed",
+      "Step 4: Verify email displayed"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Settings page allows profile editing",
+    "steps": [
+      "Step 1: Navigate to /settings",
+      "Step 2: Click edit profile button",
+      "Step 3: Modify name in form",
+      "Step 4: Submit form",
+      "Step 5: Verify success toast",
+      "Step 6: Verify name updated in display"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Settings page shows connected accounts",
+    "steps": [
+      "Step 1: Navigate to /settings",
+      "Step 2: Scroll to connected accounts section",
+      "Step 3: Verify Google account connection shown",
+      "Step 4: Verify connection status indicator"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Settings page shows notification preferences",
+    "steps": [
+      "Step 1: Navigate to /settings",
+      "Step 2: Find notification preferences section",
+      "Step 3: Verify toggle switches present",
+      "Step 4: Toggle a preference",
+      "Step 5: Verify preference persists on reload"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Account security page shows active sessions",
+    "steps": [
+      "Step 1: Navigate to /account",
+      "Step 2: Find active sessions section",
+      "Step 3: Verify current session listed",
+      "Step 4: Verify device/browser info shown",
+      "Step 5: Verify location info if available"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Account security page shows danger zone",
+    "steps": [
+      "Step 1: Navigate to /account",
+      "Step 2: Scroll to danger zone section",
+      "Step 3: Verify export data option visible",
+      "Step 4: Verify delete account option visible",
+      "Step 5: Verify actions require confirmation"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Account deletion requires confirmation",
+    "steps": [
+      "Step 1: Navigate to /account",
+      "Step 2: Click delete account button",
+      "Step 3: Verify confirmation dialog opens",
+      "Step 4: Verify warning message displayed",
+      "Step 5: Verify must type confirmation text",
+      "Step 6: Cancel and verify dialog closes"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Integrations page displays integration grid",
+    "steps": [
+      "Step 1: Navigate to /integrations",
+      "Step 2: Verify integration grid displays",
+      "Step 3: Verify Slack integration card",
+      "Step 4: Verify Discord integration card",
+      "Step 5: Verify Stripe integration card",
+      "Step 6: Verify GitHub integration card"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Integrations page supports category filtering",
+    "steps": [
+      "Step 1: Navigate to /integrations",
+      "Step 2: Find category filter",
+      "Step 3: Select a category",
+      "Step 4: Verify grid filters to show only that category"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Integrations page supports search",
+    "steps": [
+      "Step 1: Navigate to /integrations",
+      "Step 2: Enter search term (e.g., 'slack')",
+      "Step 3: Verify only matching integrations shown"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Integrations page webhook configuration section",
+    "steps": [
+      "Step 1: Navigate to /integrations",
+      "Step 2: Find webhooks section",
+      "Step 3: Click create webhook button",
+      "Step 4: Verify dialog opens with URL field",
+      "Step 5: Verify event selection available"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Sidebar navigation works correctly",
+    "steps": [
+      "Step 1: Log in and view sidebar",
+      "Step 2: Click Dashboard link",
+      "Step 3: Verify navigation to /dashboard",
+      "Step 4: Click Team link",
+      "Step 5: Verify navigation to /team",
+      "Step 6: Repeat for Settings, Account, Integrations"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Sidebar shows user profile card",
+    "steps": [
+      "Step 1: Log in as authenticated user",
+      "Step 2: View sidebar",
+      "Step 3: Verify avatar displayed",
+      "Step 4: Verify user name displayed",
+      "Step 5: Verify logout button accessible"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Sidebar logout button logs user out",
+    "steps": [
+      "Step 1: Log in and view sidebar",
+      "Step 2: Click logout button",
+      "Step 3: Verify session destroyed",
+      "Step 4: Verify redirect to login page"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Protected routes redirect unauthenticated users to login",
+    "steps": [
+      "Step 1: Clear session cookies",
+      "Step 2: Navigate to /dashboard",
+      "Step 3: Verify redirect to /login",
+      "Step 4: Navigate to /team",
+      "Step 5: Verify redirect to /login"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Form validation shows inline error messages",
+    "steps": [
+      "Step 1: Navigate to form (e.g., invite dialog)",
+      "Step 2: Submit with empty required fields",
+      "Step 3: Verify inline error messages appear",
+      "Step 4: Verify specific field validation messages"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Form submission shows loading state",
+    "steps": [
+      "Step 1: Fill out a form",
+      "Step 2: Click submit button",
+      "Step 3: Verify button shows loading indicator",
+      "Step 4: Verify button is disabled during submission"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Toast notifications appear for success actions",
+    "steps": [
+      "Step 1: Perform successful action (e.g., save settings)",
+      "Step 2: Verify success toast appears",
+      "Step 3: Verify toast has green styling",
+      "Step 4: Verify toast auto-dismisses"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Toast notifications appear for error actions",
+    "steps": [
+      "Step 1: Trigger an error (e.g., invalid form submission)",
+      "Step 2: Verify error toast appears",
+      "Step 3: Verify toast has red styling",
+      "Step 4: Verify error message is descriptive"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Error boundary catches and displays runtime errors",
+    "steps": [
+      "Step 1: Trigger a runtime error in component",
+      "Step 2: Verify error boundary catches error",
+      "Step 3: Verify error message displayed",
+      "Step 4: Verify retry button available",
+      "Step 5: Verify go home button available"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "404 page displays for unknown routes",
+    "steps": [
+      "Step 1: Navigate to /nonexistent-page",
+      "Step 2: Verify 404 page displays",
+      "Step 3: Verify helpful message shown",
+      "Step 4: Verify link to home page"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "API returns proper 404 for unknown endpoints",
+    "steps": [
+      "Step 1: Send GET /api/unknown-endpoint",
+      "Step 2: Verify 404 response status",
+      "Step 3: Verify error message in response body"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "API returns proper 401 for unauthenticated requests",
+    "steps": [
+      "Step 1: Clear all auth cookies/headers",
+      "Step 2: Send GET to protected endpoint",
+      "Step 3: Verify 401 Unauthorized response",
+      "Step 4: Verify no sensitive data leaked"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "API returns proper 403 for unauthorized actions",
+    "steps": [
+      "Step 1: Log in as VIEWER user",
+      "Step 2: Attempt admin-only action",
+      "Step 3: Verify 403 Forbidden response",
+      "Step 4: Verify meaningful error message"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "API validation returns 400 for invalid input",
+    "steps": [
+      "Step 1: Send POST with invalid JSON",
+      "Step 2: Verify 400 Bad Request response",
+      "Step 3: Verify validation errors listed",
+      "Step 4: Verify field-specific error messages"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "API handles malformed UUIDs gracefully",
+    "steps": [
+      "Step 1: Send GET /api/users/not-a-uuid",
+      "Step 2: Verify proper error response",
+      "Step 3: Verify no stack trace in production"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "CORS allows requests from configured origins",
+    "steps": [
+      "Step 1: Configure CORS_ORIGINS in env",
+      "Step 2: Make request from allowed origin",
+      "Step 3: Verify request succeeds",
+      "Step 4: Verify proper CORS headers in response"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "CORS blocks requests from unknown origins",
+    "steps": [
+      "Step 1: Make request from unlisted origin",
+      "Step 2: Verify CORS headers reject request",
+      "Step 3: Verify no data returned"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Session cookie has httpOnly flag",
+    "steps": [
+      "Step 1: Log in successfully",
+      "Step 2: Inspect session_id cookie",
+      "Step 3: Verify httpOnly flag is set",
+      "Step 4: Verify cookie not accessible via JavaScript"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Session cookie has secure flag in production",
+    "steps": [
+      "Step 1: Deploy to production",
+      "Step 2: Log in successfully",
+      "Step 3: Inspect session_id cookie",
+      "Step 4: Verify secure flag is set"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Session cookie has sameSite=Lax",
+    "steps": [
+      "Step 1: Log in successfully",
+      "Step 2: Inspect session_id cookie",
+      "Step 3: Verify sameSite attribute is Lax"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Soft deleted records are excluded from list queries",
+    "steps": [
+      "Step 1: Create a user",
+      "Step 2: Soft delete the user",
+      "Step 3: Query GET /api/users",
+      "Step 4: Verify deleted user not in results"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Soft deleted records preserve data integrity",
+    "steps": [
+      "Step 1: Create user with account relationships",
+      "Step 2: Soft delete the user",
+      "Step 3: Verify user record still in database",
+      "Step 4: Verify relationships intact",
+      "Step 5: Verify audit logs reference user"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Audit log captures IP address",
+    "steps": [
+      "Step 1: Perform an action that creates audit log",
+      "Step 2: Query audit logs for that action",
+      "Step 3: Verify ipAddress field populated"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Audit log captures User-Agent",
+    "steps": [
+      "Step 1: Perform an action from browser",
+      "Step 2: Query audit logs",
+      "Step 3: Verify userAgent field contains browser info"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Audit log captures before/after state for updates",
+    "steps": [
+      "Step 1: Update a user's name",
+      "Step 2: Query audit logs for UPDATE action",
+      "Step 3: Verify changes field contains old value",
+      "Step 4: Verify changes field contains new value"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Multiple accounts can have same user with different roles",
+    "steps": [
+      "Step 1: Create two accounts",
+      "Step 2: Add same user to both accounts",
+      "Step 3: Assign ADMIN role in account A",
+      "Step 4: Assign VIEWER role in account B",
+      "Step 5: Verify user has correct role in each context"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "User can switch between accounts",
+    "steps": [
+      "Step 1: Log in as user with multiple accounts",
+      "Step 2: Make request to account A",
+      "Step 3: Make request to account B",
+      "Step 4: Verify correct data isolation for each"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Test login endpoint works in development mode",
+    "steps": [
+      "Step 1: Set environment to development",
+      "Step 2: Send POST to /auth/test-login with user data",
+      "Step 3: Verify session created",
+      "Step 4: Verify can access protected routes"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Test login endpoint disabled in production",
+    "steps": [
+      "Step 1: Set environment to production",
+      "Step 2: Attempt POST to /auth/test-login",
+      "Step 3: Verify 404 or 403 response"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Landing page hero section has proper layout",
+    "steps": [
+      "Step 1: Navigate to /",
+      "Step 2: Take screenshot of hero section",
+      "Step 3: Verify headline is prominent",
+      "Step 4: Verify subheadline is readable",
+      "Step 5: Verify CTA buttons are prominent"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Login page card is centered on screen",
+    "steps": [
+      "Step 1: Navigate to /login",
+      "Step 2: Take screenshot",
+      "Step 3: Verify card is horizontally centered",
+      "Step 4: Verify card is vertically centered"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Dashboard uses consistent card styling",
+    "steps": [
+      "Step 1: Navigate to /dashboard",
+      "Step 2: Inspect all cards on page",
+      "Step 3: Verify consistent border radius",
+      "Step 4: Verify consistent shadow depth",
+      "Step 5: Verify consistent padding"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Primary buttons use brand color",
+    "steps": [
+      "Step 1: Find primary button on page",
+      "Step 2: Verify background matches brand color",
+      "Step 3: Verify text is readable on background",
+      "Step 4: Verify hover state changes color"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Secondary buttons have outline style",
+    "steps": [
+      "Step 1: Find secondary button on page",
+      "Step 2: Verify outline border visible",
+      "Step 3: Verify background is transparent",
+      "Step 4: Verify hover state fills background"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Destructive buttons use red color",
+    "steps": [
+      "Step 1: Find destructive button (e.g., delete)",
+      "Step 2: Verify red background color (#dc2626)",
+      "Step 3: Verify white text for contrast"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Avatar component shows user initials as fallback",
+    "steps": [
+      "Step 1: Find user without avatar URL",
+      "Step 2: View avatar component",
+      "Step 3: Verify initials displayed",
+      "Step 4: Verify initials derived from name"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Avatar component displays image when URL provided",
+    "steps": [
+      "Step 1: Find user with avatar URL",
+      "Step 2: View avatar component",
+      "Step 3: Verify image displays correctly",
+      "Step 4: Verify image is circular"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Badge component has correct variant styling",
+    "steps": [
+      "Step 1: Find badges on page (e.g., role badges)",
+      "Step 2: Verify default variant styling",
+      "Step 3: Verify secondary variant if present",
+      "Step 4: Verify destructive variant if present"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Input fields have focus ring on focus",
+    "steps": [
+      "Step 1: Find input field",
+      "Step 2: Click to focus input",
+      "Step 3: Verify focus ring appears",
+      "Step 4: Verify ring uses brand color"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Input fields show error state for validation",
+    "steps": [
+      "Step 1: Find input with validation",
+      "Step 2: Trigger validation error",
+      "Step 3: Verify red border appears",
+      "Step 4: Verify error message displays below"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Dialog modal has overlay backdrop",
+    "steps": [
+      "Step 1: Open any dialog",
+      "Step 2: Verify semi-transparent overlay behind",
+      "Step 3: Verify dialog content above overlay",
+      "Step 4: Verify clicking overlay closes dialog"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Dialog animates in with scale effect",
+    "steps": [
+      "Step 1: Open any dialog",
+      "Step 2: Observe animation",
+      "Step 3: Verify scale-in animation",
+      "Step 4: Verify animation is smooth (150ms)"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Skeleton loading states show pulse animation",
+    "steps": [
+      "Step 1: Navigate to page while data loading",
+      "Step 2: Observe skeleton elements",
+      "Step 3: Verify pulse animation active",
+      "Step 4: Verify skeletons match content layout"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Sidebar has correct width and background",
+    "steps": [
+      "Step 1: View sidebar on authenticated page",
+      "Step 2: Verify sidebar width is consistent",
+      "Step 3: Verify background color matches design",
+      "Step 4: Verify border separates from content"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Sidebar navigation links have hover states",
+    "steps": [
+      "Step 1: View sidebar navigation",
+      "Step 2: Hover over navigation link",
+      "Step 3: Verify background color changes",
+      "Step 4: Verify active link has distinct style"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Page headers have consistent typography",
+    "steps": [
+      "Step 1: Navigate through authenticated pages",
+      "Step 2: Compare page header styles",
+      "Step 3: Verify font size is consistent",
+      "Step 4: Verify font weight is consistent",
+      "Step 5: Verify spacing below header is consistent"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Tables have proper styling and hover states",
+    "steps": [
+      "Step 1: Find table on team or users page",
+      "Step 2: Verify header row styling",
+      "Step 3: Verify alternating row colors or borders",
+      "Step 4: Hover over row",
+      "Step 5: Verify hover highlight effect"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Separators use correct border color",
+    "steps": [
+      "Step 1: Find horizontal separator",
+      "Step 2: Verify color matches design system",
+      "Step 3: Verify thickness is 1px"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Dark mode uses correct background colors",
+    "steps": [
+      "Step 1: Enable dark mode",
+      "Step 2: Verify background is near-black (#0a0a0a)",
+      "Step 3: Verify card background matches spec",
+      "Step 4: Verify foreground text is off-white (#fafafa)"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Dark mode uses correct border colors",
+    "steps": [
+      "Step 1: Enable dark mode",
+      "Step 2: Inspect card borders",
+      "Step 3: Verify border color is dark gray (#262626)"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Light mode uses correct background colors",
+    "steps": [
+      "Step 1: Ensure light mode active",
+      "Step 2: Verify background is white (#ffffff)",
+      "Step 3: Verify foreground text is near-black (#0a0a0a)"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Light mode uses correct border colors",
+    "steps": [
+      "Step 1: Ensure light mode active",
+      "Step 2: Inspect card borders",
+      "Step 3: Verify border color is light gray (#e5e5e5)"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Typography uses Inter font family",
+    "steps": [
+      "Step 1: Load any page",
+      "Step 2: Inspect body font-family",
+      "Step 3: Verify Inter is primary font",
+      "Step 4: Verify system-ui as fallback"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Code/monospace uses JetBrains Mono",
+    "steps": [
+      "Step 1: Find code element on page",
+      "Step 2: Inspect font-family",
+      "Step 3: Verify JetBrains Mono is primary",
+      "Step 4: Verify Consolas as fallback"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Text sizing follows scale (xs through 3xl)",
+    "steps": [
+      "Step 1: Find text elements on page",
+      "Step 2: Verify text-sm is 0.875rem",
+      "Step 3: Verify text-base is 1rem",
+      "Step 4: Verify text-lg is 1.125rem"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Spacing uses 4px base scale",
+    "steps": [
+      "Step 1: Inspect padding on various elements",
+      "Step 2: Verify p-2 equals 8px",
+      "Step 3: Verify p-4 equals 16px",
+      "Step 4: Verify gap-4 equals 16px"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Border radius matches design system",
+    "steps": [
+      "Step 1: Find various rounded elements",
+      "Step 2: Verify rounded-md equals 6px",
+      "Step 3: Verify rounded-lg equals 8px",
+      "Step 4: Verify avatars use rounded-full"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Shadows provide appropriate elevation",
+    "steps": [
+      "Step 1: Find elevated cards",
+      "Step 2: Verify shadow provides depth",
+      "Step 3: Verify modals have larger shadow",
+      "Step 4: Verify dropdowns have shadow-lg"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Transitions use 150ms ease-in-out",
+    "steps": [
+      "Step 1: Hover over button",
+      "Step 2: Observe transition smoothness",
+      "Step 3: Verify transition duration is 150ms"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Page transitions use fade-in animation",
+    "steps": [
+      "Step 1: Navigate between pages",
+      "Step 2: Observe page transition",
+      "Step 3: Verify fade effect applied"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Mobile sidebar collapses correctly",
+    "steps": [
+      "Step 1: Resize to mobile viewport (< 768px)",
+      "Step 2: Verify sidebar is hidden",
+      "Step 3: Verify hamburger menu appears",
+      "Step 4: Click hamburger",
+      "Step 5: Verify sidebar slides in"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Mobile layout adjusts padding and margins",
+    "steps": [
+      "Step 1: View page on mobile viewport",
+      "Step 2: Verify reduced padding on edges",
+      "Step 3: Verify content fits screen width",
+      "Step 4: Verify no horizontal scroll needed"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Tablet layout shows intermediate design",
+    "steps": [
+      "Step 1: Resize to tablet viewport (768-1024px)",
+      "Step 2: Verify layout adapts appropriately",
+      "Step 3: Verify cards may stack or reduce columns"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Toast notifications appear in bottom-right",
+    "steps": [
+      "Step 1: Trigger a toast notification",
+      "Step 2: Verify toast appears in bottom-right",
+      "Step 3: Verify toast has proper padding",
+      "Step 4: Verify toast has close button"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Success toast has green styling",
+    "steps": [
+      "Step 1: Trigger success action",
+      "Step 2: Observe success toast",
+      "Step 3: Verify green accent color",
+      "Step 4: Verify checkmark icon if present"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Error toast has red styling",
+    "steps": [
+      "Step 1: Trigger error action",
+      "Step 2: Observe error toast",
+      "Step 3: Verify red accent color",
+      "Step 4: Verify error icon if present"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Main content has max-width constraint",
+    "steps": [
+      "Step 1: View page on wide screen",
+      "Step 2: Verify content has max-width",
+      "Step 3: Verify content is centered",
+      "Step 4: Verify side margins grow on ultra-wide"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Form labels are properly associated with inputs",
+    "steps": [
+      "Step 1: Find form with labels",
+      "Step 2: Verify labels use htmlFor attribute",
+      "Step 3: Click label and verify input focuses"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Loading buttons show spinner icon",
+    "steps": [
+      "Step 1: Submit a form",
+      "Step 2: Observe button during submission",
+      "Step 3: Verify spinner animation visible",
+      "Step 4: Verify button text may change to 'Loading...'"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Keyboard navigation works for all interactive elements",
+    "steps": [
+      "Step 1: Start at top of page",
+      "Step 2: Press Tab to navigate through elements",
+      "Step 3: Verify all buttons, links, inputs are reachable",
+      "Step 4: Verify focus indicators are visible",
+      "Step 5: Press Enter to activate focused button"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Escape key closes open dialogs",
+    "steps": [
+      "Step 1: Open any dialog",
+      "Step 2: Press Escape key",
+      "Step 3: Verify dialog closes",
+      "Step 4: Verify focus returns to trigger element"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Focus trap works in modal dialogs",
+    "steps": [
+      "Step 1: Open modal dialog",
+      "Step 2: Tab through dialog elements",
+      "Step 3: Verify focus stays within dialog",
+      "Step 4: Verify cannot Tab to elements behind modal"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Form submits on Enter key in text fields",
+    "steps": [
+      "Step 1: Fill out form completely",
+      "Step 2: Focus on text input",
+      "Step 3: Press Enter",
+      "Step 4: Verify form submits"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Color contrast meets WCAG AA standards",
+    "steps": [
+      "Step 1: Run contrast checker on text/background",
+      "Step 2: Verify body text has 4.5:1 ratio",
+      "Step 3: Verify large text has 3:1 ratio",
+      "Step 4: Check both light and dark modes"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "ARIA labels present on icon-only buttons",
+    "steps": [
+      "Step 1: Find icon-only buttons",
+      "Step 2: Verify aria-label attribute present",
+      "Step 3: Verify label describes action"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Screen reader announces page title changes",
+    "steps": [
+      "Step 1: Enable screen reader",
+      "Step 2: Navigate between pages",
+      "Step 3: Verify page title announced"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Images have alt text",
+    "steps": [
+      "Step 1: Find images on page",
+      "Step 2: Verify alt attribute present",
+      "Step 3: Verify alt text is descriptive"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Pagination works correctly with keyboard",
+    "steps": [
+      "Step 1: Navigate to paginated list",
+      "Step 2: Tab to pagination controls",
+      "Step 3: Press Enter on next page",
+      "Step 4: Verify page content updates"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Page load time under 500ms on edge",
+    "steps": [
+      "Step 1: Clear browser cache",
+      "Step 2: Navigate to dashboard",
+      "Step 3: Measure time to first contentful paint",
+      "Step 4: Verify under 500ms"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "API response time under 100ms",
+    "steps": [
+      "Step 1: Make API request",
+      "Step 2: Measure response time",
+      "Step 3: Verify under 100ms for simple queries"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Optimistic updates provide instant feedback",
+    "steps": [
+      "Step 1: Perform update action (e.g., toggle)",
+      "Step 2: Verify UI updates immediately",
+      "Step 3: Verify no loading spinner for optimistic actions"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Failed optimistic updates rollback correctly",
+    "steps": [
+      "Step 1: Trigger optimistic update",
+      "Step 2: Simulate server error",
+      "Step 3: Verify UI rolls back to previous state",
+      "Step 4: Verify error toast displayed"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Network errors show retry option",
+    "steps": [
+      "Step 1: Disconnect network",
+      "Step 2: Attempt to load data",
+      "Step 3: Verify network error message",
+      "Step 4: Reconnect network",
+      "Step 5: Click retry button",
+      "Step 6: Verify data loads"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "TanStack Query caches data correctly",
+    "steps": [
+      "Step 1: Load page with data",
+      "Step 2: Navigate away",
+      "Step 3: Navigate back",
+      "Step 4: Verify data displays instantly from cache",
+      "Step 5: Verify background refetch occurs"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Stale data is refetched on window focus",
+    "steps": [
+      "Step 1: Load page with data",
+      "Step 2: Switch to different browser tab",
+      "Step 3: Wait for stale time to pass",
+      "Step 4: Switch back to app tab",
+      "Step 5: Verify data refetch triggered"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "File upload progress shows percentage",
+    "steps": [
+      "Step 1: Upload a large file",
+      "Step 2: Verify progress indicator appears",
+      "Step 3: Verify percentage increases",
+      "Step 4: Verify completion shows 100%"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "File upload cancellation works",
+    "steps": [
+      "Step 1: Start uploading large file",
+      "Step 2: Click cancel button",
+      "Step 3: Verify upload stops",
+      "Step 4: Verify partial file cleaned up"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Invalid file types rejected on upload",
+    "steps": [
+      "Step 1: Attempt to upload disallowed file type",
+      "Step 2: Verify error message about file type",
+      "Step 3: Verify upload does not proceed"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "File size limits enforced on upload",
+    "steps": [
+      "Step 1: Attempt to upload file exceeding size limit",
+      "Step 2: Verify error message about file size",
+      "Step 3: Verify upload does not proceed"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Drizzle ORM generates correct SQL for queries",
+    "steps": [
+      "Step 1: Make API request that triggers query",
+      "Step 2: Enable query logging",
+      "Step 3: Verify SQL is efficient",
+      "Step 4: Verify no N+1 queries"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Database indexes are used for common queries",
+    "steps": [
+      "Step 1: Query users by email",
+      "Step 2: Verify index scan in query plan",
+      "Step 3: Query audit logs by timestamp",
+      "Step 4: Verify index is used"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Concurrent requests handled correctly",
+    "steps": [
+      "Step 1: Send multiple parallel requests",
+      "Step 2: Verify all complete successfully",
+      "Step 3: Verify no race conditions in data",
+      "Step 4: Verify transaction isolation maintained"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Long-running operations don't block other requests",
+    "steps": [
+      "Step 1: Start slow operation (e.g., large export)",
+      "Step 2: Make other API requests",
+      "Step 3: Verify other requests complete quickly"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Email invitation contains correct link",
+    "steps": [
+      "Step 1: Create invitation",
+      "Step 2: Capture sent email content",
+      "Step 3: Verify invitation link format",
+      "Step 4: Verify link includes token",
+      "Step 5: Click link and verify it works"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Email invitation shows account name",
+    "steps": [
+      "Step 1: Create invitation for 'Acme Corp'",
+      "Step 2: Capture sent email",
+      "Step 3: Verify 'Acme Corp' appears in email",
+      "Step 4: Verify inviter's name appears"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Invitation email uses correct sender address",
+    "steps": [
+      "Step 1: Configure SENDGRID_FROM_EMAIL",
+      "Step 2: Create invitation",
+      "Step 3: Verify email From matches config"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "URL state preserved for redirect parameter",
+    "steps": [
+      "Step 1: Navigate to /dashboard as unauthenticated",
+      "Step 2: Verify redirect to /login?redirect=/dashboard",
+      "Step 3: Complete login",
+      "Step 4: Verify redirect to /dashboard"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Browser back button works correctly",
+    "steps": [
+      "Step 1: Navigate dashboard → team → settings",
+      "Step 2: Click browser back button",
+      "Step 3: Verify navigate to team",
+      "Step 4: Click back again",
+      "Step 5: Verify navigate to dashboard"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "TanStack Router file-based routing works",
+    "steps": [
+      "Step 1: Navigate to /dashboard",
+      "Step 2: Verify correct route component loads",
+      "Step 3: Navigate to /team",
+      "Step 4: Verify correct component loads"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Route params extracted correctly",
+    "steps": [
+      "Step 1: Navigate to /invite/:token",
+      "Step 2: Verify token param extracted",
+      "Step 3: Verify component receives token value"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Query parameters preserved across navigation",
+    "steps": [
+      "Step 1: Navigate to /team?filter=admin",
+      "Step 2: Verify filter param used",
+      "Step 3: Navigate to subpage and back",
+      "Step 4: Verify filter param retained if appropriate"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "React Hook Form validates on blur",
+    "steps": [
+      "Step 1: Focus form field",
+      "Step 2: Enter invalid value",
+      "Step 3: Blur field (click away)",
+      "Step 4: Verify validation error shows"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Zod schema validation produces helpful errors",
+    "steps": [
+      "Step 1: Submit form with invalid data",
+      "Step 2: Verify error messages are human-readable",
+      "Step 3: Verify errors point to specific fields"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Form reset clears all fields and errors",
+    "steps": [
+      "Step 1: Fill form with some errors",
+      "Step 2: Click reset/cancel button",
+      "Step 3: Verify all fields cleared",
+      "Step 4: Verify error messages cleared"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Select/dropdown keyboard navigation works",
+    "steps": [
+      "Step 1: Focus select field",
+      "Step 2: Press Enter/Space to open",
+      "Step 3: Use arrow keys to navigate options",
+      "Step 4: Press Enter to select",
+      "Step 5: Verify selection applied"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Build completes without errors",
+    "steps": [
+      "Step 1: Run pnpm build",
+      "Step 2: Verify no TypeScript errors",
+      "Step 3: Verify no build warnings",
+      "Step 4: Verify output files generated"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "TypeScript strict mode passes",
+    "steps": [
+      "Step 1: Run pnpm typecheck",
+      "Step 2: Verify no type errors",
+      "Step 3: Verify strict null checks pass"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "ESLint passes without errors",
+    "steps": [
+      "Step 1: Run pnpm lint",
+      "Step 2: Verify no linting errors",
+      "Step 3: Verify code follows style guide"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Unit tests achieve 95% coverage on server",
+    "steps": [
+      "Step 1: Run pnpm test:coverage",
+      "Step 2: Verify server code at 95%+ coverage",
+      "Step 3: Verify all services tested",
+      "Step 4: Verify all routes tested"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Unit tests achieve 90% coverage on client",
+    "steps": [
+      "Step 1: Run pnpm test:client --coverage",
+      "Step 2: Verify client code at 90%+ coverage",
+      "Step 3: Verify components tested"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "E2E tests pass on Chromium",
+    "steps": [
+      "Step 1: Run pnpm test:e2e --project=chromium",
+      "Step 2: Verify all tests pass",
+      "Step 3: Verify no flaky tests"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "E2E tests pass on Firefox",
+    "steps": [
+      "Step 1: Run pnpm test:e2e --project=firefox",
+      "Step 2: Verify all tests pass"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "E2E tests pass on WebKit",
+    "steps": [
+      "Step 1: Run pnpm test:e2e --project=webkit",
+      "Step 2: Verify all tests pass"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Smoke tests verify basic app functionality",
+    "steps": [
+      "Step 1: Run pnpm test:e2e --grep @smoke",
+      "Step 2: Verify health check passes",
+      "Step 3: Verify login flow works",
+      "Step 4: Verify basic navigation works"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Critical path tests must all pass",
+    "steps": [
+      "Step 1: Run pnpm test:e2e --grep @critical",
+      "Step 2: Verify auth flow passes",
+      "Step 3: Verify core CRUD operations pass"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Deployment to Cloudflare Workers succeeds",
+    "steps": [
+      "Step 1: Run pnpm deploy",
+      "Step 2: Verify wrangler deploys successfully",
+      "Step 3: Verify worker URL accessible",
+      "Step 4: Verify D1 migrations applied"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Environment variables work in production",
+    "steps": [
+      "Step 1: Set secrets via wrangler",
+      "Step 2: Deploy to Cloudflare",
+      "Step 3: Verify OAuth works with secrets",
+      "Step 4: Verify JWT signing works"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "D1 migrations run without errors",
+    "steps": [
+      "Step 1: Run pnpm db:migrate:local",
+      "Step 2: Verify all migrations apply",
+      "Step 3: Verify schema matches expected"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Database seeding creates test data",
+    "steps": [
+      "Step 1: Run pnpm db:seed",
+      "Step 2: Verify test users created",
+      "Step 3: Verify test accounts created",
+      "Step 4: Verify relationships established"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Cloudflare type generation works",
+    "steps": [
+      "Step 1: Run pnpm cf-typegen",
+      "Step 2: Verify types generated",
+      "Step 3: Verify bindings typed correctly"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "R2 bucket accessible from worker",
+    "steps": [
+      "Step 1: Deploy worker with R2 binding",
+      "Step 2: Upload file via API",
+      "Step 3: Verify file stored in R2",
+      "Step 4: Verify file accessible via URL"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "KV namespace stores sessions correctly",
+    "steps": [
+      "Step 1: Log in to application",
+      "Step 2: Verify session stored in KV",
+      "Step 3: Read session data from KV",
+      "Step 4: Verify session data is correct"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Path aliases resolve correctly (@/, @shared/, @server/)",
+    "steps": [
+      "Step 1: Use @/ import in client code",
+      "Step 2: Use @shared/ import",
+      "Step 3: Use @server/ import in server code",
+      "Step 4: Verify all imports resolve",
+      "Step 5: Verify build succeeds"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Environment-specific configuration loads correctly",
+    "steps": [
+      "Step 1: Set ENVIRONMENT to development",
+      "Step 2: Verify dev-specific features enabled",
+      "Step 3: Set ENVIRONMENT to production",
+      "Step 4: Verify prod-specific features enabled"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Error messages sanitized in production",
+    "steps": [
+      "Step 1: Trigger error in production mode",
+      "Step 2: Verify no stack trace in response",
+      "Step 3: Verify generic error message shown"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Integration cards have consistent sizing",
+    "steps": [
+      "Step 1: Navigate to /integrations",
+      "Step 2: Verify all cards same size",
+      "Step 3: Verify logo placement consistent",
+      "Step 4: Verify description truncation consistent"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Stats cards on dashboard have icons",
+    "steps": [
+      "Step 1: Navigate to /dashboard",
+      "Step 2: Verify each stat card has icon",
+      "Step 3: Verify icons are appropriately sized"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Empty states have helpful messaging",
+    "steps": [
+      "Step 1: View page with no data (e.g., no team members)",
+      "Step 2: Verify empty state illustration or icon",
+      "Step 3: Verify helpful message explains how to add data"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Dropdown menus align correctly",
+    "steps": [
+      "Step 1: Click dropdown trigger",
+      "Step 2: Verify menu aligns to trigger",
+      "Step 3: Verify menu doesn't overflow viewport"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Tooltips appear on hover for truncated text",
+    "steps": [
+      "Step 1: Find truncated text element",
+      "Step 2: Hover over it",
+      "Step 3: Verify tooltip shows full text"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Console has no errors in production",
+    "steps": [
+      "Step 1: Load application in production mode",
+      "Step 2: Open browser console",
+      "Step 3: Navigate through all pages",
+      "Step 4: Verify no JavaScript errors"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Console has no warnings in production",
+    "steps": [
+      "Step 1: Load application in production mode",
+      "Step 2: Open browser console",
+      "Step 3: Navigate through all pages",
+      "Step 4: Verify no React warnings"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Sensitive data not logged to console",
+    "steps": [
+      "Step 1: Enable console logging",
+      "Step 2: Perform authentication",
+      "Step 3: Verify no passwords in logs",
+      "Step 4: Verify no tokens in logs",
+      "Step 5: Verify no secrets in logs"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "API rate limiting prevents abuse",
+    "steps": [
+      "Step 1: Configure rate limits",
+      "Step 2: Send requests exceeding limit",
+      "Step 3: Verify 429 Too Many Requests",
+      "Step 4: Verify retry-after header"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Input sanitization prevents XSS",
+    "steps": [
+      "Step 1: Enter script tag in input field",
+      "Step 2: Submit form",
+      "Step 3: Verify script is escaped in display",
+      "Step 4: Verify no XSS execution"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "SQL injection prevented by parameterized queries",
+    "steps": [
+      "Step 1: Enter SQL injection attempt in search",
+      "Step 2: Submit query",
+      "Step 3: Verify query is parameterized",
+      "Step 4: Verify no SQL injection executed"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "CSRF protection via session cookies",
+    "steps": [
+      "Step 1: Verify session cookies have SameSite",
+      "Step 2: Attempt cross-site request",
+      "Step 3: Verify request fails or is rejected"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Account domain uniqueness enforced",
+    "steps": [
+      "Step 1: Create account with domain 'acme.com'",
+      "Step 2: Attempt to create another with same domain",
+      "Step 3: Verify error about duplicate domain"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "User googleId uniqueness enforced",
+    "steps": [
+      "Step 1: Create user with googleId 'abc123'",
+      "Step 2: Attempt to create another with same googleId",
+      "Step 3: Verify error or existing user returned"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Invitation (accountId, email) uniqueness enforced",
+    "steps": [
+      "Step 1: Create invitation for email in account",
+      "Step 2: Attempt duplicate invitation",
+      "Step 3: Verify error about existing invitation"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Primary key constraints work on user_accounts",
+    "steps": [
+      "Step 1: Add user to account",
+      "Step 2: Attempt to add same user-account pair",
+      "Step 3: Verify constraint error"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "CASCADE delete removes user_accounts on user delete",
+    "steps": [
+      "Step 1: Create user with account memberships",
+      "Step 2: Hard delete user (bypass soft delete for test)",
+      "Step 3: Verify user_accounts records deleted"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "CASCADE delete removes user_accounts on account delete",
+    "steps": [
+      "Step 1: Create account with user memberships",
+      "Step 2: Hard delete account (bypass soft delete for test)",
+      "Step 3: Verify user_accounts records deleted"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Refresh token is hashed before storage",
+    "steps": [
+      "Step 1: Generate refresh token",
+      "Step 2: Store token in database",
+      "Step 3: Query token record",
+      "Step 4: Verify stored value is SHA-256 hash",
+      "Step 5: Verify original token cannot be recovered"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "JWT_SECRET must be at least 32 characters",
+    "steps": [
+      "Step 1: Set JWT_SECRET to short value",
+      "Step 2: Attempt to start application",
+      "Step 3: Verify startup fails with error",
+      "Step 4: Set JWT_SECRET to 32+ chars",
+      "Step 5: Verify startup succeeds"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Session expiry removes access",
+    "steps": [
+      "Step 1: Create session with short expiry",
+      "Step 2: Wait for expiry",
+      "Step 3: Attempt to use expired session",
+      "Step 4: Verify 401 response"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Invitation expiry after 7 days",
+    "steps": [
+      "Step 1: Create invitation",
+      "Step 2: Verify expiresAt is 7 days from now",
+      "Step 3: Manually set expiresAt to past",
+      "Step 4: Attempt to accept invitation",
+      "Step 5: Verify expiration error"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Presigned upload URL expires after 1 hour",
+    "steps": [
+      "Step 1: Generate presigned URL",
+      "Step 2: Wait or manually expire",
+      "Step 3: Attempt to use expired URL",
+      "Step 4: Verify upload fails"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Complete new user onboarding journey from invitation to dashboard",
+    "steps": [
+      "Step 1: Admin creates invitation for new user email with EDITOR role",
+      "Step 2: Verify invitation email is sent with correct link and account name",
+      "Step 3: New user clicks invitation link in email",
+      "Step 4: Verify invitation page shows account name and role",
+      "Step 5: New user clicks accept and is redirected to Google OAuth",
+      "Step 6: Complete Google OAuth authentication",
+      "Step 7: Verify new user record is created with correct email and name",
+      "Step 8: Verify user is automatically added to invited account with EDITOR role",
+      "Step 9: Verify SIGNUP audit event is logged with transaction ID",
+      "Step 10: Verify redirect to dashboard with welcome message",
+      "Step 11: Verify sidebar shows correct user profile",
+      "Step 12: Verify user can access team page but cannot delete users"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Complete team member lifecycle from invite to removal",
+    "steps": [
+      "Step 1: Log in as account ADMIN user",
+      "Step 2: Navigate to team management page",
+      "Step 3: Click invite member button",
+      "Step 4: Enter new member email and select VIEWER role",
+      "Step 5: Submit invitation and verify success toast",
+      "Step 6: Verify invitation appears in pending list with 7-day expiry",
+      "Step 7: New member accepts invitation and logs in",
+      "Step 8: Verify new member appears in active members list",
+      "Step 9: Admin changes member role from VIEWER to EDITOR",
+      "Step 10: Verify audit log shows role change with before/after state",
+      "Step 11: Admin removes member from account",
+      "Step 12: Verify member no longer in active list",
+      "Step 13: Verify member can no longer access account resources"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Complete user profile update journey with all validations",
+    "steps": [
+      "Step 1: Log in as authenticated user",
+      "Step 2: Navigate to settings page",
+      "Step 3: Verify current profile information displayed",
+      "Step 4: Click edit profile button",
+      "Step 5: Clear name field and attempt to save",
+      "Step 6: Verify validation error for empty name",
+      "Step 7: Enter valid new name",
+      "Step 8: Submit form and verify loading state on button",
+      "Step 9: Verify success toast appears",
+      "Step 10: Verify profile card shows updated name",
+      "Step 11: Navigate away and back to settings",
+      "Step 12: Verify updated name persists from database"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Complete audit log investigation workflow",
+    "steps": [
+      "Step 1: Perform several actions (create user, update user, delete user)",
+      "Step 2: Log in as ADMIN or ANALYTICS user",
+      "Step 3: Navigate to audit logs (or use API)",
+      "Step 4: Verify all recent actions appear in log",
+      "Step 5: Filter by entity type 'User'",
+      "Step 6: Verify only User events shown",
+      "Step 7: Filter by action type 'UPDATE'",
+      "Step 8: Verify only UPDATE actions shown",
+      "Step 9: Click on specific audit entry",
+      "Step 10: Verify changes field shows before/after values",
+      "Step 11: Verify IP address and user agent captured",
+      "Step 12: Verify transaction ID groups related operations"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Complete file upload and management workflow",
+    "steps": [
+      "Step 1: Log in as authenticated user",
+      "Step 2: Navigate to file storage area",
+      "Step 3: Click upload button",
+      "Step 4: Select file from local system",
+      "Step 5: Verify file type validation (if applicable)",
+      "Step 6: Verify file size validation (if applicable)",
+      "Step 7: Start upload and verify progress indicator",
+      "Step 8: Wait for upload completion (100%)",
+      "Step 9: Verify success message and file appears in list",
+      "Step 10: Click to view/download file",
+      "Step 11: Verify file is accessible via public URL",
+      "Step 12: Delete file and verify removal from list",
+      "Step 13: Verify file no longer accessible via URL"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Complete multi-account user experience",
+    "steps": [
+      "Step 1: Super admin creates Account A",
+      "Step 2: Super admin creates Account B",
+      "Step 3: Add same user to Account A with ADMIN role",
+      "Step 4: Add same user to Account B with VIEWER role",
+      "Step 5: Log in as that user",
+      "Step 6: Verify user can see both accounts in account list",
+      "Step 7: Switch to Account A context",
+      "Step 8: Verify full ADMIN capabilities (edit account, manage users)",
+      "Step 9: Switch to Account B context",
+      "Step 10: Verify restricted VIEWER capabilities (read-only)",
+      "Step 11: Attempt admin action in Account B",
+      "Step 12: Verify 403 Forbidden response"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Complete OAuth login flow with PKCE security",
+    "steps": [
+      "Step 1: Navigate to /login page",
+      "Step 2: Click Google sign-in button",
+      "Step 3: Verify redirect to Google with state parameter",
+      "Step 4: Verify PKCE code_challenge in OAuth URL",
+      "Step 5: Complete Google authentication",
+      "Step 6: Verify callback receives authorization code",
+      "Step 7: Verify code_verifier is used to exchange code for tokens",
+      "Step 8: Verify session is created in KV store",
+      "Step 9: Verify session_id cookie is set with httpOnly, secure, sameSite",
+      "Step 10: Verify redirect to dashboard",
+      "Step 11: Verify /auth/me returns correct user info",
+      "Step 12: Verify LOGIN audit event logged with IP and user agent"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Complete error recovery and retry workflow",
+    "steps": [
+      "Step 1: Log in as authenticated user",
+      "Step 2: Navigate to page that loads data",
+      "Step 3: Disconnect network to simulate failure",
+      "Step 4: Attempt to navigate to another page",
+      "Step 5: Verify network error message displayed",
+      "Step 6: Verify retry button is available",
+      "Step 7: Reconnect network",
+      "Step 8: Click retry button",
+      "Step 9: Verify data loads successfully",
+      "Step 10: Verify no error state remains",
+      "Step 11: Verify TanStack Query cache is updated",
+      "Step 12: Navigate away and back to verify cache works"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Complete form validation and submission workflow",
+    "steps": [
+      "Step 1: Navigate to form (invite member dialog)",
+      "Step 2: Click submit without filling fields",
+      "Step 3: Verify inline validation errors appear",
+      "Step 4: Enter invalid email format",
+      "Step 5: Verify email validation error",
+      "Step 6: Enter valid email",
+      "Step 7: Verify email validation error clears",
+      "Step 8: Select role from dropdown using keyboard",
+      "Step 9: Press Enter to submit form",
+      "Step 10: Verify loading state on submit button",
+      "Step 11: Verify button is disabled during submission",
+      "Step 12: Verify success toast on completion",
+      "Step 13: Verify form resets for next entry"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Complete pagination and search workflow",
+    "steps": [
+      "Step 1: Seed database with 50+ users",
+      "Step 2: Navigate to users list page",
+      "Step 3: Verify first page shows 10 users",
+      "Step 4: Verify pagination shows total count",
+      "Step 5: Click next page button",
+      "Step 6: Verify second page of users loads",
+      "Step 7: Verify URL updates with page parameter",
+      "Step 8: Enter search term in search box",
+      "Step 9: Verify list filters to matching users",
+      "Step 10: Verify pagination resets to page 1",
+      "Step 11: Clear search",
+      "Step 12: Verify full list returns with original pagination"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Complete session lifecycle from login to logout",
+    "steps": [
+      "Step 1: Navigate to login page",
+      "Step 2: Complete Google OAuth login",
+      "Step 3: Verify session cookie is set",
+      "Step 4: Access protected route successfully",
+      "Step 5: Note session creation time",
+      "Step 6: Wait or manually advance time near expiry",
+      "Step 7: Verify session refresh occurs automatically",
+      "Step 8: Click logout button",
+      "Step 9: Verify session is deleted from KV",
+      "Step 10: Verify session cookie is cleared",
+      "Step 11: Verify redirect to login page",
+      "Step 12: Attempt to access protected route",
+      "Step 13: Verify redirect to login with 401"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Complete account creation and configuration by super admin",
+    "steps": [
+      "Step 1: Log in as Super Admin",
+      "Step 2: Navigate to account management",
+      "Step 3: Click create new account",
+      "Step 4: Enter account name 'Acme Corporation'",
+      "Step 5: Add optional description",
+      "Step 6: Submit and verify 201 Created",
+      "Step 7: Verify INSERT audit event logged",
+      "Step 8: Navigate to new account settings",
+      "Step 9: Update account description",
+      "Step 10: Verify UPDATE audit event with changes",
+      "Step 11: Add first user to account as ADMIN",
+      "Step 12: Verify user can access new account"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Complete soft delete and restore workflow for user",
+    "steps": [
+      "Step 1: Log in as ADMIN user",
+      "Step 2: Create a new user or select existing user",
+      "Step 3: Verify user appears in active users list",
+      "Step 4: Click delete user button",
+      "Step 5: Confirm deletion in dialog",
+      "Step 6: Verify user removed from active list",
+      "Step 7: Verify DELETE audit event logged",
+      "Step 8: Query database to confirm deletedAt is set",
+      "Step 9: Log in as Super Admin",
+      "Step 10: Navigate to deleted users (or API)",
+      "Step 11: Click restore user",
+      "Step 12: Verify user reappears in active list",
+      "Step 13: Verify user's account relationships preserved"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Complete RBAC enforcement across all operations",
+    "steps": [
+      "Step 1: Create test account with users in each role",
+      "Step 2: Log in as VIEWER",
+      "Step 3: Verify can list users (GET succeeds)",
+      "Step 4: Attempt to create user (POST fails 403)",
+      "Step 5: Log in as EDITOR",
+      "Step 6: Verify can create resources",
+      "Step 7: Attempt to manage invitations (fails 403)",
+      "Step 8: Log in as MANAGER",
+      "Step 9: Verify can create and revoke invitations",
+      "Step 10: Attempt to update account settings (fails 403)",
+      "Step 11: Log in as ADMIN",
+      "Step 12: Verify full account management capabilities",
+      "Step 13: Attempt to create new account (fails 403, super admin only)"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Complete responsive design verification across breakpoints",
+    "steps": [
+      "Step 1: Load dashboard on desktop (1920px)",
+      "Step 2: Verify full sidebar visible with all navigation",
+      "Step 3: Verify stats cards in grid layout",
+      "Step 4: Resize to laptop (1366px)",
+      "Step 5: Verify layout adjusts appropriately",
+      "Step 6: Resize to tablet (768px)",
+      "Step 7: Verify sidebar collapses or becomes toggleable",
+      "Step 8: Verify cards may stack vertically",
+      "Step 9: Resize to mobile (375px)",
+      "Step 10: Verify hamburger menu appears",
+      "Step 11: Verify content fits without horizontal scroll",
+      "Step 12: Tap hamburger and verify sidebar slides in"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Complete dark mode visual verification",
+    "steps": [
+      "Step 1: Enable dark mode via system preference or toggle",
+      "Step 2: Navigate to landing page",
+      "Step 3: Verify background is near-black (#0a0a0a)",
+      "Step 4: Verify text is off-white (#fafafa)",
+      "Step 5: Navigate to dashboard",
+      "Step 6: Verify card backgrounds match dark theme",
+      "Step 7: Verify borders use dark gray (#262626)",
+      "Step 8: Navigate to form page",
+      "Step 9: Verify input fields have dark styling",
+      "Step 10: Open modal dialog",
+      "Step 11: Verify modal uses dark theme",
+      "Step 12: Verify all interactive elements have visible focus states"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Complete keyboard accessibility navigation test",
+    "steps": [
+      "Step 1: Navigate to authenticated page",
+      "Step 2: Press Tab and verify focus on first interactive element",
+      "Step 3: Continue Tab through sidebar navigation",
+      "Step 4: Verify all nav links are focusable",
+      "Step 5: Press Enter on Team link",
+      "Step 6: Verify navigation occurs",
+      "Step 7: Tab to Invite button",
+      "Step 8: Press Enter to open dialog",
+      "Step 9: Verify focus moves into dialog",
+      "Step 10: Tab through dialog fields",
+      "Step 11: Press Escape to close dialog",
+      "Step 12: Verify focus returns to trigger button"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Complete CI/CD pipeline verification",
+    "steps": [
+      "Step 1: Run pnpm lint and verify no errors",
+      "Step 2: Run pnpm typecheck and verify no type errors",
+      "Step 3: Run pnpm test:run and verify all unit tests pass",
+      "Step 4: Check unit test coverage meets thresholds (95% server, 90% client)",
+      "Step 5: Run pnpm test:e2e --grep @smoke",
+      "Step 6: Verify smoke tests pass",
+      "Step 7: Run pnpm test:e2e --grep @critical",
+      "Step 8: Verify critical path tests pass",
+      "Step 9: Run pnpm build",
+      "Step 10: Verify build completes without errors",
+      "Step 11: Run pnpm deploy --dry-run",
+      "Step 12: Verify deployment configuration is valid"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Complete database migration and seeding workflow",
+    "steps": [
+      "Step 1: Drop local database to start fresh",
+      "Step 2: Run pnpm db:migrate:local",
+      "Step 3: Verify all migrations apply successfully",
+      "Step 4: Verify all tables are created (users, accounts, etc.)",
+      "Step 5: Verify all indexes are created",
+      "Step 6: Verify all foreign keys are established",
+      "Step 7: Run pnpm db:seed",
+      "Step 8: Verify test users are created",
+      "Step 9: Verify test accounts are created",
+      "Step 10: Verify user-account relationships established",
+      "Step 11: Start application and login with seeded user",
+      "Step 12: Verify seeded data accessible through UI"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Complete invitation expiration and cleanup workflow",
+    "steps": [
+      "Step 1: Create invitation for new email",
+      "Step 2: Verify expiresAt is set to 7 days in future",
+      "Step 3: Verify invitation appears in pending list",
+      "Step 4: Manually update invitation expiresAt to past date",
+      "Step 5: Navigate to invitation link",
+      "Step 6: Verify expiration error message displayed",
+      "Step 7: Verify invitation not listed as valid",
+      "Step 8: Attempt to accept expired invitation",
+      "Step 9: Verify proper error response",
+      "Step 10: Create new invitation for same email",
+      "Step 11: Verify new invitation replaces or coexists with expired",
+      "Step 12: Accept new invitation successfully"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Complete API documentation and testing workflow",
+    "steps": [
+      "Step 1: Navigate to /api/doc",
+      "Step 2: Verify OpenAPI JSON schema loads",
+      "Step 3: Verify all endpoints documented",
+      "Step 4: Navigate to /api/swagger",
+      "Step 5: Verify Swagger UI renders correctly",
+      "Step 6: Expand auth endpoints",
+      "Step 7: Verify request/response schemas shown",
+      "Step 8: Click 'Try It Out' on /health endpoint",
+      "Step 9: Execute request",
+      "Step 10: Verify response matches schema",
+      "Step 11: Test authenticated endpoint with session cookie",
+      "Step 12: Verify authentication works in Swagger UI"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Complete security audit checklist verification",
+    "steps": [
+      "Step 1: Verify session cookie has httpOnly flag",
+      "Step 2: Verify session cookie has secure flag (production)",
+      "Step 3: Verify session cookie has sameSite=Lax",
+      "Step 4: Verify refresh tokens are hashed (SHA-256)",
+      "Step 5: Verify passwords/secrets not in any logs",
+      "Step 6: Verify CORS configuration is restrictive",
+      "Step 7: Verify error messages don't leak stack traces",
+      "Step 8: Verify rate limiting is enabled",
+      "Step 9: Test SQL injection prevention",
+      "Step 10: Test XSS prevention in inputs",
+      "Step 11: Verify CSRF protection via cookies",
+      "Step 12: Verify JWT_SECRET length validation"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Complete Cloudflare Workers deployment verification",
+    "steps": [
+      "Step 1: Run pnpm cf-typegen",
+      "Step 2: Verify Cloudflare types generated",
+      "Step 3: Set required secrets via wrangler",
+      "Step 4: Run pnpm db:migrate:remote",
+      "Step 5: Verify D1 migrations applied",
+      "Step 6: Run pnpm deploy",
+      "Step 7: Verify worker deployment succeeds",
+      "Step 8: Access deployed worker URL",
+      "Step 9: Verify /health endpoint responds",
+      "Step 10: Test OAuth flow on production",
+      "Step 11: Verify KV sessions work",
+      "Step 12: Verify R2 file uploads work"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Complete design system consistency audit",
+    "steps": [
+      "Step 1: Verify Inter font loaded for body text",
+      "Step 2: Verify JetBrains Mono for code elements",
+      "Step 3: Verify text-sm is 0.875rem (14px)",
+      "Step 4: Verify spacing uses 4px base (p-2=8px, p-4=16px)",
+      "Step 5: Verify border-radius: rounded-md=6px, rounded-lg=8px",
+      "Step 6: Verify card shadows match design spec",
+      "Step 7: Verify primary button uses brand color",
+      "Step 8: Verify destructive button uses red (#dc2626)",
+      "Step 9: Verify transitions are 150ms ease-in-out",
+      "Step 10: Verify focus rings use brand color",
+      "Step 11: Verify toast positioning (bottom-right)",
+      "Step 12: Verify modal overlay and scale animation"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Complete TanStack Query state management verification",
+    "steps": [
+      "Step 1: Navigate to page that fetches data",
+      "Step 2: Verify data is fetched and displayed",
+      "Step 3: Open React DevTools Query tab",
+      "Step 4: Verify query cache contains data",
+      "Step 5: Navigate away from page",
+      "Step 6: Navigate back to page",
+      "Step 7: Verify data displays instantly from cache",
+      "Step 8: Verify background refetch occurs",
+      "Step 9: Switch browser tabs and wait",
+      "Step 10: Return to app tab",
+      "Step 11: Verify refetchOnWindowFocus triggers",
+      "Step 12: Perform mutation and verify cache invalidation"
+    ],
+    "passes": false
+  }
+]

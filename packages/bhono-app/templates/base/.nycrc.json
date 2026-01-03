@@ -1,0 +1,16 @@
+{
+  "check-coverage": true,
+  "lines": 90,
+  "statements": 90,
+  "branches": 84,
+  "functions": 85,
+  "include": ["src/client/**/*.{ts,tsx}"],
+  "exclude": [
+    "**/*.test.*",
+    "**/__tests__/**",
+    "**/routeTree.gen.ts",
+    "**/main.tsx"
+  ],
+  "report-dir": ".test-output/coverage/e2e",
+  "temp-dir": ".test-output/coverage/e2e/.nyc_output"
+}

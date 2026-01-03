@@ -1,0 +1,76 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "{{projectName}}",
+  "main": "../src/server/index.ts",
+  "compatibility_date": "2025-01-01",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "dev": {
+    "port": 3000
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "{{projectName}}-db",
+      "database_id": "TO_BE_PROVISIONED"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "R2_BUCKET",
+      "bucket_name": "{{projectName}}-storage"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "SESSIONS",
+      "id": "TO_BE_PROVISIONED"
+    }
+  ],
+  "assets": {
+    "directory": "../dist",
+    "not_found_handling": "single-page-application",
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/api/*",
+      "/auth/*"
+    ]
+  },
+  "vars": {
+    "ENVIRONMENT": "production",
+    "APP_URL": "https://{{projectName}}.a3s.workers.dev",
+    "GOOGLE_REDIRECT_URI": "https://{{projectName}}.a3s.workers.dev/auth/callback",
+    "R2_PUBLIC_URL": "https://pub-your-bucket-id.r2.dev"
+  },
+  "env": {
+    "staging": {
+      "name": "{{projectName}}-staging",
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "{{projectName}}-db-staging",
+          "database_id": "TO_BE_PROVISIONED"
+        }
+      ],
+      "kv_namespaces": [
+        {
+          "binding": "SESSIONS",
+          "id": "TO_BE_PROVISIONED"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "R2_BUCKET",
+          "bucket_name": "{{projectName}}-storage-staging"
+        }
+      ],
+      "vars": {
+        "ENVIRONMENT": "staging",
+        "APP_URL": "https://{{projectName}}-staging.a3s.workers.dev",
+        "GOOGLE_REDIRECT_URI": "https://{{projectName}}-staging.a3s.workers.dev/auth/callback",
+        "R2_PUBLIC_URL": "https://pub-your-bucket-id.r2.dev"
+      }
+    }
+  }
+}

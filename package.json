@@ -20,6 +20,8 @@
     "db:generate": "drizzle-kit generate --config config/drizzle.config.ts",
     "db:studio": "drizzle-kit studio --config config/drizzle.config.ts",
     "db:seed": "pnpm tsx src/server/db/seed.ts",
+    "api:spec": "pnpm tsx scripts/generate-openapi.ts",
+    "api:types": "pnpm api:spec && openapi-typescript docs/openapi.json -o src/shared/types/api.ts",
     "cf-typegen": "wrangler types --config config/wrangler.json",
     "lint": "eslint . --config config/eslint.config.js",
     "typecheck": "tsc --build",
@@ -40,7 +42,10 @@
     "test:e2e:coverage:report": "nyc report --reporter=html --reporter=text --report-dir=.test-output/coverage/e2e --temp-dir=.test-output/coverage/e2e/.nyc_output",
     "test:e2e:prod": "BASE_URL=https://hono-boilerplate.a3s.workers.dev playwright test",
     "test:e2e:prod:auth": "tsx scripts/capture-prod-session.ts",
-    "test": "pnpm test:unit && pnpm test:integration && pnpm test:e2e"
+    "test": "pnpm test:unit && pnpm test:integration && pnpm test:e2e",
+    "changeset": "changeset",
+    "changeset:version": "changeset version",
+    "changeset:publish": "changeset publish"
   },
   "dependencies": {
     "@hono/swagger-ui": "^0.5.3",
@@ -66,6 +71,7 @@
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.17.1",
     "@cloudflare/workers-types": "^4.20260101.0",
+    "@changesets/cli": "^2.29.7",
     "@eslint-react/eslint-plugin": "^2.5.0",
     "@eslint/js": "^9.39.2",
     "@playwright/test": "^1.57.0",
@@ -99,7 +105,9 @@
     "jsdom": "^27.4.0",
     "msw": "^2.12.7",
     "nyc": "^17.1.0",
+    "openapi-typescript": "^7.8.1",
     "tailwindcss": "^4.1.18",
+    "tsx": "^4.20.5",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.51.0",
     "uuid": "^13.0.0",
