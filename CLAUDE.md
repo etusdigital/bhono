@@ -7,51 +7,68 @@ Production-ready multi-tenant SaaS boilerplate with Hono.js backend and React fr
 - **Runtime**: Cloudflare Workers (D1 database, KV sessions, R2 storage)
 - **Backend**: Hono.js 4.6 + Drizzle ORM + Zod validation
 - **Frontend**: React 19 + TanStack Router + Tailwind CSS 4.0
-- **Testing**: Vitest (unit) + Playwright (E2E)
+- **Testing**: Vitest (unit/integration) + Playwright (E2E)
 - **Auth**: Google OAuth 2.0 with session-based cookies
 
 ## Project Structure
 
 ```
-src/
-├── server/                     # Backend (Hono.js)
-│   ├── routes/                 # API endpoints (OpenAPI)
-│   │   ├── auth/               # OAuth login, logout, me, refresh
-│   │   ├── users/              # User CRUD
-│   │   ├── accounts/           # Multi-tenant workspaces
-│   │   ├── invitations/        # Team invite system
-│   │   ├── audits/             # Audit log queries
-│   │   ├── storage/            # R2 file operations
-│   │   └── health/             # Health check
-│   ├── services/               # Business logic layer
-│   ├── middleware/             # Auth, CORS, logging, error handling
-│   ├── db/
-│   │   ├── schema/             # Drizzle table definitions
-│   │   └── migrations/         # SQL migrations (Drizzle Kit)
-│   ├── lib/                    # Utilities (oauth, session, tokens, email)
-│   └── auth/                   # Roles, permissions, guards
+├── config/                     # All configuration files
+│   ├── vite.config.ts          # Vite build config
+│   ├── vitest.config.ts        # Backend unit tests
+│   ├── vitest.frontend.config.ts
+│   ├── vitest.browser.config.ts
+│   ├── eslint.config.js
+│   └── wrangler.json           # Cloudflare Workers config
 │
-├── client/                     # Frontend (React)
-│   ├── routes/                 # TanStack file-based routing
-│   │   ├── _authenticated/     # Protected pages (dashboard, team, settings)
-│   │   └── *.tsx               # Public pages (login, invite)
-│   ├── components/
-│   │   └── ui/                 # Reusable UI components
-│   └── hooks/                  # React hooks (use-auth)
+├── src/
+│   ├── server/                 # Backend (Hono.js)
+│   │   ├── routes/             # API endpoints (OpenAPI)
+│   │   │   ├── auth/           # OAuth login, logout, me, refresh
+│   │   │   ├── users/          # User CRUD
+│   │   │   ├── accounts/       # Multi-tenant workspaces
+│   │   │   ├── invitations/    # Team invite system
+│   │   │   ├── audits/         # Audit log queries
+│   │   │   ├── storage/        # R2 file operations
+│   │   │   └── health/         # Health check
+│   │   ├── services/           # Business logic layer
+│   │   ├── middleware/         # Auth, CORS, logging, rate-limit
+│   │   ├── db/schema/          # Drizzle table definitions
+│   │   ├── lib/                # Utilities (oauth, session, tokens)
+│   │   └── auth/               # Roles, permissions, guards
+│   │
+│   ├── client/                 # Frontend (React)
+│   │   ├── routes/             # TanStack file-based routing
+│   │   │   └── _authenticated/ # Protected pages
+│   │   ├── components/ui/      # Reusable UI components
+│   │   └── hooks/              # React hooks (use-auth)
+│   │
+│   └── shared/                 # Shared between client/server
+│       ├── schemas/            # Zod validation schemas
+│       └── types/              # TypeScript types
 │
-├── shared/                     # Shared between client/server
-│   ├── schemas/                # Zod validation schemas
-│   └── types/                  # TypeScript types
+├── tests/                      # All tests (centralized)
+│   ├── unit/                   # Unit tests
+│   │   ├── server/             # Backend unit tests
+│   │   └── client/             # Frontend unit tests
+│   ├── integration/            # Integration tests
+│   ├── e2e/                    # Playwright E2E tests
+│   │   ├── journeys/           # User journey tests
+│   │   ├── crud/               # CRUD operation tests
+│   │   ├── api/                # API tests
+│   │   ├── a11y/               # Accessibility tests
+│   │   ├── visual/             # Visual regression
+│   │   └── mobile/             # Responsive tests
+│   ├── fixtures/               # Test fixtures
+│   ├── mocks/                  # Test mocks
+│   └── helpers/                # Test utilities
 │
-├── e2e/                        # Playwright E2E tests
-│   ├── crud/                   # CRUD operation tests
-│   ├── journeys/               # User journey tests
-│   ├── api/                    # API integration tests
-│   ├── a11y/                   # Accessibility tests
-│   ├── mobile/                 # Responsive tests
-│   └── visual/                 # Visual regression snapshots
+├── packages/                   # Monorepo packages
+│   └── create-etus-app/        # Project scaffolding CLI
 │
-└── migrations/                 # D1 SQL migrations (production)
+├── docs/                       # Documentation
+├── scripts/                    # Build/utility scripts
+└── migrations/                 # D1 SQL migrations
 ```
 
 ## Development
@@ -71,7 +88,8 @@ pnpm db:seed                # Seed test data
 # Testing
 pnpm test                   # Backend unit tests (watch)
 pnpm test:run               # Backend tests (single run)
-pnpm test:client            # Frontend tests
+pnpm test:client            # Frontend unit tests
+pnpm test:integration       # Integration tests
 pnpm test:e2e               # Playwright E2E tests
 pnpm test:e2e:ui            # Playwright interactive UI
 pnpm test:coverage          # Coverage report
@@ -91,36 +109,31 @@ pnpm cf-typegen             # Generate Cloudflare types
 
 ### Path Aliases
 
-```typescript
-import { Button } from '@/components/ui/button'     // src/client/*
-import { userSchema } from '@shared/schemas'        // src/shared/*
-import { createUser } from '@server/services'       // src/server/*
-```
+Defined in `tsconfig.json`:
+- `@/*` → `src/client/*`
+- `@shared/*` → `src/shared/*`
+- `@server/*` → `src/server/*`
 
 ## Architecture
 
 ### Multi-Tenancy
 
-- **Users** belong to multiple **Accounts** (workspaces)
-- Each user-account relationship has a **Role**: `ADMIN`, `EDITOR`, `VIEWER`
-- Permissions are checked via guards in `src/server/auth/guards.ts`
+Users belong to multiple Accounts (workspaces). Each user-account relationship has a Role: `ADMIN`, `EDITOR`, `VIEWER`. Permissions checked via guards in `src/server/auth/guards.ts`.
 
 ### Authentication Flow
 
 1. `/auth/login` → Redirects to Google OAuth
 2. `/auth/callback` → Handles OAuth response, creates session in KV
-3. Session cookie (`session_id`) sent with all requests
+3. Session cookie (`__Host-sid`) sent with all requests
 4. `sessionAuth` middleware validates session on protected routes
 
 ### Request Context
 
-Every request gets a `transactionId` for tracing across logs.
-See `src/server/middleware/request-context.ts`.
+Every request gets a `transactionId` for tracing across logs. See `src/server/middleware/request-context.ts`.
 
 ### Audit Logging
 
-All state changes are logged to `audit_logs` table.
-See `src/server/lib/audit.ts` and `src/server/lib/audited-db.ts`.
+All state changes logged to `audit_logs` table. See `src/server/lib/audit.ts`.
 
 ## Key Files
 
@@ -131,7 +144,7 @@ See `src/server/lib/audit.ts` and `src/server/lib/audited-db.ts`.
 | `src/server/db/schema/` | Database schema definitions |
 | `src/client/routes/__root.tsx` | React app root layout |
 | `src/client/routes/_authenticated.tsx` | Protected routes wrapper |
-| `wrangler.json` | Cloudflare Workers configuration |
+| `config/wrangler.json` | Cloudflare Workers configuration |
 | `playwright.config.ts` | E2E test configuration |
 
 ## API Documentation
@@ -141,27 +154,28 @@ See `src/server/lib/audit.ts` and `src/server/lib/audited-db.ts`.
 
 ## Testing Strategy
 
-### Unit Tests (Vitest)
+### Coverage Thresholds
 
-- Backend: `src/server/**/*.test.ts`
-- Frontend: `src/client/**/*.test.tsx`
-- Coverage thresholds: 90% backend, 85% frontend, 95% shared
+| Layer | Statements | Branches | Functions |
+|-------|------------|----------|-----------|
+| Server Unit | 90% | 84% | 85% |
+| Client Unit | 65% | 70% | 58% |
+| Integration | 90%+ | 85%+ | 90%+ |
 
-### E2E Tests (Playwright)
+### E2E Test Tags
 
 | Tag | Purpose |
 |-----|---------|
 | `@smoke` | Basic health checks |
-| `@critical` | Must-pass paths (runs on all browsers) |
-| `@crud` | Create/Read/Update/Delete operations |
+| `@critical` | Must-pass paths |
+| `@crud` | Create/Read/Update/Delete |
 | `@a11y` | Accessibility compliance |
-| `@visual` | Visual regression snapshots |
-| `@mobile` | Mobile responsive behavior |
+| `@visual` | Visual regression |
+| `@mobile` | Mobile responsive |
 
 ### Test Authentication
 
-E2E tests use `/auth/test-login` endpoint (dev only) to create sessions.
-See `src/server/routes/auth/test-login.ts` and `e2e/auth.setup.ts`.
+E2E tests use `/auth/test-login` endpoint (dev only) or OAuth session capture for production testing.
 
 ## Environment Variables
 
@@ -174,7 +188,7 @@ Required in `.env` (see `.env.example`):
 
 ## Cloudflare Bindings
 
-Defined in `wrangler.json`:
+Defined in `config/wrangler.json`:
 
 - `DB` - D1 database
 - `SESSIONS` - KV namespace for sessions
