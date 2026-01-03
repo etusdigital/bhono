@@ -220,5 +220,132 @@ describe('Health Check Integration', () => {
         expect(body.status).toBe('healthy')
       }
     })
+
+    it('should return unhealthy when database is not initialized', async () => {
+      // Create an app without db set
+      const appWithoutDb = new Hono<HonoEnv>()
+      appWithoutDb.use('*', async (c, next) => {
+        ;(c as any).env = env
+        // Note: NOT setting db to test line 9
+        await next()
+      })
+      appWithoutDb.route('/health', health)
+
+      const res = await appWithoutDb.request('/health', { method: 'GET' })
+
+      expect(res.status).toBe(503)
+      const body = await res.json()
+      expect(body.status).toBe('unhealthy')
+      expect(body.checks.database).toBe('down')
+    })
+
+    it('should return unhealthy when R2 bucket is not configured', async () => {
+      // Create an app without R2 bucket
+      const appWithoutR2 = new Hono<HonoEnv>()
+      appWithoutR2.use('*', async (c, next) => {
+        const modifiedEnv = { ...env }
+        // @ts-expect-error - Removing R2_BUCKET to test line 24
+        delete modifiedEnv.R2_BUCKET
+        ;(c as any).env = modifiedEnv
+        c.set('db', createTestDb())
+        await next()
+      })
+      appWithoutR2.route('/health', health)
+
+      const res = await appWithoutR2.request('/health', { method: 'GET' })
+
+      expect(res.status).toBe(503)
+      const body = await res.json()
+      expect(body.status).toBe('unhealthy')
+      expect(body.checks.storage).toBe('down')
+    })
+
+    it('should return database down when database query throws', async () => {
+      // Create an app with a broken database
+      const appWithBrokenDb = new Hono<HonoEnv>()
+      appWithBrokenDb.use('*', async (c, next) => {
+        ;(c as any).env = env
+        // Create a mock db that throws on run()
+        const brokenDb = {
+          run: () => {
+            throw new Error('Database connection failed')
+          },
+        }
+        c.set('db', brokenDb as any)
+        await next()
+      })
+      appWithBrokenDb.route('/health', health)
+
+      const res = await appWithBrokenDb.request('/health', { method: 'GET' })
+
+      expect(res.status).toBe(503)
+      const body = await res.json()
+      expect(body.status).toBe('unhealthy')
+      expect(body.checks.database).toBe('down')
+    })
+
+    it('should return storage down when R2 operation throws', async () => {
+      // Create an app with a broken R2 bucket
+      const appWithBrokenR2 = new Hono<HonoEnv>()
+      appWithBrokenR2.use('*', async (c, next) => {
+        const modifiedEnv = {
+          ...env,
+          R2_BUCKET: {
+            list: () => {
+              throw new Error('R2 connection failed')
+            },
+          },
+        }
+        ;(c as any).env = modifiedEnv
+        c.set('db', createTestDb())
+        await next()
+      })
+      appWithBrokenR2.route('/health', health)
+
+      const res = await appWithBrokenR2.request('/health', { method: 'GET' })
+
+      expect(res.status).toBe(503)
+      const body = await res.json()
+      expect(body.status).toBe('unhealthy')
+      expect(body.checks.storage).toBe('down')
+    })
+
+    it('should return 503 when readiness check fails due to db being down', async () => {
+      const appWithoutDb = new Hono<HonoEnv>()
+      appWithoutDb.use('*', async (c, next) => {
+        ;(c as any).env = env
+        // Note: NOT setting db
+        await next()
+      })
+      appWithoutDb.route('/health', health)
+
+      const res = await appWithoutDb.request('/health/ready', { method: 'GET' })
+
+      expect(res.status).toBe(503)
+      const body = await res.json()
+      expect(body.ready).toBe(false)
+    })
+
+    it('should return 503 when readiness check throws an error', async () => {
+      const appWithBrokenDb = new Hono<HonoEnv>()
+      appWithBrokenDb.use('*', async (c, next) => {
+        ;(c as any).env = env
+        // Create a mock db that throws on run()
+        const brokenDb = {
+          run: () => {
+            throw new Error('Database connection failed')
+          },
+        }
+        c.set('db', brokenDb as any)
+        await next()
+      })
+      appWithBrokenDb.route('/health', health)
+
+      const res = await appWithBrokenDb.request('/health/ready', { method: 'GET' })
+
+      expect(res.status).toBe(503)
+      const body = await res.json()
+      expect(body.ready).toBe(false)
+    })
   })
 })

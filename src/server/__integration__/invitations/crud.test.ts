@@ -1171,4 +1171,287 @@ describe('Invitations CRUD Integration', () => {
       })
     })
   })
+
+  // ============================================================================
+  // Error Handling - Edge Cases
+  // ============================================================================
+
+  describe('Handler Error Cases', () => {
+    describe('Context Fallbacks', () => {
+      it('should use empty string fallbacks for optional context values', async () => {
+        // This test exercises lines 25-27 in handlers.ts - the nullish coalescing fallbacks
+        const scenario = await createTestScenario({
+          userName: 'Fallback Test User',
+          userEmail: 'fallbacktest@example.com',
+          role: 'ADMIN',
+        })
+
+        const appWithMinimalContext = new Hono<HonoEnv>()
+        appWithMinimalContext.onError(errorHandler)
+
+        appWithMinimalContext.use('*', async (c, next) => {
+          ;(c as any).env = env
+          const db = createTestDb()
+          c.set('db', db)
+          c.set('accountId', scenario.account.id)
+          c.set('user', { id: scenario.user.id, email: scenario.user.email, name: scenario.user.name })
+          c.set('userRole', 'ADMIN')
+          // Note: NOT setting transactionId, ip, or userAgent to test fallbacks
+          await next()
+        })
+
+        const { listInvitationsHandler } = await import('../../routes/invitations/handlers')
+        appWithMinimalContext.get('/test-list', async (c) => {
+          // @ts-expect-error - Testing with minimal context
+          return listInvitationsHandler(c)
+        })
+
+        // Should succeed even without transactionId/ip/userAgent
+        const res = await appWithMinimalContext.request('/test-list', {
+          method: 'GET',
+        })
+
+        // We expect success since all required context is present
+        // The fallbacks ('' for transactionId, ip, userAgent) should be used
+        expect(res.status).toBe(200)
+        const body = await res.json()
+        expect(body.data).toBeDefined()
+      })
+    })
+
+    describe('Missing Context', () => {
+      it('should return 500 when accountId is missing from context (create)', async () => {
+        // Create an app without account middleware to simulate missing context
+        const appWithoutContext = new Hono<HonoEnv>()
+        appWithoutContext.onError(errorHandler)
+
+        appWithoutContext.use('*', async (c, next) => {
+          ;(c as any).env = env
+          const db = createTestDb()
+          c.set('db', db)
+          c.set('transactionId', crypto.randomUUID())
+          c.set('ip', '127.0.0.1')
+          c.set('userAgent', 'IntegrationTest/1.0')
+          // Note: NOT setting accountId or user
+          await next()
+        })
+
+        // Import handlers directly to bypass auth middleware
+        const { createInvitationHandler } = await import('../../routes/invitations/handlers')
+        appWithoutContext.post('/test-create', async (c) => {
+          // @ts-expect-error - Testing error case
+          return createInvitationHandler(c)
+        })
+
+        const res = await appWithoutContext.request('/test-create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email: 'test@example.com', role: 'VIEWER' }),
+        })
+
+        expect(res.status).toBe(500)
+        const body = await res.json()
+        expect(body.error.message).toBe('Missing required context')
+      })
+
+      it('should return 500 when user is missing from context (list)', async () => {
+        const scenario = await createTestScenario({
+          userName: 'Test User',
+          userEmail: 'contexttest1@example.com',
+          role: 'ADMIN',
+        })
+
+        const appWithoutUser = new Hono<HonoEnv>()
+        appWithoutUser.onError(errorHandler)
+
+        appWithoutUser.use('*', async (c, next) => {
+          ;(c as any).env = env
+          const db = createTestDb()
+          c.set('db', db)
+          c.set('transactionId', crypto.randomUUID())
+          c.set('ip', '127.0.0.1')
+          c.set('userAgent', 'IntegrationTest/1.0')
+          c.set('accountId', scenario.account.id)
+          // Note: NOT setting user
+          await next()
+        })
+
+        const { listInvitationsHandler } = await import('../../routes/invitations/handlers')
+        appWithoutUser.get('/test-list', async (c) => {
+          // @ts-expect-error - Testing error case
+          return listInvitationsHandler(c)
+        })
+
+        const res = await appWithoutUser.request('/test-list', {
+          method: 'GET',
+        })
+
+        expect(res.status).toBe(500)
+        const body = await res.json()
+        expect(body.error.message).toBe('Missing required context')
+      })
+
+      it('should return 500 when context is missing (revoke)', async () => {
+        const testId = crypto.randomUUID()
+        const appWithoutContext = new Hono<HonoEnv>()
+        appWithoutContext.onError(errorHandler)
+
+        appWithoutContext.use('*', async (c, next) => {
+          ;(c as any).env = env
+          const db = createTestDb()
+          c.set('db', db)
+          c.set('transactionId', crypto.randomUUID())
+          c.set('ip', '127.0.0.1')
+          c.set('userAgent', 'IntegrationTest/1.0')
+          // Note: NOT setting accountId or user
+          await next()
+        })
+
+        const { revokeInvitationHandler } = await import('../../routes/invitations/handlers')
+        appWithoutContext.delete('/test-revoke/:id', async (c) => {
+          // Mock the valid method to return the param (bypasses OpenAPI validation)
+          const originalValid = c.req.valid.bind(c.req)
+          c.req.valid = ((type: string) => {
+            if (type === 'param') return { id: testId }
+            return originalValid(type)
+          }) as typeof c.req.valid
+          // @ts-expect-error - Testing error case
+          return revokeInvitationHandler(c)
+        })
+
+        const res = await appWithoutContext.request(`/test-revoke/${testId}`, {
+          method: 'DELETE',
+        })
+
+        expect(res.status).toBe(500)
+        const body = await res.json()
+        expect(body.error.message).toBe('Missing required context')
+      })
+    })
+
+    describe('Missing Database', () => {
+      it('should return 500 when database is not initialized (create)', async () => {
+        const scenario = await createTestScenario({
+          userName: 'Test User',
+          userEmail: 'dbtest1@example.com',
+          role: 'ADMIN',
+        })
+
+        const appWithoutDb = new Hono<HonoEnv>()
+        appWithoutDb.onError(errorHandler)
+
+        appWithoutDb.use('*', async (c, next) => {
+          ;(c as any).env = env
+          // Note: NOT setting db
+          c.set('transactionId', crypto.randomUUID())
+          c.set('ip', '127.0.0.1')
+          c.set('userAgent', 'IntegrationTest/1.0')
+          c.set('accountId', scenario.account.id)
+          c.set('user', { id: scenario.user.id, email: scenario.user.email, name: scenario.user.name })
+          await next()
+        })
+
+        const { createInvitationHandler } = await import('../../routes/invitations/handlers')
+        appWithoutDb.post('/test-create', async (c) => {
+          // @ts-expect-error - Testing error case
+          return createInvitationHandler(c)
+        })
+
+        const res = await appWithoutDb.request('/test-create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email: 'test@example.com', role: 'VIEWER' }),
+        })
+
+        expect(res.status).toBe(500)
+        const body = await res.json()
+        expect(body.error.message).toBe('Database not initialized')
+      })
+
+      it('should return 500 when database is not initialized (list)', async () => {
+        const scenario = await createTestScenario({
+          userName: 'Test User',
+          userEmail: 'dbtest2@example.com',
+          role: 'ADMIN',
+        })
+
+        const appWithoutDb = new Hono<HonoEnv>()
+        appWithoutDb.onError(errorHandler)
+
+        appWithoutDb.use('*', async (c, next) => {
+          ;(c as any).env = env
+          // Note: NOT setting db
+          c.set('transactionId', crypto.randomUUID())
+          c.set('ip', '127.0.0.1')
+          c.set('userAgent', 'IntegrationTest/1.0')
+          c.set('accountId', scenario.account.id)
+          c.set('user', { id: scenario.user.id, email: scenario.user.email, name: scenario.user.name })
+          c.set('userRole', 'ADMIN')
+          await next()
+        })
+
+        const { listInvitationsHandler } = await import('../../routes/invitations/handlers')
+        appWithoutDb.get('/test-list', async (c) => {
+          // @ts-expect-error - Testing error case
+          return listInvitationsHandler(c)
+        })
+
+        const res = await appWithoutDb.request('/test-list', {
+          method: 'GET',
+        })
+
+        expect(res.status).toBe(500)
+        const body = await res.json()
+        expect(body.error.message).toBe('Database not initialized')
+      })
+
+      it('should return 500 when database is not initialized (revoke)', async () => {
+        const testId = crypto.randomUUID()
+        const scenario = await createTestScenario({
+          userName: 'Test User',
+          userEmail: 'dbtest3@example.com',
+          role: 'ADMIN',
+        })
+
+        const appWithoutDb = new Hono<HonoEnv>()
+        appWithoutDb.onError(errorHandler)
+
+        appWithoutDb.use('*', async (c, next) => {
+          ;(c as any).env = env
+          // Note: NOT setting db
+          c.set('transactionId', crypto.randomUUID())
+          c.set('ip', '127.0.0.1')
+          c.set('userAgent', 'IntegrationTest/1.0')
+          c.set('accountId', scenario.account.id)
+          c.set('user', { id: scenario.user.id, email: scenario.user.email, name: scenario.user.name })
+          c.set('userRole', 'ADMIN')
+          await next()
+        })
+
+        const { revokeInvitationHandler } = await import('../../routes/invitations/handlers')
+        appWithoutDb.delete('/test-revoke/:id', async (c) => {
+          // Mock the valid method to return the param (bypasses OpenAPI validation)
+          const originalValid = c.req.valid.bind(c.req)
+          c.req.valid = ((type: string) => {
+            if (type === 'param') return { id: testId }
+            return originalValid(type)
+          }) as typeof c.req.valid
+          // @ts-expect-error - Testing error case
+          return revokeInvitationHandler(c)
+        })
+
+        const res = await appWithoutDb.request(`/test-revoke/${testId}`, {
+          method: 'DELETE',
+        })
+
+        expect(res.status).toBe(500)
+        const body = await res.json()
+        expect(body.error.message).toBe('Database not initialized')
+      })
+    })
+  })
 })

@@ -9,7 +9,7 @@
  * - Proper key generation (per-IP)
  */
 
-import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest'
 import { Hono } from 'hono'
 import { getEnv, getDb, type TestEnv } from '../setup'
 import { createTestScenario } from '../fixtures'
@@ -20,7 +20,12 @@ import { health } from '../../routes/health'
 import { errorHandler } from '../../middleware/error-handler'
 import { requestContext } from '../../middleware/request-context'
 import { sessionMiddleware } from '../../lib/session'
-import { RateLimitStore, rateLimitWithStore, rateLimit } from '../../middleware/rate-limit'
+import {
+  RateLimitStore,
+  rateLimitWithStore,
+  rateLimit,
+  authRateLimit,
+} from '../../middleware/rate-limit'
 
 /**
  * Creates a database wrapper that adds the `execute` method
@@ -625,6 +630,622 @@ describe('Rate Limiting', () => {
       // All should succeed (different IPs, each under limit)
       const successfulResponses = responses.filter((r) => r.status === 200)
       expect(successfulResponses.length).toBe(50)
+    })
+  })
+
+  // ============================================================================
+  // Skip Option Tests
+  // ============================================================================
+
+  describe('Skip Option', () => {
+    it('should skip rate limiting when skip returns true', async () => {
+      const app = new Hono<HonoEnv>()
+      app.onError(errorHandler)
+
+      app.use('*', async (c, next) => {
+        ;(c as any).env = env
+        const db = createTestDb()
+        c.set('db', db)
+        await next()
+      })
+
+      app.use('*', requestContext)
+
+      // Rate limit with skip for health endpoints
+      app.use(
+        '*',
+        rateLimitWithStore(store, {
+          max: 2,
+          skip: (c) => c.req.path === '/health',
+        })
+      )
+
+      app.route('/health', health)
+
+      // Make many requests to skipped endpoint
+      for (let i = 0; i < 10; i++) {
+        const res = await app.request('/health', {
+          method: 'GET',
+          headers: { 'X-Forwarded-For': '192.168.2.1' },
+        })
+        expect(res.status).toBe(200)
+      }
+    })
+
+    it('should apply rate limiting when skip returns false', async () => {
+      const app = new Hono<HonoEnv>()
+      app.onError(errorHandler)
+
+      app.use('*', async (c, next) => {
+        ;(c as any).env = env
+        const db = createTestDb()
+        c.set('db', db)
+        await next()
+      })
+
+      app.use('*', requestContext)
+
+      // Rate limit with skip for non-health endpoints
+      app.use(
+        '*',
+        rateLimitWithStore(store, {
+          max: 2,
+          skip: (c) => c.req.path === '/not-this-path',
+        })
+      )
+
+      app.route('/health', health)
+
+      // Make requests to non-skipped endpoint
+      await app.request('/health', {
+        method: 'GET',
+        headers: { 'X-Forwarded-For': '192.168.2.2' },
+      })
+      await app.request('/health', {
+        method: 'GET',
+        headers: { 'X-Forwarded-For': '192.168.2.2' },
+      })
+
+      // 3rd request should be rate limited
+      const res = await app.request('/health', {
+        method: 'GET',
+        headers: { 'X-Forwarded-For': '192.168.2.2' },
+      })
+      expect(res.status).toBe(429)
+    })
+
+    it('should skip rate limiting using rateLimit() with skip option', async () => {
+      const app = new Hono<HonoEnv>()
+      app.onError(errorHandler)
+
+      // Use rateLimit() instead of rateLimitWithStore()
+      app.use(
+        '*',
+        rateLimit({
+          max: 2,
+          skip: (c) => c.req.header('X-Skip-RateLimit') === 'true',
+        })
+      )
+
+      app.get('/test', (c) => c.json({ ok: true }))
+
+      // Make many requests with skip header
+      for (let i = 0; i < 10; i++) {
+        const res = await app.request('/test', {
+          method: 'GET',
+          headers: {
+            'X-Forwarded-For': '192.168.2.3',
+            'X-Skip-RateLimit': 'true',
+          },
+        })
+        expect(res.status).toBe(200)
+      }
+
+      // Without skip header, should be rate limited after 2 requests
+      await app.request('/test', {
+        method: 'GET',
+        headers: { 'X-Forwarded-For': '192.168.2.4' },
+      })
+      await app.request('/test', {
+        method: 'GET',
+        headers: { 'X-Forwarded-For': '192.168.2.4' },
+      })
+      const res = await app.request('/test', {
+        method: 'GET',
+        headers: { 'X-Forwarded-For': '192.168.2.4' },
+      })
+      expect(res.status).toBe(429)
+    })
+  })
+
+  // ============================================================================
+  // authRateLimit Tests
+  // ============================================================================
+
+  describe('authRateLimit', () => {
+    it('should apply stricter rate limits for auth endpoints', async () => {
+      const app = new Hono<HonoEnv>()
+      app.onError(errorHandler)
+
+      app.use('*', async (c, next) => {
+        ;(c as any).env = env
+        const db = createTestDb()
+        c.set('db', db)
+        await next()
+      })
+
+      app.use('*', requestContext)
+      app.use('*', authRateLimit())
+
+      app.get('/test', (c) => c.json({ ok: true }))
+
+      const ip = '192.168.3.1'
+
+      // authRateLimit defaults to 10 requests per minute
+      for (let i = 0; i < 10; i++) {
+        const res = await app.request('/test', {
+          method: 'GET',
+          headers: { 'X-Forwarded-For': ip },
+        })
+        expect(res.status).toBe(200)
+      }
+
+      // 11th request should be rate limited
+      const res = await app.request('/test', {
+        method: 'GET',
+        headers: { 'X-Forwarded-For': ip },
+      })
+      expect(res.status).toBe(429)
+
+      const body = await res.json()
+      expect(body.error.message).toContain('authentication attempts')
+    })
+
+    it('should include standard rate limit headers', async () => {
+      const app = new Hono<HonoEnv>()
+      app.onError(errorHandler)
+
+      app.use('*', async (c, next) => {
+        ;(c as any).env = env
+        const db = createTestDb()
+        c.set('db', db)
+        await next()
+      })
+
+      app.use('*', requestContext)
+      app.use('*', authRateLimit())
+
+      app.get('/test', (c) => c.json({ ok: true }))
+
+      const res = await app.request('/test', {
+        method: 'GET',
+        headers: { 'X-Forwarded-For': '192.168.3.2' },
+      })
+
+      expect(res.headers.get('X-RateLimit-Limit')).toBe('10')
+      expect(res.headers.get('X-RateLimit-Remaining')).toBe('9')
+      expect(res.headers.get('X-RateLimit-Reset')).toBeDefined()
+    })
+  })
+
+  // ============================================================================
+  // defaultKeyGenerator Fallback Tests
+  // ============================================================================
+
+  describe('defaultKeyGenerator fallbacks', () => {
+    it('should use X-Forwarded-For when context IP is not set', async () => {
+      const app = new Hono<HonoEnv>()
+      app.onError(errorHandler)
+
+      // Note: NOT using requestContext middleware, so c.get('ip') will be undefined
+      app.use('*', async (c, next) => {
+        ;(c as any).env = env
+        const db = createTestDb()
+        c.set('db', db)
+        await next()
+      })
+
+      app.use(
+        '*',
+        rateLimitWithStore(store, { max: 2 })
+      )
+
+      app.get('/test', (c) => c.json({ ok: true }))
+
+      await app.request('/test', {
+        method: 'GET',
+        headers: { 'X-Forwarded-For': '10.10.10.1' },
+      })
+      await app.request('/test', {
+        method: 'GET',
+        headers: { 'X-Forwarded-For': '10.10.10.1' },
+      })
+
+      // 3rd request should be rate limited
+      const res = await app.request('/test', {
+        method: 'GET',
+        headers: { 'X-Forwarded-For': '10.10.10.1' },
+      })
+      expect(res.status).toBe(429)
+    })
+
+    it('should use X-Real-IP when X-Forwarded-For is not set', async () => {
+      const app = new Hono<HonoEnv>()
+      app.onError(errorHandler)
+
+      // Note: NOT using requestContext middleware
+      app.use('*', async (c, next) => {
+        ;(c as any).env = env
+        const db = createTestDb()
+        c.set('db', db)
+        await next()
+      })
+
+      app.use(
+        '*',
+        rateLimitWithStore(store, { max: 2 })
+      )
+
+      app.get('/test', (c) => c.json({ ok: true }))
+
+      await app.request('/test', {
+        method: 'GET',
+        headers: { 'X-Real-IP': '20.20.20.1' },
+      })
+      await app.request('/test', {
+        method: 'GET',
+        headers: { 'X-Real-IP': '20.20.20.1' },
+      })
+
+      // 3rd request should be rate limited
+      const res = await app.request('/test', {
+        method: 'GET',
+        headers: { 'X-Real-IP': '20.20.20.1' },
+      })
+      expect(res.status).toBe(429)
+    })
+
+    it('should fallback to unknown when no IP headers present', async () => {
+      const app = new Hono<HonoEnv>()
+      app.onError(errorHandler)
+
+      // Note: NOT using requestContext middleware
+      app.use('*', async (c, next) => {
+        ;(c as any).env = env
+        const db = createTestDb()
+        c.set('db', db)
+        await next()
+      })
+
+      app.use(
+        '*',
+        rateLimitWithStore(store, { max: 2 })
+      )
+
+      app.get('/test', (c) => c.json({ ok: true }))
+
+      // Requests without any IP headers
+      await app.request('/test', { method: 'GET' })
+      await app.request('/test', { method: 'GET' })
+
+      // 3rd request should be rate limited (all fall back to 'unknown')
+      const res = await app.request('/test', { method: 'GET' })
+      expect(res.status).toBe(429)
+    })
+
+    it('should handle comma-separated X-Forwarded-For without context IP', async () => {
+      const app = new Hono<HonoEnv>()
+      app.onError(errorHandler)
+
+      // Note: NOT using requestContext middleware
+      app.use('*', async (c, next) => {
+        ;(c as any).env = env
+        const db = createTestDb()
+        c.set('db', db)
+        await next()
+      })
+
+      app.use(
+        '*',
+        rateLimitWithStore(store, { max: 2 })
+      )
+
+      app.get('/test', (c) => c.json({ ok: true }))
+
+      // First IP in the list should be used
+      await app.request('/test', {
+        method: 'GET',
+        headers: { 'X-Forwarded-For': '30.30.30.1, 30.30.30.2, 30.30.30.3' },
+      })
+      await app.request('/test', {
+        method: 'GET',
+        headers: { 'X-Forwarded-For': '30.30.30.1, proxy1, proxy2' },
+      })
+
+      // 3rd request with same first IP should be rate limited
+      const res = await app.request('/test', {
+        method: 'GET',
+        headers: { 'X-Forwarded-For': '30.30.30.1' },
+      })
+      expect(res.status).toBe(429)
+
+      // Different first IP should work
+      const res2 = await app.request('/test', {
+        method: 'GET',
+        headers: { 'X-Forwarded-For': '30.30.30.2' },
+      })
+      expect(res2.status).toBe(200)
+    })
+  })
+
+  // ============================================================================
+  // Store Cleanup Tests
+  // ============================================================================
+
+  describe('Store cleanup', () => {
+    it('should cleanup expired entries on access', async () => {
+      // Use a very short window
+      const testStore = new RateLimitStore()
+
+      const app = new Hono<HonoEnv>()
+      app.onError(errorHandler)
+
+      app.use('*', async (c, next) => {
+        ;(c as any).env = env
+        const db = createTestDb()
+        c.set('db', db)
+        await next()
+      })
+
+      app.use('*', requestContext)
+      app.use(
+        '*',
+        rateLimitWithStore(testStore, { max: 2, windowMs: 50 }) // 50ms window
+      )
+
+      app.get('/test', (c) => c.json({ ok: true }))
+
+      // Make requests from two different IPs
+      await app.request('/test', {
+        method: 'GET',
+        headers: { 'X-Forwarded-For': '40.40.40.1' },
+      })
+      await app.request('/test', {
+        method: 'GET',
+        headers: { 'X-Forwarded-For': '40.40.40.2' },
+      })
+
+      expect(testStore.size).toBe(2)
+
+      // Wait for window to expire
+      await new Promise((resolve) => setTimeout(resolve, 100))
+
+      // Make a new request - this creates a new entry for a new window
+      await app.request('/test', {
+        method: 'GET',
+        headers: { 'X-Forwarded-For': '40.40.40.1' },
+      })
+
+      // Original entry for 40.40.40.1 was expired and replaced with new one
+      // Entry for 40.40.40.2 is expired but not cleaned until accessed
+      // So we should have 2 entries still
+      expect(testStore.size).toBe(2)
+
+      testStore.destroy()
+    })
+
+    it('should allow requests after window expires', async () => {
+      const testStore = new RateLimitStore()
+
+      const app = new Hono<HonoEnv>()
+      app.onError(errorHandler)
+
+      app.use('*', async (c, next) => {
+        ;(c as any).env = env
+        const db = createTestDb()
+        c.set('db', db)
+        await next()
+      })
+
+      app.use('*', requestContext)
+      app.use(
+        '*',
+        rateLimitWithStore(testStore, { max: 2, windowMs: 50 })
+      )
+
+      app.get('/test', (c) => c.json({ ok: true }))
+
+      const ip = '50.50.50.1'
+
+      // Exhaust rate limit
+      await app.request('/test', {
+        method: 'GET',
+        headers: { 'X-Forwarded-For': ip },
+      })
+      await app.request('/test', {
+        method: 'GET',
+        headers: { 'X-Forwarded-For': ip },
+      })
+
+      // Should be rate limited
+      const limitedRes = await app.request('/test', {
+        method: 'GET',
+        headers: { 'X-Forwarded-For': ip },
+      })
+      expect(limitedRes.status).toBe(429)
+
+      // Wait for window to expire
+      await new Promise((resolve) => setTimeout(resolve, 100))
+
+      // Should be allowed again
+      const res = await app.request('/test', {
+        method: 'GET',
+        headers: { 'X-Forwarded-For': ip },
+      })
+      expect(res.status).toBe(200)
+
+      testStore.destroy()
+    })
+  })
+
+  // ============================================================================
+  // standardHeaders Option Tests
+  // ============================================================================
+
+  describe('standardHeaders option', () => {
+    it('should include rate limit headers when standardHeaders is true (default)', async () => {
+      const app = new Hono<HonoEnv>()
+      app.onError(errorHandler)
+
+      app.use('*', async (c, next) => {
+        ;(c as any).env = env
+        const db = createTestDb()
+        c.set('db', db)
+        await next()
+      })
+
+      app.use('*', requestContext)
+      app.use(
+        '*',
+        rateLimitWithStore(store, { max: 10, standardHeaders: true })
+      )
+
+      app.get('/test', (c) => c.json({ ok: true }))
+
+      const res = await app.request('/test', {
+        method: 'GET',
+        headers: { 'X-Forwarded-For': '60.60.60.1' },
+      })
+
+      expect(res.headers.get('X-RateLimit-Limit')).toBe('10')
+      expect(res.headers.get('X-RateLimit-Remaining')).toBe('9')
+      expect(res.headers.get('X-RateLimit-Reset')).toBeDefined()
+    })
+
+    it('should not include rate limit headers when standardHeaders is false', async () => {
+      const app = new Hono<HonoEnv>()
+      app.onError(errorHandler)
+
+      app.use('*', async (c, next) => {
+        ;(c as any).env = env
+        const db = createTestDb()
+        c.set('db', db)
+        await next()
+      })
+
+      app.use('*', requestContext)
+      app.use(
+        '*',
+        rateLimitWithStore(store, { max: 10, standardHeaders: false })
+      )
+
+      app.get('/test', (c) => c.json({ ok: true }))
+
+      const res = await app.request('/test', {
+        method: 'GET',
+        headers: { 'X-Forwarded-For': '60.60.60.2' },
+      })
+
+      expect(res.headers.get('X-RateLimit-Limit')).toBeNull()
+      expect(res.headers.get('X-RateLimit-Remaining')).toBeNull()
+      expect(res.headers.get('X-RateLimit-Reset')).toBeNull()
+    })
+  })
+
+  // ============================================================================
+  // Custom Key Generator Tests
+  // ============================================================================
+
+  describe('Custom key generator', () => {
+    it('should use custom key generator when provided', async () => {
+      const app = new Hono<HonoEnv>()
+      app.onError(errorHandler)
+
+      app.use('*', async (c, next) => {
+        ;(c as any).env = env
+        const db = createTestDb()
+        c.set('db', db)
+        await next()
+      })
+
+      // Use API key as rate limit key
+      app.use(
+        '*',
+        rateLimitWithStore(store, {
+          max: 2,
+          keyGenerator: (c) => c.req.header('X-API-Key') ?? 'anonymous',
+        })
+      )
+
+      app.get('/test', (c) => c.json({ ok: true }))
+
+      // Same API key should share rate limit
+      await app.request('/test', {
+        method: 'GET',
+        headers: { 'X-API-Key': 'key-123', 'X-Forwarded-For': '70.70.70.1' },
+      })
+      await app.request('/test', {
+        method: 'GET',
+        headers: { 'X-API-Key': 'key-123', 'X-Forwarded-For': '70.70.70.2' }, // Different IP
+      })
+
+      // 3rd request with same API key should be rate limited
+      const res = await app.request('/test', {
+        method: 'GET',
+        headers: { 'X-API-Key': 'key-123', 'X-Forwarded-For': '70.70.70.3' },
+      })
+      expect(res.status).toBe(429)
+
+      // Different API key should work
+      const res2 = await app.request('/test', {
+        method: 'GET',
+        headers: { 'X-API-Key': 'key-456', 'X-Forwarded-For': '70.70.70.1' },
+      })
+      expect(res2.status).toBe(200)
+    })
+  })
+
+  // ============================================================================
+  // Custom Message Tests
+  // ============================================================================
+
+  describe('Custom message', () => {
+    it('should use custom message when rate limit exceeded', async () => {
+      const customMessage = 'Slow down there, partner!'
+
+      const app = new Hono<HonoEnv>()
+      app.onError(errorHandler)
+
+      app.use('*', async (c, next) => {
+        ;(c as any).env = env
+        const db = createTestDb()
+        c.set('db', db)
+        await next()
+      })
+
+      app.use('*', requestContext)
+      app.use(
+        '*',
+        rateLimitWithStore(store, { max: 1, message: customMessage })
+      )
+
+      app.get('/test', (c) => c.json({ ok: true }))
+
+      // Exhaust rate limit
+      await app.request('/test', {
+        method: 'GET',
+        headers: { 'X-Forwarded-For': '80.80.80.1' },
+      })
+
+      // Should get custom message
+      const res = await app.request('/test', {
+        method: 'GET',
+        headers: { 'X-Forwarded-For': '80.80.80.1' },
+      })
+
+      expect(res.status).toBe(429)
+      const body = await res.json()
+      expect(body.error.message).toBe(customMessage)
     })
   })
 })

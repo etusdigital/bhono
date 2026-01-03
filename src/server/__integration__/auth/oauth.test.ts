@@ -366,6 +366,187 @@ describe('OAuth Authentication Integration', () => {
 
       globalThis.fetch = originalFetch
     })
+
+    it('should accept pending invitation during OAuth callback', async () => {
+      // Create an account and inviter
+      const account = await createAccount({ name: 'Pending Invite Account' })
+      const inviter = await createUser({ email: 'pending-inviter@example.com', name: 'Pending Inviter' })
+      await addUserToAccount(inviter.id, account.id, 'ADMIN')
+
+      // Create an invitation in the database
+      const db = createTestDb()
+      const invitationId = crypto.randomUUID()
+      const invitationToken = crypto.randomUUID()
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      const inviteeEmail = `pending-invitee-${crypto.randomUUID().slice(0, 8)}@gmail.com`
+
+      ;(db as any).run(
+        require('drizzle-orm').sql`
+          INSERT INTO invitations (id, account_id, email, role, token, invited_by_id, expires_at)
+          VALUES (${invitationId}, ${account.id}, ${inviteeEmail}, ${'EDITOR'}, ${invitationToken}, ${inviter.id}, ${expiresAt})
+        `
+      )
+
+      // Mock Google OAuth response
+      const mockIdToken = createMockIdToken({
+        sub: `google_user_${crypto.randomUUID().slice(0, 8)}`,
+        email: inviteeEmail,
+        email_verified: true,
+        name: 'Pending Invitee User',
+        picture: 'https://example.com/avatar.jpg',
+      })
+
+      const originalFetch = globalThis.fetch
+      globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+        const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+
+        if (url.includes('oauth2.googleapis.com/token')) {
+          return new Response(
+            JSON.stringify({
+              access_token: 'mock_access_token',
+              id_token: mockIdToken,
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } }
+          )
+        }
+
+        return originalFetch(input)
+      }) as typeof fetch
+
+      const oauthData = JSON.stringify({
+        codeVerifier: 'test_verifier_string_long_enough_for_pkce',
+        state: 'valid_state',
+        redirect: null,
+      })
+
+      // Include the pending_invitation cookie in the callback request
+      const res = await app.request('/auth/callback?code=valid_code&state=valid_state', {
+        method: 'GET',
+        redirect: 'manual',
+        headers: {
+          Cookie: `oauth_state=${encodeURIComponent(oauthData)}; pending_invitation=${invitationToken}`,
+        },
+      })
+
+      expect(res.status).toBe(302)
+      const location = res.headers.get('location')
+      expect(location).toContain('/dashboard')
+
+      // Verify the invitation was accepted (accepted_at should be set)
+      const { invitations } = await import('../../db/schema')
+      const invitationResult = await (db as any)
+        .select()
+        .from(invitations)
+        .where(eq(invitations.id, invitationId))
+        .limit(1)
+
+      expect(invitationResult[0].acceptedAt).not.toBeNull()
+
+      globalThis.fetch = originalFetch
+    })
+
+    it('should ignore invalid pending invitation token during OAuth callback', async () => {
+      // This tests line 110 - when pending_invitation cookie exists but invitation is not found
+      const mockIdToken = createMockIdToken({
+        sub: `google_user_invalid_invite_${crypto.randomUUID().slice(0, 8)}`,
+        email: `invalid-invite-${crypto.randomUUID().slice(0, 8)}@gmail.com`,
+        email_verified: true,
+        name: 'Invalid Invite Test User',
+        picture: 'https://example.com/avatar.jpg',
+      })
+
+      const originalFetch = globalThis.fetch
+      globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+        const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+
+        if (url.includes('oauth2.googleapis.com/token')) {
+          return new Response(
+            JSON.stringify({
+              access_token: 'mock_access_token',
+              id_token: mockIdToken,
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } }
+          )
+        }
+
+        return originalFetch(input)
+      }) as typeof fetch
+
+      const oauthData = JSON.stringify({
+        codeVerifier: 'test_verifier_string_long_enough_for_pkce',
+        state: 'valid_state',
+        redirect: null,
+      })
+
+      // Include a non-existent pending_invitation token
+      const res = await app.request('/auth/callback?code=valid_code&state=valid_state', {
+        method: 'GET',
+        redirect: 'manual',
+        headers: {
+          Cookie: `oauth_state=${encodeURIComponent(oauthData)}; pending_invitation=non-existent-token`,
+        },
+      })
+
+      // Should still succeed but invitation acceptance is skipped
+      expect(res.status).toBe(302)
+      const location = res.headers.get('location')
+      expect(location).toContain('/dashboard')
+
+      globalThis.fetch = originalFetch
+    })
+
+    it('should fallback to origin URL when APP_URL is not set', async () => {
+      // This tests line 125 - the APP_URL fallback
+      const mockIdToken = createMockIdToken({
+        sub: `google_user_fallback_${crypto.randomUUID().slice(0, 8)}`,
+        email: `fallback-url-${crypto.randomUUID().slice(0, 8)}@gmail.com`,
+        email_verified: true,
+        name: 'Fallback URL Test User',
+      })
+
+      // Save original APP_URL
+      const originalAppUrl = env.APP_URL
+      // @ts-expect-error - Temporarily remove APP_URL to test fallback
+      delete env.APP_URL
+
+      const originalFetch = globalThis.fetch
+      globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+        const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+
+        if (url.includes('oauth2.googleapis.com/token')) {
+          return new Response(
+            JSON.stringify({
+              access_token: 'mock_access_token',
+              id_token: mockIdToken,
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } }
+          )
+        }
+
+        return originalFetch(input)
+      }) as typeof fetch
+
+      const oauthData = JSON.stringify({
+        codeVerifier: 'test_verifier_string_long_enough_for_pkce',
+        state: 'valid_state',
+        redirect: null,
+      })
+
+      const res = await app.request('/auth/callback?code=valid_code&state=valid_state', {
+        method: 'GET',
+        redirect: 'manual',
+        headers: {
+          Cookie: `oauth_state=${encodeURIComponent(oauthData)}`,
+        },
+      })
+
+      // Should succeed and redirect
+      expect(res.status).toBe(302)
+
+      // Restore APP_URL
+      env.APP_URL = originalAppUrl
+      globalThis.fetch = originalFetch
+    })
   })
 
   describe('GET /auth/invite/:token', () => {
@@ -411,6 +592,177 @@ describe('OAuth Authentication Integration', () => {
       const setCookie = res.headers.get('set-cookie')
       expect(setCookie).toContain('pending_invitation=')
       expect(setCookie).toContain(token)
+    })
+  })
+
+  // ============================================================================
+  // Handler Error Cases
+  // ============================================================================
+
+  describe('Handler Error Cases', () => {
+    describe('Database Not Initialized', () => {
+      it('should return 500 when database is not initialized (callback)', async () => {
+        const appWithoutDb = new Hono<HonoEnv>()
+        appWithoutDb.onError(errorHandler)
+
+        appWithoutDb.use('*', async (c, next) => {
+          ;(c as any).env = env
+          // Note: NOT setting db
+          c.set('transactionId', crypto.randomUUID())
+          c.set('ip', '127.0.0.1')
+          c.set('userAgent', 'IntegrationTest/1.0')
+          await next()
+        })
+
+        const { callbackHandler } = await import('../../routes/auth/handlers')
+        appWithoutDb.get('/test-callback', async (c) => {
+          // Mock the valid method to return query params
+          const originalValid = c.req.valid.bind(c.req)
+          c.req.valid = ((type: string) => {
+            if (type === 'query') return { code: 'mock-code', state: 'mock-state' }
+            return originalValid(type)
+          }) as typeof c.req.valid
+          // @ts-expect-error - Testing error case
+          return callbackHandler(c)
+        })
+
+        const res = await appWithoutDb.request('/test-callback?code=mock&state=mock', {
+          method: 'GET',
+        })
+
+        expect(res.status).toBe(500)
+        const body = await res.json()
+        expect(body.error.message).toBe('Database not initialized')
+      })
+
+      it('should return 500 when database is not initialized (refresh)', async () => {
+        const appWithoutDb = new Hono<HonoEnv>()
+        appWithoutDb.onError(errorHandler)
+
+        appWithoutDb.use('*', async (c, next) => {
+          ;(c as any).env = env
+          // Note: NOT setting db
+          c.set('transactionId', crypto.randomUUID())
+          c.set('ip', '127.0.0.1')
+          c.set('userAgent', 'IntegrationTest/1.0')
+          await next()
+        })
+
+        const { refreshHandler } = await import('../../routes/auth/handlers')
+        appWithoutDb.post('/test-refresh', async (c) => {
+          // @ts-expect-error - Testing error case
+          return refreshHandler(c)
+        })
+
+        const res = await appWithoutDb.request('/test-refresh', {
+          method: 'POST',
+          headers: {
+            Cookie: 'refresh_token=some-token',
+          },
+        })
+
+        expect(res.status).toBe(500)
+        const body = await res.json()
+        expect(body.error.message).toBe('Database not initialized')
+      })
+
+      it('should return 500 when database is not initialized (logout)', async () => {
+        const appWithoutDb = new Hono<HonoEnv>()
+        appWithoutDb.onError(errorHandler)
+
+        appWithoutDb.use('*', async (c, next) => {
+          ;(c as any).env = env
+          // Note: NOT setting db
+          c.set('transactionId', crypto.randomUUID())
+          c.set('ip', '127.0.0.1')
+          c.set('userAgent', 'IntegrationTest/1.0')
+          await next()
+        })
+
+        const { logoutHandler } = await import('../../routes/auth/handlers')
+        appWithoutDb.post('/test-logout', async (c) => {
+          // @ts-expect-error - Testing error case
+          return logoutHandler(c)
+        })
+
+        const res = await appWithoutDb.request('/test-logout', {
+          method: 'POST',
+        })
+
+        expect(res.status).toBe(500)
+        const body = await res.json()
+        expect(body.error.message).toBe('Database not initialized')
+      })
+
+      it('should return 500 when database is not initialized (invite)', async () => {
+        const appWithoutDb = new Hono<HonoEnv>()
+        appWithoutDb.onError(errorHandler)
+
+        appWithoutDb.use('*', async (c, next) => {
+          ;(c as any).env = env
+          // Note: NOT setting db
+          c.set('transactionId', crypto.randomUUID())
+          c.set('ip', '127.0.0.1')
+          c.set('userAgent', 'IntegrationTest/1.0')
+          await next()
+        })
+
+        const { inviteHandler } = await import('../../routes/auth/handlers')
+        const testToken = crypto.randomUUID()
+        appWithoutDb.get('/test-invite/:token', async (c) => {
+          // Mock the valid method to return the param
+          const originalValid = c.req.valid.bind(c.req)
+          c.req.valid = ((type: string) => {
+            if (type === 'param') return { token: testToken }
+            return originalValid(type)
+          }) as typeof c.req.valid
+          // @ts-expect-error - Testing error case
+          return inviteHandler(c)
+        })
+
+        const res = await appWithoutDb.request(`/test-invite/${testToken}`, {
+          method: 'GET',
+        })
+
+        expect(res.status).toBe(500)
+        const body = await res.json()
+        expect(body.error.message).toBe('Database not initialized')
+      })
+    })
+
+    describe('Context Fallbacks', () => {
+      it('should use fallback values for getAuthContext when context is not set', async () => {
+        // Test that auth context fallbacks work when ip and userAgent are not set
+        const appWithMinimalContext = new Hono<HonoEnv>()
+        appWithMinimalContext.onError(errorHandler)
+
+        appWithMinimalContext.use('*', async (c, next) => {
+          ;(c as any).env = env
+          const db = createTestDb()
+          c.set('db', db)
+          // Note: NOT setting transactionId, ip, or userAgent
+          await next()
+        })
+
+        // The logout handler uses getAuthContext - test it with minimal context
+        // The handler should work with fallback values
+        const { logoutHandler } = await import('../../routes/auth/handlers')
+        appWithMinimalContext.post('/test-logout', async (c) => {
+          // @ts-expect-error - Testing with minimal context
+          return logoutHandler(c)
+        })
+
+        // This should work even without ip/userAgent/transactionId set
+        // The getAuthContext function will use fallback values
+        const res = await appWithMinimalContext.request('/test-logout', {
+          method: 'POST',
+        })
+
+        // Should succeed with fallbacks (200 OK for logout)
+        expect(res.status).toBe(200)
+        const body = await res.json()
+        expect(body.message).toBe('Logged out successfully')
+      })
     })
   })
 })

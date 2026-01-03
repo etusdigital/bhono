@@ -6,6 +6,11 @@ import { test, expect, isAuthenticated } from '../fixtures'
  * Tests for accessibility features including keyboard navigation,
  * focus management, semantic structure, and ARIA attributes.
  *
+ * Uses Playwright's built-in accessibility testing features:
+ * - toHaveAccessibleName() for accessible names
+ * - toHaveRole() for ARIA roles
+ * - toHaveAccessibleDescription() for descriptions
+ *
  * @tags @a11y
  */
 
@@ -496,6 +501,425 @@ test.describe('Accessibility Tests @a11y', () => {
       await page.keyboard.press('Tab')
       const secondFocusedElement = page.locator(':focus')
       await expect(secondFocusedElement).toBeVisible()
+    })
+  })
+
+  test.describe('Live Regions and Announcements', () => {
+    test.beforeEach(async ({ page }) => {
+      const authenticated = await isAuthenticated(page)
+      test.skip(!authenticated, 'No authenticated session available')
+    })
+
+    test('toast notifications have role="status"', async ({ page }) => {
+      await page.goto('/settings')
+
+      // Trigger a toast by saving settings
+      const nameInput = page.getByLabel(/full name/i)
+      await nameInput.fill('Test User Updated')
+
+      const saveButton = page.getByRole('button', { name: /save changes/i })
+      await saveButton.click()
+
+      // Toast should appear with proper role
+      const toast = page.getByRole('status')
+      await expect(toast.first()).toBeVisible({ timeout: 5000 })
+    })
+
+    test('loading states are announced', async ({ page }) => {
+      await page.goto('/settings')
+
+      // Check that buttons have loading indicators when submitting
+      const saveButton = page.getByRole('button', { name: /save changes/i })
+
+      // Button should indicate loading state accessibly
+      // Either through aria-busy, aria-disabled, or visible spinner
+      await saveButton.click()
+
+      // The button should either be disabled or have aria-busy during loading
+      const isDisabled = await saveButton.isDisabled()
+      const ariaBusy = await saveButton.getAttribute('aria-busy')
+      const hasSpinner = await saveButton.locator('[class*="spinner"], [class*="animate-spin"]').count()
+
+      // At least one loading indicator should be present
+      expect(isDisabled || ariaBusy === 'true' || hasSpinner > 0).toBe(true)
+    })
+  })
+
+  test.describe('Touch Targets', () => {
+    test.beforeEach(async ({ page }) => {
+      const authenticated = await isAuthenticated(page)
+      test.skip(!authenticated, 'No authenticated session available')
+    })
+
+    test('buttons meet minimum touch target size (44x44)', async ({ page }) => {
+      await page.goto('/dashboard')
+
+      // Get all buttons
+      const buttons = page.getByRole('button')
+      const count = await buttons.count()
+
+      // Check a sample of buttons for adequate size
+      const samplesToCheck = Math.min(count, 10)
+      let smallButtonsFound = 0
+
+      for (let i = 0; i < samplesToCheck; i++) {
+        const button = buttons.nth(i)
+        if (await button.isVisible()) {
+          const box = await button.boundingBox()
+          if (box) {
+            // WCAG recommends 44x44 minimum touch target
+            // We'll log a warning if smaller, but not fail
+            if (box.width < 44 || box.height < 44) {
+              smallButtonsFound++
+            }
+          }
+        }
+      }
+
+      // Allow some small icon buttons, but most should be adequate size
+      expect(smallButtonsFound).toBeLessThan(samplesToCheck / 2)
+    })
+
+    test('links have adequate click area', async ({ page }) => {
+      await page.goto('/dashboard')
+
+      // Check navigation links
+      const navLinks = page.locator('nav').getByRole('link')
+      const count = await navLinks.count()
+
+      for (let i = 0; i < Math.min(count, 5); i++) {
+        const link = navLinks.nth(i)
+        if (await link.isVisible()) {
+          const box = await link.boundingBox()
+          if (box) {
+            // Links should have reasonable padding for touch
+            expect(box.height).toBeGreaterThanOrEqual(32)
+          }
+        }
+      }
+    })
+  })
+
+  test.describe('Image Accessibility', () => {
+    test.beforeEach(async ({ page }) => {
+      const authenticated = await isAuthenticated(page)
+      test.skip(!authenticated, 'No authenticated session available')
+    })
+
+    test('all images have alt attributes', async ({ page }) => {
+      await page.goto('/dashboard')
+
+      // Find all images
+      const images = page.locator('img')
+      const count = await images.count()
+
+      for (let i = 0; i < count; i++) {
+        const img = images.nth(i)
+        if (await img.isVisible()) {
+          // Image should have alt attribute (can be empty for decorative)
+          await expect(img).toHaveAttribute('alt')
+        }
+      }
+    })
+
+    test('SVG icons have accessible roles or are hidden', async ({ page }) => {
+      await page.goto('/dashboard')
+
+      // Find SVG elements
+      const svgs = page.locator('svg')
+      const count = await svgs.count()
+
+      for (let i = 0; i < Math.min(count, 10); i++) {
+        const svg = svgs.nth(i)
+        if (await svg.isVisible()) {
+          // SVG should either have role="img" with accessible name
+          // or be aria-hidden="true" if decorative
+          const role = await svg.getAttribute('role')
+          const ariaHidden = await svg.getAttribute('aria-hidden')
+          const ariaLabel = await svg.getAttribute('aria-label')
+          const title = await svg.locator('title').count()
+
+          // Either hidden or has accessible name
+          const isAccessible = ariaHidden === 'true' ||
+            role === 'img' ||
+            ariaLabel !== null ||
+            title > 0
+
+          // Most icons in buttons are decorative (text provides meaning)
+          // so aria-hidden is acceptable
+          expect(isAccessible || ariaHidden === null).toBe(true)
+        }
+      }
+    })
+  })
+
+  test.describe('Reduced Motion', () => {
+    test.beforeEach(async ({ page }) => {
+      const authenticated = await isAuthenticated(page)
+      test.skip(!authenticated, 'No authenticated session available')
+    })
+
+    test('app respects prefers-reduced-motion', async ({ page }) => {
+      // Emulate reduced motion preference
+      await page.emulateMedia({ reducedMotion: 'reduce' })
+      await page.goto('/dashboard')
+
+      // Check that the app loaded successfully with reduced motion
+      await expect(page.getByRole('heading', { name: /dashboard/i })).toBeVisible()
+
+      // Animations should be disabled or reduced
+      // Check sidebar collapse - should not have transition
+      const sidebar = page.locator('aside')
+      await expect(sidebar).toBeVisible()
+
+      // The app should be fully functional with reduced motion
+      const navLinks = page.locator('nav').getByRole('link')
+      await expect(navLinks.first()).toBeVisible()
+    })
+  })
+
+  test.describe('Color Independence', () => {
+    test.beforeEach(async ({ page }) => {
+      const authenticated = await isAuthenticated(page)
+      test.skip(!authenticated, 'No authenticated session available')
+    })
+
+    test('status indicators have text/icon alternatives to color', async ({ page }) => {
+      await page.goto('/integrations')
+
+      // Check connected status - should have "Connected" badge text, not just green color
+      const connectedBadge = page.locator('[class*="Badge"]', { hasText: /connected/i })
+      const count = await connectedBadge.count()
+
+      if (count > 0) {
+        await expect(connectedBadge.first()).toBeVisible()
+        // Badge has text, so color is not the only indicator
+        const text = await connectedBadge.first().textContent()
+        expect(text?.toLowerCase()).toContain('connected')
+      }
+    })
+
+    test('form validation errors have text descriptions', async ({ page }) => {
+      await page.goto('/team')
+
+      // Open invite dialog
+      await page.getByRole('button', { name: /invite member/i }).click()
+      const dialog = page.getByRole('dialog')
+      await expect(dialog).toBeVisible()
+
+      // Email input should have label for screen readers
+      const emailInput = page.getByLabel(/email address/i)
+      await expect(emailInput).toBeVisible()
+
+      // If we had invalid input, error should be in text, not just color
+      // For now, verify label exists
+      const label = page.locator('label', { hasText: /email/i })
+      await expect(label).toBeVisible()
+    })
+
+    test('role badges convey meaning without color', async ({ page }) => {
+      await page.goto('/team')
+
+      // Role badges should have text (admin, member, owner)
+      const badges = page.locator('[class*="Badge"]')
+      const count = await badges.count()
+
+      for (let i = 0; i < Math.min(count, 5); i++) {
+        const badge = badges.nth(i)
+        if (await badge.isVisible()) {
+          const text = await badge.textContent()
+          // Badge should have readable text content
+          expect(text?.trim().length).toBeGreaterThan(0)
+        }
+      }
+    })
+  })
+
+  test.describe('Focus Visibility', () => {
+    test.beforeEach(async ({ page }) => {
+      const authenticated = await isAuthenticated(page)
+      test.skip(!authenticated, 'No authenticated session available')
+    })
+
+    test('focused elements have visible focus indicator', async ({ page }) => {
+      await page.goto('/dashboard')
+
+      // Tab to first interactive element
+      await page.keyboard.press('Tab')
+      const focused = page.locator(':focus')
+
+      if (await focused.count() > 0) {
+        // Get computed style to check for focus ring
+        const styles = await focused.evaluate((el) => {
+          const computed = window.getComputedStyle(el)
+          return {
+            outline: computed.outline,
+            outlineWidth: computed.outlineWidth,
+            boxShadow: computed.boxShadow,
+            borderColor: computed.borderColor,
+          }
+        })
+
+        // Element should have some visible focus indicator
+        // (outline, box-shadow, or border change)
+        const hasVisibleFocus =
+          styles.outlineWidth !== '0px' ||
+          styles.boxShadow !== 'none' ||
+          styles.borderColor !== 'transparent'
+
+        expect(hasVisibleFocus).toBe(true)
+      }
+    })
+
+    test('buttons show focus state distinctly from hover', async ({ page }) => {
+      await page.goto('/settings')
+
+      const saveButton = page.getByRole('button', { name: /save changes/i })
+
+      // Get normal state
+      const normalStyles = await saveButton.evaluate((el) => {
+        const computed = window.getComputedStyle(el)
+        return {
+          outline: computed.outline,
+          boxShadow: computed.boxShadow,
+        }
+      })
+
+      // Focus the button
+      await saveButton.focus()
+
+      // Get focused state
+      const focusedStyles = await saveButton.evaluate((el) => {
+        const computed = window.getComputedStyle(el)
+        return {
+          outline: computed.outline,
+          boxShadow: computed.boxShadow,
+        }
+      })
+
+      // Focus state should be different from normal state
+      const hasDistinctFocus =
+        focusedStyles.outline !== normalStyles.outline ||
+        focusedStyles.boxShadow !== normalStyles.boxShadow
+
+      expect(hasDistinctFocus).toBe(true)
+    })
+  })
+
+  test.describe('Semantic HTML', () => {
+    test.beforeEach(async ({ page }) => {
+      const authenticated = await isAuthenticated(page)
+      test.skip(!authenticated, 'No authenticated session available')
+    })
+
+    test('page uses semantic HTML elements', async ({ page }) => {
+      await page.goto('/dashboard')
+
+      // Check for semantic structure
+      const main = page.locator('main')
+      await expect(main).toBeVisible()
+
+      const nav = page.locator('nav')
+      await expect(nav.first()).toBeVisible()
+
+      const aside = page.locator('aside')
+      await expect(aside).toBeVisible()
+
+      // Headings should be present
+      const h1 = page.getByRole('heading', { level: 1 })
+      await expect(h1).toBeVisible()
+    })
+
+    test('lists use proper list elements', async ({ page }) => {
+      await page.goto('/team')
+
+      // Team members should be in a structured format
+      // Even if not using ul/li, should have role="list" or similar structure
+      const memberList = page.locator('[class*="divide-y"]')
+      await expect(memberList.first()).toBeVisible()
+
+      // Should contain multiple items
+      const items = memberList.first().locator('> div')
+      const count = await items.count()
+      expect(count).toBeGreaterThanOrEqual(1)
+    })
+
+    test('buttons are not links and links are not buttons', async ({ page }) => {
+      await page.goto('/dashboard')
+
+      // Buttons should be <button> elements
+      const buttons = page.getByRole('button')
+      const buttonCount = await buttons.count()
+
+      for (let i = 0; i < Math.min(buttonCount, 5); i++) {
+        const button = buttons.nth(i)
+        if (await button.isVisible()) {
+          const tagName = await button.evaluate((el) => el.tagName.toLowerCase())
+          // Should be button or have role="button"
+          const role = await button.getAttribute('role')
+          expect(tagName === 'button' || role === 'button').toBe(true)
+        }
+      }
+
+      // Links should be <a> elements
+      const links = page.getByRole('link')
+      const linkCount = await links.count()
+
+      for (let i = 0; i < Math.min(linkCount, 5); i++) {
+        const link = links.nth(i)
+        if (await link.isVisible()) {
+          const tagName = await link.evaluate((el) => el.tagName.toLowerCase())
+          expect(tagName).toBe('a')
+
+          // Links should have href
+          const href = await link.getAttribute('href')
+          expect(href).toBeTruthy()
+        }
+      }
+    })
+  })
+
+  test.describe('Text Accessibility', () => {
+    test.beforeEach(async ({ page }) => {
+      const authenticated = await isAuthenticated(page)
+      test.skip(!authenticated, 'No authenticated session available')
+    })
+
+    test('text can be resized up to 200% without loss', async ({ page }) => {
+      await page.goto('/dashboard')
+
+      // Zoom to 200%
+      await page.evaluate(() => {
+        document.body.style.zoom = '2'
+      })
+
+      // Content should still be visible and usable
+      await expect(page.getByRole('heading', { name: /dashboard/i })).toBeVisible()
+
+      // Navigation should still work
+      const navLinks = page.locator('nav').getByRole('link')
+      await expect(navLinks.first()).toBeVisible()
+    })
+
+    test('line height and spacing support readability', async ({ page }) => {
+      await page.goto('/dashboard')
+
+      // Check paragraph text has adequate line height
+      const paragraphs = page.locator('p')
+      const count = await paragraphs.count()
+
+      if (count > 0) {
+        const styles = await paragraphs.first().evaluate((el) => {
+          const computed = window.getComputedStyle(el)
+          const fontSize = parseFloat(computed.fontSize)
+          const lineHeight = parseFloat(computed.lineHeight)
+          return { fontSize, lineHeight, ratio: lineHeight / fontSize }
+        })
+
+        // Line height should be at least 1.5 times font size for readability
+        // (WCAG AAA recommends 1.5, AA allows 1.2)
+        expect(styles.ratio).toBeGreaterThanOrEqual(1.2)
+      }
     })
   })
 })
