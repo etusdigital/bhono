@@ -18,7 +18,7 @@
     "test:run": "vitest run"
   },
   "publishConfig": {
-    "access": "restricted"
+    "access": "public"
   },
   "dependencies": {
     "@clack/prompts": "^0.8.0",
