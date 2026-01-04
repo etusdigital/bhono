@@ -1,5 +1,17 @@
 # @etus/bhono-app
 
+## 0.1.7
+
+### Patch Changes
+
+- 8a62924: docs: improve implement-issue workflow with git branch, commit, changeset, and PR phases
+
+  - Add branch creation phase with naming conventions
+  - Add changeset decision matrix (only for published packages)
+  - Add conventional commits guidance
+  - Add PR creation with Linear integration
+  - Add post-merge cleanup steps
+
 ## 0.1.6
 
 ### Patch Changes
