@@ -31,6 +31,8 @@ rm -rf "$TEMPLATE_DIR/.husky" \
        "$TEMPLATE_DIR/.test-output" \
        "$TEMPLATE_DIR/.github" \
        "$TEMPLATE_DIR/docs/plans" \
+       "$TEMPLATE_DIR/docs/openapi.json" \
+       "$TEMPLATE_DIR/tests/e2e/.auth" \
        "$TEMPLATE_DIR/commitlint.config.js" \
        "$TEMPLATE_DIR/lint-staged.config.js" \
        "$TEMPLATE_DIR/pnpm-lock.yaml" \
@@ -74,6 +76,8 @@ rsync -av --checksum --delete \
   --exclude='*.png' \
   --exclude='tmp/' \
   --exclude='**/tmp/' \
+  --exclude='docs/openapi.json' \
+  --exclude='tests/e2e/.auth/' \
   "$ROOT_DIR/" "$TEMPLATE_DIR/"
 
 # Rename .gitignore to _gitignore (npm ignores .gitignore in packages)
