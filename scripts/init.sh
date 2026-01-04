@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # BHono - Development Environment Setup
-# This script bootstraps dependencies, configures Cloudflare bindings,
+# Bootstraps dependencies, configures Cloudflare bindings,
 # seeds the local D1 (sqlite) database, and starts the dev server.
 
 set -euo pipefail
@@ -19,6 +19,7 @@ cd "$ROOT_DIR"
 UPDATE_PACKAGES=0
 SKIP_DEV=0
 SKIP_PROVISION=0
+SKIP_SEED=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -30,6 +31,9 @@ while [[ $# -gt 0 ]]; do
       ;;
     --no-provision)
       SKIP_PROVISION=1
+      ;;
+    --skip-seed)
+      SKIP_SEED=1
       ;;
     *)
       echo -e "${YELLOW}Ignoring unknown argument: $1${NC}"
@@ -148,8 +152,11 @@ fs.writeFileSync(path, JSON.stringify(data, null, 2));
 NODE
 
 WRANGLER="pnpm exec wrangler"
+WRANGLER_CONFIG="$WRANGLER --config config/wrangler.json"
+WRANGLER_AVAILABLE=1
 if ! $WRANGLER --version >/dev/null 2>&1; then
-  log_warn "Wrangler not available. Ensure dependencies are installed."
+  WRANGLER_AVAILABLE=0
+  log_warn "Wrangler not available. Cloudflare steps will be skipped."
 fi
 
 # Resolve names from wrangler.json
@@ -157,6 +164,8 @@ DB_NAME=$(node -e "const c=require('./config/wrangler.json'); console.log((c.d1_
 if [[ -z "$DB_NAME" ]]; then
   DB_NAME="${PROJECT_NAME}-db"
 fi
+
+DB_BINDING=$(node -e "const c=require('./config/wrangler.json'); console.log((c.d1_databases&&c.d1_databases[0]&&c.d1_databases[0].binding)||'DB');")
 
 R2_BUCKET=$(node -e "const c=require('./config/wrangler.json'); console.log((c.r2_buckets&&c.r2_buckets[0]&&c.r2_buckets[0].bucket_name)||'');")
 if [[ -z "$R2_BUCKET" ]]; then
@@ -171,7 +180,7 @@ KV_ID=$(node -e "const c=require('./config/wrangler.json'); console.log((c.kv_na
 if [[ "$D1_ID" == "TO_BE_PROVISIONED" ]]; then D1_ID=""; fi
 if [[ "$KV_ID" == "TO_BE_PROVISIONED" ]]; then KV_ID=""; fi
 
-if [[ "$SKIP_PROVISION" -eq 0 ]]; then
+if [[ "$SKIP_PROVISION" -eq 0 && "$WRANGLER_AVAILABLE" -eq 1 ]]; then
   if $WRANGLER whoami >/dev/null 2>&1; then
     log_info "Provisioning Cloudflare resources (D1, KV, R2)..."
 
@@ -241,12 +250,18 @@ pnpm cf-typegen >/dev/null 2>&1 || log_warn "Skipping cf-typegen (wrangler not c
 
 # Ensure local D1 exists and update drizzle config
 log_info "Preparing local D1 database..."
-$WRANGLER d1 execute "$DB_NAME" --local --command "SELECT 1;" >/dev/null 2>&1 || true
+if [[ "$WRANGLER_AVAILABLE" -eq 1 ]]; then
+  $WRANGLER_CONFIG d1 execute "$DB_NAME" --local --command "SELECT 1;" >/dev/null 2>&1 || log_warn "Local D1 init failed (continuing)."
+fi
 
 D1_ID_FROM_CONFIG=$(node -e "const c=require('./config/wrangler.json'); console.log((c.d1_databases&&c.d1_databases[0]&&c.d1_databases[0].database_id)||'');")
 if [[ -n "$D1_ID_FROM_CONFIG" ]]; then
-  LOCAL_DB_PATH=".wrangler/state/v3/d1/miniflare-D1DatabaseObject/${D1_ID_FROM_CONFIG}.sqlite"
+  LOCAL_D1_DIR=".wrangler/state/v3/d1/miniflare-D1DatabaseObject"
+  LOCAL_DB_PATH="${LOCAL_D1_DIR}/${D1_ID_FROM_CONFIG}.sqlite"
   DRIZZLE_DB_URL="../${LOCAL_DB_PATH}"
+
+  mkdir -p "$LOCAL_D1_DIR"
+  touch "$LOCAL_DB_PATH"
 
   if [[ -f config/drizzle.config.ts ]]; then
     DRIZZLE_DB_URL="$DRIZZLE_DB_URL" node - <<'NODE'
@@ -264,22 +279,59 @@ if (pattern.test(content)) {
 fs.writeFileSync(path, content);
 NODE
     log_ok "Updated config/drizzle.config.ts with local DB path."
+  else
+    log_warn "config/drizzle.config.ts not found. Skipping DB config update."
   fi
 else
   log_warn "D1 id not found in wrangler.json. Skipping drizzle config update."
 fi
 
 # Push schema (no migrations) and seed
+DB_PUSH_OK=0
+SEED_OK=0
+
 log_info "Pushing schema to local D1..."
-pnpm db:push >/dev/null 2>&1 || log_warn "Schema push skipped (check drizzle config and local D1)."
+if pnpm db:push >/tmp/bhono-db-push.log 2>&1; then
+  DB_PUSH_OK=1
+else
+  log_warn "Schema push failed."
+  tail -n 20 /tmp/bhono-db-push.log || true
+fi
 
-log_info "Generating seed data..."
-pnpm db:seed >/dev/null
+if [[ "$SKIP_SEED" -eq 0 ]]; then
+  log_info "Generating seed data..."
+  if pnpm db:seed >/tmp/bhono-seed-generate.log 2>&1; then
+    if [[ -f seed.sql ]]; then
+      if [[ "$WRANGLER_AVAILABLE" -eq 1 ]]; then
+        log_info "Seeding local D1..."
+        if $WRANGLER_CONFIG d1 execute "$DB_NAME" --local --file=seed.sql >/tmp/bhono-seed-apply.log 2>&1; then
+          SEED_OK=1
+        else
+          log_warn "Seed apply failed."
+          tail -n 20 /tmp/bhono-seed-apply.log || true
+        fi
+      else
+        log_warn "Wrangler not available. Skipping seed apply."
+      fi
+    else
+      log_warn "seed.sql not found. Seed generation did not create the file."
+    fi
+  else
+    log_warn "Seed generation failed."
+    tail -n 20 /tmp/bhono-seed-generate.log || true
+  fi
+else
+  log_warn "Skipping seed step (--skip-seed)."
+fi
 
-log_info "Seeding local D1..."
-$WRANGLER d1 execute "$DB_NAME" --local --file=seed.sql >/dev/null 2>&1 || log_warn "Seed failed (check local D1)."
+rm -f /tmp/bhono-db-push.log /tmp/bhono-seed-generate.log /tmp/bhono-seed-apply.log >/dev/null 2>&1 || true
 
-log_ok "Local D1 ready with seed data."
+if [[ "$DB_PUSH_OK" -eq 1 && "$SEED_OK" -eq 1 ]]; then
+  log_ok "Local D1 ready with seed data."
+else
+  log_warn "Local D1 setup incomplete. Review warnings above."
+fi
+
 log_info "Seed data is defined in src/server/db/seed.ts (customize as needed)."
 
 if [[ "$SKIP_DEV" -eq 0 ]]; then
