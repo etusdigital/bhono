@@ -1,184 +1,337 @@
 {
-    "version": "1.1",
-    "description": "Skill activation rules for project and user skills",
-    "skills": {
-        "architecture-analyzer": {
-            "type": "domain",
-            "enforcement": "suggest",
-            "priority": "high",
-            "description": "Architectural analysis and documentation - C4 diagrams, ERD, dependency maps, tech debt assessment, API documentation",
-            "promptTriggers": {
-                "keywords": [
-                    "analyze architecture",
-                    "architecture analysis",
-                    "document codebase",
-                    "codebase documentation",
-                    "C4 diagram",
-                    "ERD",
-                    "entity relationship",
-                    "dependency map",
-                    "tech debt",
-                    "technical debt",
-                    "architecture report",
-                    "architecture review",
-                    "map dependencies",
-                    "generate diagram",
-                    "system diagram",
-                    "component diagram",
-                    "architecture documentation"
-                ],
-                "intentPatterns": [
-                    "(analyze|review|assess).*?architecture",
-                    "(generate|create|build).*?(C4|ERD|diagram|documentation)",
-                    "(map|visualize).*?dependenc",
-                    "(document|analyze).*?codebase",
-                    "tech.*?debt.*(analysis|assessment|report)",
-                    "architecture.*(report|review|assessment)"
-                ]
-            }
-        },
-
-        "dev-browser": {
-            "type": "domain",
-            "enforcement": "suggest",
-            "priority": "high",
-            "description": "Browser automation with persistent page state - navigate websites, fill forms, take screenshots, scrape data, test web apps",
-            "promptTriggers": {
-                "keywords": [
-                    "browser automation",
-                    "take screenshot",
-                    "fill form",
-                    "click button",
-                    "scrape website",
-                    "scrape page",
-                    "web scraping",
-                    "automate browser",
-                    "test website",
-                    "log into",
-                    "login to website",
-                    "navigate to",
-                    "go to url",
-                    "extract data",
-                    "web automation",
-                    "playwright automation"
-                ],
-                "intentPatterns": [
-                    "(go|navigate).*?(to|url|website|page)",
-                    "(click|press).*?(button|link|element)",
-                    "(fill|complete|submit).*?(form|input|field)",
-                    "(take|capture).*?screenshot",
-                    "(scrape|extract).*?(data|content|text|page)",
-                    "(automate|test).*?(browser|website|web)",
-                    "(log|sign).*?in.*?(to|website|page)",
-                    "browser.*(interact|automat)"
-                ]
-            }
-        },
-
-        "linear": {
-            "type": "domain",
-            "enforcement": "suggest",
-            "priority": "high",
-            "description": "Linear issue tracking - teams, projects, issues, status, labels, comments via CLI scripts",
-            "promptTriggers": {
-                "keywords": [
-                    "linear",
-                    "linear issue",
-                    "linear team",
-                    "linear project",
-                    "issue status",
-                    "issue label",
-                    "create issue",
-                    "list issues",
-                    "linear workflow"
-                ],
-                "intentPatterns": [
-                    "(list|filter|get).*?linear.*?(issue|team|project)",
-                    "(create|update|archive).*?issue",
-                    "(manage|change).*?(status|priority|label|assignment)",
-                    "(add|view).*?comment"
-                ]
-            }
-        },
-
-        "playwright-e2e-testing": {
-            "type": "domain",
-            "enforcement": "suggest",
-            "priority": "high",
-            "description": "Playwright-specific E2E testing - Page Objects, fixtures, OAuth, API testing, visual regression, debugging",
-            "promptTriggers": {
-                "keywords": [
-                    "playwright",
-                    "playwright test",
-                    "page object",
-                    "playwright fixture",
-                    "playwright oauth",
-                    "playwright api",
-                    "visual regression",
-                    "playwright debug",
-                    "playwright selector",
-                    "getByRole",
-                    "getByText",
-                    "toBeVisible"
-                ],
-                "intentPatterns": [
-                    "(write|create|add).*?playwright.*?test",
-                    "(debug|fix).*?playwright",
-                    "playwright.*(oauth|authentication|login)",
-                    "playwright.*(api|visual|snapshot)",
-                    "(optimize|improve).*?playwright"
-                ]
-            }
-        },
-
-        "wrangler": {
-            "type": "domain",
-            "enforcement": "suggest",
-            "priority": "high",
-            "description": "Cloudflare Wrangler CLI - Workers deployment, D1, KV, R2, Queues, Workflows, secrets, and local development",
-            "promptTriggers": {
-                "keywords": [
-                    "wrangler",
-                    "cloudflare worker",
-                    "cloudflare workers",
-                    "wrangler deploy",
-                    "wrangler dev",
-                    "wrangler d1",
-                    "wrangler kv",
-                    "wrangler r2",
-                    "wrangler secret",
-                    "wrangler queues",
-                    "wrangler workflows",
-                    "wrangler pages",
-                    "wrangler init",
-                    "cloudflare deploy",
-                    "worker deploy",
-                    "worker development"
-                ],
-                "intentPatterns": [
-                    "(deploy|publish).*?(worker|cloudflare)",
-                    "(run|start).*?wrangler",
-                    "wrangler.*(command|cli|help)",
-                    "(create|manage|configure).*?(d1|kv|r2|queue|workflow|secret)",
-                    "(local|dev).*?worker",
-                    "cloudflare.*(storage|database|queue)"
-                ]
-            }
-        }
+  "version": "1.2",
+  "description": "Skill activation rules for project and user skills",
+  "skills": {
+    "architecture-analyzer": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Architectural analysis and documentation - C4 diagrams, ERD, dependency maps, tech debt assessment, API documentation",
+      "promptTriggers": {
+        "keywords": [
+          "analyze architecture",
+          "architecture analysis",
+          "document codebase",
+          "codebase documentation",
+          "C4 diagram",
+          "ERD",
+          "entity relationship",
+          "dependency map",
+          "tech debt",
+          "technical debt",
+          "architecture report",
+          "architecture review",
+          "map dependencies",
+          "generate diagram",
+          "system diagram",
+          "component diagram",
+          "architecture documentation"
+        ],
+        "intentPatterns": [
+          "(analyze|review|assess).*?architecture",
+          "(generate|create|build).*?(C4|ERD|diagram|documentation)",
+          "(map|visualize).*?dependenc",
+          "(document|analyze).*?codebase",
+          "tech.*?debt.*(analysis|assessment|report)",
+          "architecture.*(report|review|assessment)"
+        ]
+      }
     },
-    "notes": {
-        "current_implementation": "Only promptTriggers are currently functional via UserPromptSubmit hook",
-        "enforcement_types": {
-            "suggest": "Skill suggestion appears but doesn't block execution (WORKING)",
-            "block": "Requires skill to be used before proceeding (NOT IMPLEMENTED)",
-            "warn": "Shows warning but allows proceeding (NOT IMPLEMENTED)"
+
+    "dev-browser": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Browser automation with persistent page state - navigate websites, fill forms, take screenshots, scrape data, test web apps",
+      "promptTriggers": {
+        "keywords": [
+          "browser automation",
+          "take screenshot",
+          "fill form",
+          "click button",
+          "scrape website",
+          "scrape page",
+          "web scraping",
+          "automate browser",
+          "test website",
+          "log into",
+          "login to website",
+          "navigate to",
+          "go to url",
+          "extract data",
+          "web automation",
+          "playwright automation"
+        ],
+        "intentPatterns": [
+          "(go|navigate).*?(to|url|website|page)",
+          "(click|press).*?(button|link|element)",
+          "(fill|complete|submit).*?(form|input|field)",
+          "(take|capture).*?screenshot",
+          "(scrape|extract).*?(data|content|text|page)",
+          "(automate|test).*?(browser|website|web)",
+          "(log|sign).*?in.*?(to|website|page)",
+          "browser.*(interact|automat)"
+        ]
+      }
+    },
+
+    "linear": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Linear issue tracking - teams, projects, issues, status, labels, comments via CLI scripts",
+      "promptTriggers": {
+        "keywords": [
+          "linear",
+          "linear issue",
+          "linear team",
+          "linear project",
+          "issue status",
+          "issue label",
+          "create issue",
+          "list issues",
+          "linear workflow"
+        ],
+        "intentPatterns": [
+          "(list|filter|get).*?linear.*?(issue|team|project)",
+          "(create|update|archive).*?issue",
+          "(manage|change).*?(status|priority|label|assignment)",
+          "(add|view).*?comment"
+        ]
+      }
+    },
+
+    "playwright-e2e-testing": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Playwright-specific E2E testing - Page Objects, fixtures, OAuth, API testing, visual regression, debugging",
+      "promptTriggers": {
+        "keywords": [
+          "playwright",
+          "playwright test",
+          "page object",
+          "playwright fixture",
+          "playwright oauth",
+          "playwright api",
+          "visual regression",
+          "playwright debug",
+          "playwright selector",
+          "getByRole",
+          "getByText",
+          "toBeVisible"
+        ],
+        "intentPatterns": [
+          "(write|create|add).*?playwright.*?test",
+          "(debug|fix).*?playwright",
+          "playwright.*(oauth|authentication|login)",
+          "playwright.*(api|visual|snapshot)",
+          "(optimize|improve).*?playwright"
+        ]
+      },
+      "toolGuards": [
+        {
+          "tool": "Edit",
+          "patterns": ["\\.spec\\.ts$", "\\.test\\.ts$", "e2e/.*\\.ts$", "tests/.*\\.ts$"]
         },
-        "priority_levels": {
-            "critical": "Highest - Always trigger when matched",
-            "high": "Important - Trigger for most matches",
-            "medium": "Moderate - Trigger for clear matches",
-            "low": "Optional - Trigger only for explicit matches"
+        {
+          "tool": "Write",
+          "patterns": ["\\.spec\\.ts$", "\\.test\\.ts$", "e2e/.*\\.ts$"]
+        }
+      ]
+    },
+
+    "wrangler": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Cloudflare Wrangler CLI - Workers deployment, D1, KV, R2, Queues, Workflows, secrets, and local development",
+      "promptTriggers": {
+        "keywords": [
+          "wrangler",
+          "cloudflare worker",
+          "cloudflare workers",
+          "wrangler deploy",
+          "wrangler dev",
+          "wrangler d1",
+          "wrangler kv",
+          "wrangler r2",
+          "wrangler secret",
+          "wrangler queues",
+          "wrangler workflows",
+          "wrangler pages",
+          "wrangler init",
+          "cloudflare deploy",
+          "worker deploy",
+          "worker development"
+        ],
+        "intentPatterns": [
+          "(deploy|publish).*?(worker|cloudflare)",
+          "(run|start).*?wrangler",
+          "wrangler.*(command|cli|help)",
+          "(create|manage|configure).*?(d1|kv|r2|queue|workflow|secret)",
+          "(local|dev).*?worker",
+          "cloudflare.*(storage|database|queue)"
+        ]
+      },
+      "toolGuards": [
+        {
+          "tool": "Bash",
+          "patterns": ["wrangler deploy", "wrangler publish", "npx wrangler deploy", "pnpm wrangler deploy"]
         },
-        "trigger_detection": "Only prompt-based detection works: keywords (exact match) and intentPatterns (regex)"
+        {
+          "tool": "Edit",
+          "patterns": ["wrangler\\.json$", "wrangler\\.toml$"]
+        }
+      ]
+    },
+
+    "superpowers:verification-before-completion": {
+      "type": "guardrail",
+      "enforcement": "suggest",
+      "priority": "critical",
+      "description": "Verify work before claiming completion - run tests, check build, confirm output",
+      "promptTriggers": {
+        "keywords": [
+          "verify",
+          "check if it works",
+          "make sure it works",
+          "test it",
+          "run tests"
+        ],
+        "intentPatterns": [
+          "(verify|confirm|check).*?(work|pass|succeed)",
+          "(make sure|ensure).*?(work|pass|build)"
+        ]
+      },
+      "toolGuards": [
+        {
+          "tool": "Bash",
+          "patterns": ["git push", "git push origin", "gh pr create", "npm publish", "pnpm publish"]
+        }
+      ]
+    },
+
+    "superpowers:brainstorming": {
+      "type": "guardrail",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Explore requirements and design before implementation",
+      "promptTriggers": {
+        "keywords": [
+          "brainstorm",
+          "design",
+          "plan feature",
+          "new feature",
+          "build feature"
+        ],
+        "intentPatterns": [
+          "(create|build|implement|add).*?(feature|component|module|service)",
+          "(design|plan|architect).*?(system|feature|solution)"
+        ]
+      },
+      "toolGuards": [
+        {
+          "tool": "Write",
+          "patterns": ["src/.*\\.(ts|tsx|js|jsx)$"]
+        }
+      ]
+    },
+
+    "superpowers:systematic-debugging": {
+      "type": "guardrail",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Systematic approach to debugging - gather evidence before proposing fixes",
+      "promptTriggers": {
+        "keywords": [
+          "debug",
+          "fix bug",
+          "not working",
+          "broken",
+          "error",
+          "failing"
+        ],
+        "intentPatterns": [
+          "(fix|debug|solve).*?(bug|error|issue|problem)",
+          "(why|what).*?(not working|broken|failing|error)",
+          "(investigate|diagnose).*?(issue|problem|error)"
+        ]
+      }
+    },
+
+    "superpowers:test-driven-development": {
+      "type": "guardrail",
+      "enforcement": "suggest",
+      "priority": "medium",
+      "description": "Write tests before implementation code",
+      "promptTriggers": {
+        "keywords": [
+          "tdd",
+          "test driven",
+          "write tests first",
+          "test first"
+        ],
+        "intentPatterns": [
+          "(implement|build|create).*?with.*?test",
+          "test.*?driven"
+        ]
+      },
+      "toolGuards": [
+        {
+          "tool": "Write",
+          "patterns": ["src/.*(?<!\\.spec|\\.test)\\.(ts|tsx|js|jsx)$"]
+        }
+      ]
+    },
+
+    "ship": {
+      "type": "guardrail",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Automated commit/push workflow with quality checks",
+      "promptTriggers": {
+        "keywords": [
+          "ship",
+          "commit and push",
+          "push changes",
+          "create pr",
+          "pull request"
+        ],
+        "intentPatterns": [
+          "(commit|push).*?(changes|code)",
+          "(create|open).*?(pr|pull request)",
+          "ship.*?(it|this|code|changes)"
+        ]
+      },
+      "toolGuards": [
+        {
+          "tool": "Bash",
+          "patterns": ["git commit", "git push"]
+        }
+      ]
     }
+  },
+  "notes": {
+    "version_history": {
+      "1.0": "Initial version with promptTriggers only",
+      "1.1": "Added notes and documentation",
+      "1.2": "Added toolGuards for PreToolUse hook"
+    },
+    "enforcement_types": {
+      "suggest": "Skill suggestion appears but doesn't block execution",
+      "block": "Requires skill to be used before proceeding (NOT IMPLEMENTED)",
+      "warn": "Shows warning but allows proceeding (NOT IMPLEMENTED)"
+    },
+    "priority_levels": {
+      "critical": "Highest - Always trigger, should be used",
+      "high": "Important - Strongly recommended",
+      "medium": "Moderate - Good to use if relevant",
+      "low": "Optional - Nice to have"
+    },
+    "trigger_types": {
+      "promptTriggers": "Activated via UserPromptSubmit hook based on user prompt",
+      "toolGuards": "Activated via PreToolUse hook before specific tool executions"
+    }
+  }
 }

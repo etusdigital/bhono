@@ -2,9 +2,18 @@
 /**
  * Skill Tool Guard Hook (PreToolUse)
  *
- * Recommends using a skill before executing certain tools.
+ * Recommends or blocks tool usage based on skill rules.
  * Reads toolGuards from skill-rules.json to determine which
  * skills should be used before specific tool patterns.
+ *
+ * Supported tools:
+ * - Bash: checks command content
+ * - Edit/Write: checks file_path
+ * - Read: checks file_path
+ * - Glob/Grep: checks pattern/path
+ * - Task: checks prompt
+ * - WebFetch: checks url
+ * - All others: checks JSON stringified input
  */
 
 import { readFileSync } from 'fs';
@@ -26,15 +35,68 @@ interface ToolGuard {
 
 interface SkillRule {
   type: string;
-  enforcement: string;
+  enforcement: 'suggest' | 'warn' | 'block';
   priority: string;
-  description: string;
+  description?: string;
   toolGuards?: ToolGuard[];
 }
 
 interface SkillRules {
   version: string;
   skills: Record<string, SkillRule>;
+}
+
+interface MatchedGuard {
+  skillName: string;
+  enforcement: string;
+  description?: string;
+}
+
+/**
+ * Extract the content to check based on tool type
+ */
+function getContentToCheck(toolName: string, toolInput: Record<string, unknown>): string {
+  switch (toolName) {
+    case 'Bash':
+      return String(toolInput.command || '');
+
+    case 'Edit':
+    case 'Write':
+    case 'Read':
+      return String(toolInput.file_path || '');
+
+    case 'Glob':
+      return String(toolInput.pattern || '') + ' ' + String(toolInput.path || '');
+
+    case 'Grep':
+      return String(toolInput.pattern || '') + ' ' + String(toolInput.path || '');
+
+    case 'Task':
+      return String(toolInput.prompt || '') + ' ' + String(toolInput.description || '');
+
+    case 'WebFetch':
+      return String(toolInput.url || '');
+
+    case 'WebSearch':
+      return String(toolInput.query || '');
+
+    default:
+      // For unknown tools, stringify the entire input
+      return JSON.stringify(toolInput);
+  }
+}
+
+/**
+ * Check if a pattern matches the content
+ */
+function matchesPattern(content: string, pattern: string): boolean {
+  try {
+    const regex = new RegExp(pattern, 'i');
+    return regex.test(content);
+  } catch {
+    // If regex fails, try simple includes
+    return content.toLowerCase().includes(pattern.toLowerCase());
+  }
 }
 
 function main() {
@@ -52,7 +114,8 @@ function main() {
       process.exit(0);
     }
 
-    const matchedSkills: string[] = [];
+    const contentToCheck = getContentToCheck(data.tool_name, data.tool_input);
+    const matchedGuards: MatchedGuard[] = [];
 
     // Check each skill's toolGuards
     for (const [skillName, config] of Object.entries(rules.skills)) {
@@ -62,58 +125,73 @@ function main() {
       }
 
       for (const guard of guards) {
-        // Check if tool matches
+        // Check if tool matches (exact match or wildcard)
         if (guard.tool !== data.tool_name && guard.tool !== '*') {
           continue;
         }
 
-        // Get the content to check based on tool type
-        let contentToCheck = '';
-        if (data.tool_name === 'Bash') {
-          contentToCheck = String(data.tool_input.command || '');
-        } else if (data.tool_name === 'Edit' || data.tool_name === 'Write') {
-          contentToCheck = String(data.tool_input.file_path || '');
-        } else {
-          contentToCheck = JSON.stringify(data.tool_input);
-        }
-
         // Check if any pattern matches
-        const matched = guard.patterns.some(pattern => {
-          try {
-            const regex = new RegExp(pattern, 'i');
-            return regex.test(contentToCheck);
-          } catch {
-            return contentToCheck.toLowerCase().includes(pattern.toLowerCase());
-          }
-        });
+        const matched = guard.patterns.some(pattern =>
+          matchesPattern(contentToCheck, pattern)
+        );
 
         if (matched) {
-          matchedSkills.push(skillName);
-          break;
+          matchedGuards.push({
+            skillName,
+            enforcement: config.enforcement,
+            description: config.description
+          });
+          break; // Only match once per skill
         }
       }
     }
 
     // No matches = no output
-    if (matchedSkills.length === 0) {
+    if (matchedGuards.length === 0) {
       process.exit(0);
     }
 
-    const skillList = matchedSkills.join(', ');
-    const suggestion = `⚡ Tool guard: consider using skill "${skillList}" before this ${data.tool_name} command`;
+    // Group by enforcement level
+    const critical = matchedGuards.filter(g => g.enforcement === 'block');
+    const warnings = matchedGuards.filter(g => g.enforcement === 'warn');
+    const suggestions = matchedGuards.filter(g => g.enforcement === 'suggest');
+
+    // Build message
+    const lines: string[] = [`⚡ TOOL GUARD (${data.tool_name})`];
+
+    if (critical.length > 0) {
+      lines.push(`🚫 BLOCKED: ${critical.map(g => g.skillName).join(', ')}`);
+    }
+
+    if (warnings.length > 0) {
+      lines.push(`⚠️ WARNING: ${warnings.map(g => g.skillName).join(', ')}`);
+    }
+
+    if (suggestions.length > 0) {
+      lines.push(`💡 CONSIDER: ${suggestions.map(g => g.skillName).join(', ')}`);
+    }
+
+    lines.push('→ Use relevant skill before proceeding');
+
+    const message = lines.join('\n');
+
+    // Determine permission decision based on enforcement
+    // For now, only 'suggest' - block/warn not implemented yet
+    const permissionDecision = critical.length > 0 ? 'block' : 'allow';
 
     const output = {
       hookSpecificOutput: {
         hookEventName: 'PreToolUse',
-        additionalContext: suggestion
+        permissionDecision,
+        additionalContext: `<system-reminder>${message}</system-reminder>`
       }
     };
 
     console.log(JSON.stringify(output));
     process.exit(0);
   } catch (err) {
-    console.error('Error:', err);
-    process.exit(1);
+    // Silent failure - don't break tool execution
+    process.exit(0);
   }
 }
 
