@@ -2,6 +2,10 @@
   "name": "@etus/bhono-app",
   "version": "0.1.6",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/etusdigital/bhono"
+  },
   "files": [
     "dist",
     "templates"
