@@ -27,13 +27,12 @@ export function useAuth() {
     queryKey: ['auth', 'me'],
     queryFn: fetchMe,
     retry: false,
-    // Auth state only changes on login/logout mutations, not automatically
-    // Any API call will detect expired session via 401 response
-    staleTime: Infinity,
-    gcTime: Infinity,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
+    // Balance between reducing API calls and detecting expired sessions
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 30, // 30 minutes
+    refetchOnMount: false, // Avoid redundant calls on component mount
+    refetchOnWindowFocus: true, // Re-check when user returns to tab (industry standard)
+    refetchOnReconnect: true, // Re-check after network reconnection
   })
 
   const logoutMutation = useMutation({

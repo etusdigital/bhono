@@ -342,19 +342,6 @@ if [[ -f .gitignore ]]; then
   fi
 fi
 
-# ============================================================================
-# ADJUST RATE LIMIT FOR DEVELOPMENT
-# ============================================================================
-log_info "Checking rate limit configuration..."
-
-if [[ -f src/server/middleware/rate-limit.ts ]]; then
-  if grep -q "max: 10," src/server/middleware/rate-limit.ts; then
-    sed -i.bak 's/max: 10,/max: 100,/g' src/server/middleware/rate-limit.ts
-    rm -f src/server/middleware/rate-limit.ts.bak
-    log_ok "  Increased auth rate limit to 100 req/min"
-  fi
-fi
-
 WRANGLER="pnpm exec wrangler"
 WRANGLER_CONFIG="$WRANGLER --config config/wrangler.json"
 WRANGLER_AVAILABLE=1
