@@ -4,7 +4,7 @@ import { verify } from 'hono/jwt'
 import { HTTPException } from 'hono/http-exception'
 import type { HonoEnv } from '../types'
 import { getSession } from '../lib/session'
-import { queryOne, type SqlRow } from '../db/sql'
+import { queryOne, toStringValue, toNullableString, type SqlRow } from '../db/sql'
 
 interface JWTPayload {
   sub: string
@@ -58,15 +58,15 @@ function mapUserRow(row: SqlRow) {
   const deletedAt = row.deletedAt ?? row.deleted_at
 
   return {
-    id: String(row.id ?? ''),
-    email: String(row.email ?? ''),
-    name: String(row.name ?? ''),
+    id: toStringValue(row.id),
+    email: toStringValue(row.email),
+    name: toStringValue(row.name),
     status: row.status === 'inactive' ? 'inactive' : 'active',
     providerIds: parseProviderIds(providerIds),
     isSuperAdmin: toBoolean(isSuperAdmin),
-    createdAt: String(createdAt ?? ''),
-    updatedAt: String(updatedAt ?? ''),
-    deletedAt: deletedAt ? String(deletedAt) : null,
+    createdAt: toStringValue(createdAt),
+    updatedAt: toStringValue(updatedAt),
+    deletedAt: toNullableString(deletedAt),
   }
 }
 
@@ -85,7 +85,7 @@ export const sessionAuth = createMiddleware<HonoEnv>(async (c, next) => {
 
   // Look up user in database to ensure they still exist and are active
   const db = c.get('db')
-  const authDb = c.env?.DB ?? db
+  const authDb = c.env.DB ?? db
   if (!authDb) {
     throw new HTTPException(500, { message: 'Database not initialized' })
   }
@@ -103,7 +103,7 @@ export const sessionAuth = createMiddleware<HonoEnv>(async (c, next) => {
     })
   }
 
-  const mappedUser = mapUserRow(user as SqlRow)
+  const mappedUser = mapUserRow(user)
 
   if (mappedUser.status !== 'active') {
     throw new HTTPException(401, {
@@ -117,7 +117,7 @@ export const sessionAuth = createMiddleware<HonoEnv>(async (c, next) => {
     email: mappedUser.email,
     name: mappedUser.name,
     status: mappedUser.status,
-    providerIds: mappedUser.providerIds ?? [],
+    providerIds: mappedUser.providerIds,
     isSuperAdmin: mappedUser.isSuperAdmin,
     createdAt: mappedUser.createdAt,
     updatedAt: mappedUser.updatedAt,
@@ -167,7 +167,7 @@ export const jwtAuth = createMiddleware<HonoEnv>(async (c, next) => {
 
   // Look up user in database by ID (from sub claim)
   const db = c.get('db')
-  const authDb = c.env?.DB ?? db
+  const authDb = c.env.DB ?? db
   if (!authDb) {
     throw new HTTPException(500, { message: 'Database not initialized' })
   }
@@ -185,7 +185,7 @@ export const jwtAuth = createMiddleware<HonoEnv>(async (c, next) => {
     })
   }
 
-  const mappedUser = mapUserRow(user as SqlRow)
+  const mappedUser = mapUserRow(user)
 
   if (mappedUser.status !== 'active') {
     throw new HTTPException(401, {
@@ -199,7 +199,7 @@ export const jwtAuth = createMiddleware<HonoEnv>(async (c, next) => {
     email: mappedUser.email,
     name: mappedUser.name,
     status: mappedUser.status,
-    providerIds: mappedUser.providerIds ?? [],
+    providerIds: mappedUser.providerIds,
     isSuperAdmin: mappedUser.isSuperAdmin,
     createdAt: mappedUser.createdAt,
     updatedAt: mappedUser.updatedAt,

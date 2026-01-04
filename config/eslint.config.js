@@ -37,6 +37,7 @@ export default tseslint.config(
       "**/.pnpm*",
       "**/config/**",
       "**/.test-output/**",
+      "**/scripts/**",
     ],
   },
 

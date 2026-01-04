@@ -1,7 +1,7 @@
 // src/server/services/audits.ts
 import { createPaginationMeta, calculateOffset } from '../lib/pagination'
 import type { ServiceContext, PaginatedResponse, AuditLog } from '../types'
-import { queryAll, queryOne, type SqlRow, type SqlParams } from '../db/sql'
+import { queryAll, queryOne, toStringValue, toNullableString, type SqlRow, type SqlParams } from '../db/sql'
 
 export interface AuditLogFilters {
   page: number
@@ -53,17 +53,17 @@ function mapAuditRow(row: SqlRow): AuditLog {
   const changesValue = row.changes
 
   return {
-    id: String(row.id ?? ''),
-    transactionId: String(transactionId ?? ''),
-    accountId: accountId ? String(accountId) : null,
-    userId: userId ? String(userId) : null,
-    entity: String(row.entity ?? ''),
-    entityId: String(entityId ?? ''),
-    action: String(row.action ?? '') as AuditLog['action'],
+    id: toStringValue(row.id),
+    transactionId: toStringValue(transactionId),
+    accountId: toNullableString(accountId),
+    userId: toNullableString(userId),
+    entity: toStringValue(row.entity),
+    entityId: toStringValue(entityId),
+    action: toStringValue(row.action) as AuditLog['action'],
     changes: parseChanges(changesValue),
-    ipAddress: ipAddress ? String(ipAddress) : null,
-    userAgent: userAgent ? String(userAgent) : null,
-    timestamp: String(row.timestamp ?? ''),
+    ipAddress: toNullableString(ipAddress),
+    userAgent: toNullableString(userAgent),
+    timestamp: toStringValue(row.timestamp),
   }
 }
 

@@ -64,7 +64,7 @@ export const callbackHandler: RouteHandler<typeof callbackRoute, HonoEnv> = asyn
   const { code, state } = c.req.valid('query')
   const ctx = getAuthContext(c)
 
-  const authDb = env?.DB ?? db
+  const authDb = env.DB ?? db
   if (!authDb) {
     throw new HTTPException(500, { message: 'Database not initialized' })
   }
@@ -133,7 +133,7 @@ export const callbackHandler: RouteHandler<typeof callbackRoute, HonoEnv> = asyn
 export const refreshHandler: RouteHandler<typeof refreshRoute, HonoEnv> = async (c) => {
   const db = c.get('db')
   const env = c.env
-  const authDb = env?.DB ?? db
+  const authDb = env.DB ?? db
   const refreshToken = getCookie(c, 'refresh_token')
 
   if (!db || !authDb) {
@@ -152,7 +152,7 @@ export const refreshHandler: RouteHandler<typeof refreshRoute, HonoEnv> = async 
 
 export const logoutHandler: RouteHandler<typeof logoutRoute, HonoEnv> = async (c) => {
   const db = c.get('db')
-  const authDb = c.env?.DB ?? db
+  const authDb = c.env.DB ?? db
   const ctx = getAuthContext(c)
   const session = getSession(c)
 
@@ -199,7 +199,7 @@ export const inviteHandler: RouteHandler<typeof inviteRoute, HonoEnv> = async (c
   const env = c.env
   const { token } = c.req.valid('param')
 
-  const inviteDb = env?.DB ?? db
+  const inviteDb = env.DB ?? db
   if (!inviteDb) {
     throw new HTTPException(500, { message: 'Database not initialized' })
   }

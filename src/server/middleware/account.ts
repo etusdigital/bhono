@@ -35,7 +35,7 @@ export const accountMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 
   // Check user-account membership in database
   const db = c.get('db')
-  const accountDb = c.env?.DB ?? db
+  const accountDb = c.env.DB ?? db
   if (!accountDb) {
     throw new HTTPException(500, { message: 'Database not initialized' })
   }
@@ -52,7 +52,7 @@ export const accountMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 
   // Set accountId and userRole in context
   c.set('accountId', accountId)
-  c.set('userRole', membership.role as Role)
+  c.set('userRole', membership.role)
   c.set('isSystemAdminAccess', false)
 
   await next()

@@ -17,6 +17,17 @@ vi.mock('@server/db/sql', () => ({
   queryOne: vi.fn(),
   queryAll: vi.fn(),
   execute: vi.fn(),
+  toStringValue: (value: unknown) => {
+    if (typeof value === 'string') return value
+    if (typeof value === 'number' || typeof value === 'bigint') return String(value)
+    return ''
+  },
+  toNullableString: (value: unknown) => {
+    if (value === null || value === undefined) return null
+    if (typeof value === 'string') return value
+    if (typeof value === 'number' || typeof value === 'bigint') return String(value)
+    return null
+  },
 }))
 
 import { sendInvitationEmail } from '@server/lib/email'
