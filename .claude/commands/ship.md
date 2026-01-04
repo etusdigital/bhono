@@ -1,7 +1,7 @@
 ---
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash, Task, TodoWrite, SlashCommand
-argument-hint: [--no-tests] [--no-lint] [--no-docs] [--no-claude-md] [--no-readme] [--no-push]
-description: Automated commit/push workflow with quality checks and documentation updates
+argument-hint: [--no-tests] [--no-lint] [--no-docs] [--no-claude-md] [--no-readme] [--no-push] [--pr]
+description: Automated commit/push workflow with quality checks, documentation updates, and PR creation
 skills: playwright-e2e-testing
 ---
 
@@ -23,6 +23,11 @@ $ARGUMENTS
 !`echo "$ARGUMENTS" | grep -q "\-\-no-claude-md" && echo "SKIP_CLAUDE_MD=true" || echo "SKIP_CLAUDE_MD=false"`
 !`echo "$ARGUMENTS" | grep -q "\-\-no-readme" && echo "SKIP_README=true" || echo "SKIP_README=false"`
 !`echo "$ARGUMENTS" | grep -q "\-\-no-push" && echo "SKIP_PUSH=true" || echo "SKIP_PUSH=false"`
+!`echo "$ARGUMENTS" | grep -q "\-\-pr" && echo "CREATE_PR=true" || echo "CREATE_PR=false"`
+
+## Current Branch
+
+!`git branch --show-current`
 
 ## Current Git Status
 
@@ -41,6 +46,28 @@ $ARGUMENTS
 ## INSTRUCTIONS
 
 Execute this workflow in order. Use TodoWrite to track progress through each phase.
+
+### Phase 0: Branch Validation (CRITICAL)
+
+**Check if on a protected branch:**
+
+```bash
+CURRENT_BRANCH=$(git branch --show-current)
+if [[ "$CURRENT_BRANCH" == "master" || "$CURRENT_BRANCH" == "develop" ]]; then
+  echo "❌ ABORT: Cannot ship directly from '$CURRENT_BRANCH'"
+  echo "Create a feature branch first: git checkout -b feat/your-feature"
+  exit 1
+fi
+echo "✅ On branch: $CURRENT_BRANCH"
+```
+
+**Branch rules:**
+- ❌ `master` - NEVER commit directly (protected, releases only)
+- ❌ `develop` - NEVER commit directly (PRs only)
+- ✅ `feat/*`, `fix/*`, `docs/*`, `chore/*`, `refactor/*`, `test/*` - OK
+- ✅ `hotfix/*` - OK (can PR to master for emergencies)
+
+If on protected branch, **STOP and ask user to create a feature branch**.
 
 ### Phase 1: Information Gathering (Parallel Subagents)
 
@@ -83,12 +110,10 @@ Given the changed files, identify which architecture docs need updating:
 - New components/services → docs/architecture/c4-component.md
 - Container changes → docs/architecture/c4-container.md
 - Dependency changes → docs/architecture/dependencies.md
-- Major decisions → new ADR in docs/architecture/decisions/
+- Tech debt changes → docs/architecture/tech-debt.md
+- ERD/database changes → docs/architecture/erd.md
 - Features updates → docs/features/
-- Data related changes → docs/data/
-- SDLC related changes → docs/sdlc/
-- Tech specs related changes → docs/tech-specs/
-- Runbooks related changes → docs/runbooks/
+- Testing changes → docs/testing.md
 Return list of architecture docs that need updates with reason.
 ```
 
@@ -176,13 +201,13 @@ Docs to potentially update:
 - docs/architecture/api-catalog.md - API endpoint changes
 - docs/architecture/c4-component.md - Component changes
 - docs/architecture/c4-container.md - Container/service changes
+- docs/architecture/c4-context.md - System context changes
 - docs/architecture/dependencies.md - Dependency changes
-- docs/architecture/decisions/ - New ADRs if major decisions made
+- docs/architecture/tech-debt.md - Tech debt updates
+- docs/architecture/erd.md - Database schema changes
 - docs/features/ - Feature changes
-- docs/tech-specs/ - Tech specs changes
-- docs/sdlc/ - SDLC changes
-- docs/runbooks/ - Runbooks changes
-- docs/data/ - Data changes
+- docs/testing.md - Testing strategy changes
+- docs/app_spec.txt - Major architectural changes
 ```
 
 Wait for all documentation agents to complete.
@@ -233,7 +258,41 @@ EOF
 #### Step 4.4: Push (unless --no-push)
 
 ```bash
-git push
+git push -u origin $(git branch --show-current)
+```
+
+**Note:** The project has Husky pre-push hooks that automatically run:
+- TypeScript compilation (`pnpm typecheck`)
+- Unit tests with coverage (`pnpm test:unit:server`)
+- Build verification (`pnpm build`)
+
+If any of these fail, the push will be rejected.
+
+### Phase 5: Pull Request (if --pr flag is set)
+
+**Create PR targeting `develop` branch:**
+
+```bash
+gh pr create --base develop --title "<commit message title>" --body "$(cat <<'EOF'
+## Summary
+<bullet points from commit body>
+
+## Test plan
+- [x] TypeScript compiles
+- [x] Unit tests pass
+- [x] Build succeeds
+EOF
+)"
+```
+
+**PR Rules:**
+- PRs MUST target `develop` (enforced by CI workflow `.github/workflows/pr-target-check.yml`)
+- Only `changeset-release/*` and `hotfix/*` branches can PR directly to `master`
+- If PR already exists for this branch, show the existing PR URL instead
+
+**Check for existing PR:**
+```bash
+gh pr view --json url 2>/dev/null || gh pr create ...
 ```
 
 ---
@@ -244,6 +303,10 @@ After all phases complete, provide a summary:
 
 ```
 ## /ship Complete
+
+### Branch
+- Branch: <branch name>
+- Base: develop
 
 ### Quality Checks
 - Tests: [PASSED/FIXED/SKIPPED]
@@ -259,4 +322,5 @@ After all phases complete, provide a summary:
 ### Git
 - Commit: <commit hash>
 - Pushed: [YES/NO]
+- PR: [URL or SKIPPED or N/A]
 ```
