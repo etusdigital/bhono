@@ -27,7 +27,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           registry-url: https://registry.npmjs.org/
 
       - name: Install dependencies
@@ -36,12 +36,20 @@ jobs:
       - name: Build CLI package
         run: pnpm -C packages/bhono-app build
 
-      - name: Create release PR or publish
+      - name: Create release PR or version
+        id: changesets
         uses: changesets/action@v1
         with:
           title: 'chore: release packages'
           commit: 'chore: release packages'
-          publish: pnpm changeset publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HUSKY: '0'
+
+      - name: Publish to npm (OIDC)
+        if: steps.changesets.outputs.hasChangesets == 'false'
+        run: |
+          cd packages/bhono-app
+          npm publish --access public --provenance
+        env:
           HUSKY: '0'
