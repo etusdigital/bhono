@@ -64,9 +64,11 @@ export const callbackHandler: RouteHandler<typeof callbackRoute, HonoEnv> = asyn
   const { code, state } = c.req.valid('query')
   const ctx = getAuthContext(c)
 
-  if (!db) {
+  const authDb = env?.DB ?? db
+  if (!authDb) {
     throw new HTTPException(500, { message: 'Database not initialized' })
   }
+  const inviteDb = authDb
 
   // Get stored OAuth state
   const oauthCookie = getCookie(c, 'oauth_state')
@@ -99,16 +101,16 @@ export const callbackHandler: RouteHandler<typeof callbackRoute, HonoEnv> = asyn
   const googleUser = decodeIdToken(tokens.id_token)
 
   // Find or create user
-  const result = await authService.findOrCreateUser(db, env, googleUser, ctx)
+  const result = await authService.findOrCreateUser(authDb, env, googleUser, ctx)
 
   // Check for pending invitation
   const pendingInvitation = getCookie(c, 'pending_invitation')
   if (pendingInvitation) {
     deleteCookie(c, 'pending_invitation')
 
-    const invitation = await invitationsService.getByToken(db, pendingInvitation)
+    const invitation = await invitationsService.getByToken(inviteDb, pendingInvitation)
     if (invitation) {
-      await invitationsService.accept(db, invitation.id, result.user.id, ctx)
+      await invitationsService.accept(inviteDb, invitation.id, result.user.id, ctx)
     }
   }
 
@@ -131,9 +133,10 @@ export const callbackHandler: RouteHandler<typeof callbackRoute, HonoEnv> = asyn
 export const refreshHandler: RouteHandler<typeof refreshRoute, HonoEnv> = async (c) => {
   const db = c.get('db')
   const env = c.env
+  const authDb = env?.DB ?? db
   const refreshToken = getCookie(c, 'refresh_token')
 
-  if (!db) {
+  if (!db || !authDb) {
     throw new HTTPException(500, { message: 'Database not initialized' })
   }
 
@@ -142,24 +145,25 @@ export const refreshHandler: RouteHandler<typeof refreshRoute, HonoEnv> = async 
   }
 
   const ctx = getAuthContext(c)
-  const tokens = await authService.refreshAccessToken(db, env, refreshToken, ctx)
+  const tokens = await authService.refreshAccessToken(authDb, env, refreshToken, ctx)
 
   return c.json({ tokens }, 200)
 }
 
 export const logoutHandler: RouteHandler<typeof logoutRoute, HonoEnv> = async (c) => {
   const db = c.get('db')
+  const authDb = c.env?.DB ?? db
   const ctx = getAuthContext(c)
   const session = getSession(c)
 
-  if (!db) {
+  if (!db || !authDb) {
     throw new HTTPException(500, { message: 'Database not initialized' })
   }
 
   // Log logout event if we have a session
   if (session) {
     const { logAuthEvent } = await import('../../lib/audit')
-    await logAuthEvent(db, ctx, 'LOGOUT', session.userId, {})
+    await logAuthEvent(authDb, ctx, 'LOGOUT', session.userId, {})
   }
 
   // Destroy session (removes from KV and clears cookie)
@@ -195,14 +199,15 @@ export const inviteHandler: RouteHandler<typeof inviteRoute, HonoEnv> = async (c
   const env = c.env
   const { token } = c.req.valid('param')
 
-  if (!db) {
+  const inviteDb = env?.DB ?? db
+  if (!inviteDb) {
     throw new HTTPException(500, { message: 'Database not initialized' })
   }
 
   const isProduction = env.ENVIRONMENT === 'production'
 
   // Validate invitation
-  const invitation = await invitationsService.getByToken(db, token)
+  const invitation = await invitationsService.getByToken(inviteDb, token)
 
   if (!invitation) {
     throw new HTTPException(400, { message: 'Invalid or expired invitation' })

@@ -13,6 +13,7 @@ export default defineConfig({
     alias: {
       "@": fileURLToPath(new URL("./src/client", import.meta.url)),
       "@shared": fileURLToPath(new URL("./src/shared", import.meta.url)),
+      "@tests": fileURLToPath(new URL("./tests", import.meta.url)),
     },
   },
   test: {
@@ -27,9 +28,9 @@ export default defineConfig({
     // Vitest 4: Schema matching with Zod
     setupFiles: [
       "./src/test/vitest-zod-matcher.ts",
-      "./src/client/__tests__/setup-browser.ts",
+      "./tests/helpers/client-setup-browser.ts",
     ],
-    include: ["src/client/**/*.test.{ts,tsx}"],
+    include: ["tests/unit/client/**/*.test.{ts,tsx}"],
     exclude: ["node_modules", ".claude", "dist"],
     coverage: {
       provider: "v8",

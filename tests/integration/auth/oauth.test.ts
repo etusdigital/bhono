@@ -9,15 +9,13 @@
 
 import { describe, it, expect, beforeAll, vi, beforeEach } from 'vitest'
 import { Hono } from 'hono'
-import { eq } from 'drizzle-orm'
-import { getEnv, getDb, getKV, type TestEnv } from '../setup'
+import { getEnv, getDb, getKV, getSqlite, type TestEnv } from '../setup'
 import { createUser, createUserSession } from '../fixtures'
 import type { HonoEnv } from '../../../src/server/types'
 import { auth } from '../../../src/server/routes/auth'
 import { sessionMiddleware } from '../../../src/server/lib/session'
 import { errorHandler } from '../../../src/server/middleware/error-handler'
 import { createAccount, addUserToAccount } from '../fixtures'
-import { users } from '../../../src/server/db/schema'
 
 // Mock ID token for testing (base64url encoded)
 function createMockIdToken(payload: Record<string, unknown>): string {
@@ -32,15 +30,7 @@ function createMockIdToken(payload: Record<string, unknown>): string {
  * Creates a database wrapper that adds the `execute` method
  */
 function createTestDb() {
-  const db = getDb()
-  return new Proxy(db, {
-    get(target, prop) {
-      if (prop === 'execute') {
-        return target.run.bind(target)
-      }
-      return (target as any)[prop]
-    },
-  })
+  return getDb()
 }
 
 describe('OAuth Authentication Integration', () => {
@@ -353,16 +343,14 @@ describe('OAuth Authentication Integration', () => {
       expect(res.status).toBe(302)
 
       // Verify user was updated in database
-      const db = createTestDb()
-      const result = await (db as any)
-        .select()
-        .from(users)
-        .where(eq(users.id, existingUser.id))
-        .limit(1)
+      const sqlite = getSqlite()
+      const result = sqlite.prepare(
+        'SELECT name, email, avatar_url as avatarUrl FROM users WHERE id = ?'
+      ).get(existingUser.id) as { name: string; email: string; avatarUrl: string } | undefined
 
-      expect(result[0].name).toBe('New Updated Name')
-      expect(result[0].email).toBe('newemail@gmail.com')
-      expect(result[0].avatarUrl).toBe('https://new-avatar.jpg')
+      expect(result?.name).toBe('New Updated Name')
+      expect(result?.email).toBe('newemail@gmail.com')
+      expect(result?.avatarUrl).toBe('https://new-avatar.jpg')
 
       globalThis.fetch = originalFetch
     })
@@ -374,18 +362,16 @@ describe('OAuth Authentication Integration', () => {
       await addUserToAccount(inviter.id, account.id, 'ADMIN')
 
       // Create an invitation in the database
-      const db = createTestDb()
+      const sqlite = getSqlite()
       const invitationId = crypto.randomUUID()
       const invitationToken = crypto.randomUUID()
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
       const inviteeEmail = `pending-invitee-${crypto.randomUUID().slice(0, 8)}@gmail.com`
 
-      ;(db as any).run(
-        require('drizzle-orm').sql`
-          INSERT INTO invitations (id, account_id, email, role, token, invited_by_id, expires_at)
-          VALUES (${invitationId}, ${account.id}, ${inviteeEmail}, ${'EDITOR'}, ${invitationToken}, ${inviter.id}, ${expiresAt})
-        `
-      )
+      sqlite.prepare(
+        `INSERT INTO invitations (id, account_id, email, role, token, invited_by_id, expires_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`
+      ).run(invitationId, account.id, inviteeEmail, 'EDITOR', invitationToken, inviter.id, expiresAt)
 
       // Mock Google OAuth response
       const mockIdToken = createMockIdToken({
@@ -433,14 +419,11 @@ describe('OAuth Authentication Integration', () => {
       expect(location).toContain('/dashboard')
 
       // Verify the invitation was accepted (accepted_at should be set)
-      const { invitations } = await import('../../../src/server/db/schema')
-      const invitationResult = await (db as any)
-        .select()
-        .from(invitations)
-        .where(eq(invitations.id, invitationId))
-        .limit(1)
+      const invitationResult = sqlite.prepare(
+        'SELECT accepted_at as acceptedAt FROM invitations WHERE id = ?'
+      ).get(invitationId) as { acceptedAt: string | null } | undefined
 
-      expect(invitationResult[0].acceptedAt).not.toBeNull()
+      expect(invitationResult?.acceptedAt).not.toBeNull()
 
       globalThis.fetch = originalFetch
     })
@@ -567,17 +550,15 @@ describe('OAuth Authentication Integration', () => {
       await addUserToAccount(inviter.id, account.id, 'ADMIN')
 
       // Create invitation directly in the database
-      const db = createTestDb()
+      const sqlite = getSqlite()
       const invitationId = crypto.randomUUID()
       const token = crypto.randomUUID()
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
 
-      ;(db as any).run(
-        require('drizzle-orm').sql`
-          INSERT INTO invitations (id, account_id, email, role, token, invited_by_id, expires_at)
-          VALUES (${invitationId}, ${account.id}, ${'invitee@example.com'}, ${'EDITOR'}, ${token}, ${inviter.id}, ${expiresAt})
-        `
-      )
+      sqlite.prepare(
+        `INSERT INTO invitations (id, account_id, email, role, token, invited_by_id, expires_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`
+      ).run(invitationId, account.id, 'invitee@example.com', 'EDITOR', token, inviter.id, expiresAt)
 
       const res = await app.request(`/auth/invite/${token}`, {
         method: 'GET',

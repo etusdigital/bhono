@@ -13,27 +13,9 @@
 
 import { describe, it, expect, beforeAll } from 'vitest'
 import { Hono } from 'hono'
-import { getEnv, getDb, type TestEnv } from '../setup'
+import { getEnv, type TestEnv } from '../setup'
 import type { HonoEnv } from '../../../src/server/types'
 import { health } from '../../../src/server/routes/health'
-
-/**
- * Creates a database wrapper that adds the `execute` method
- * The better-sqlite3 drizzle doesn't have execute, but D1 does
- * We add it as an alias to `run` for test compatibility
- */
-function createTestDb() {
-  const db = getDb()
-  // Add execute method that delegates to run (both execute statements)
-  return new Proxy(db, {
-    get(target, prop) {
-      if (prop === 'execute') {
-        return target.run.bind(target)
-      }
-      return (target as any)[prop]
-    },
-  })
-}
 
 describe('Health Check Integration', () => {
   let app: Hono<HonoEnv>
@@ -47,11 +29,6 @@ describe('Health Check Integration', () => {
     app.use('*', async (c, next) => {
       // Inject environment bindings (cast to any to allow assignment)
       ;(c as any).env = env
-
-      // Use a wrapped drizzle instance that has execute method for D1 compatibility
-      const db = createTestDb()
-      c.set('db', db)
-
       await next()
     })
 
@@ -225,8 +202,10 @@ describe('Health Check Integration', () => {
       // Create an app without db set
       const appWithoutDb = new Hono<HonoEnv>()
       appWithoutDb.use('*', async (c, next) => {
-        ;(c as any).env = env
-        // Note: NOT setting db to test line 9
+        const modifiedEnv = { ...env }
+        // @ts-expect-error - Removing DB to test database down
+        delete modifiedEnv.DB
+        ;(c as any).env = modifiedEnv
         await next()
       })
       appWithoutDb.route('/health', health)
@@ -247,7 +226,6 @@ describe('Health Check Integration', () => {
         // @ts-expect-error - Removing R2_BUCKET to test line 24
         delete modifiedEnv.R2_BUCKET
         ;(c as any).env = modifiedEnv
-        c.set('db', createTestDb())
         await next()
       })
       appWithoutR2.route('/health', health)
@@ -264,14 +242,15 @@ describe('Health Check Integration', () => {
       // Create an app with a broken database
       const appWithBrokenDb = new Hono<HonoEnv>()
       appWithBrokenDb.use('*', async (c, next) => {
-        ;(c as any).env = env
-        // Create a mock db that throws on run()
-        const brokenDb = {
-          run: () => {
-            throw new Error('Database connection failed')
-          },
+        const modifiedEnv = {
+          ...env,
+          DB: {
+            prepare: () => {
+              throw new Error('Database connection failed')
+            },
+          } as D1Database,
         }
-        c.set('db', brokenDb as any)
+        ;(c as any).env = modifiedEnv
         await next()
       })
       appWithBrokenDb.route('/health', health)
@@ -297,7 +276,6 @@ describe('Health Check Integration', () => {
           },
         }
         ;(c as any).env = modifiedEnv
-        c.set('db', createTestDb())
         await next()
       })
       appWithBrokenR2.route('/health', health)
@@ -313,8 +291,10 @@ describe('Health Check Integration', () => {
     it('should return 503 when readiness check fails due to db being down', async () => {
       const appWithoutDb = new Hono<HonoEnv>()
       appWithoutDb.use('*', async (c, next) => {
-        ;(c as any).env = env
-        // Note: NOT setting db
+        const modifiedEnv = { ...env }
+        // @ts-expect-error - Removing DB to test database down
+        delete modifiedEnv.DB
+        ;(c as any).env = modifiedEnv
         await next()
       })
       appWithoutDb.route('/health', health)
@@ -329,14 +309,15 @@ describe('Health Check Integration', () => {
     it('should return 503 when readiness check throws an error', async () => {
       const appWithBrokenDb = new Hono<HonoEnv>()
       appWithBrokenDb.use('*', async (c, next) => {
-        ;(c as any).env = env
-        // Create a mock db that throws on run()
-        const brokenDb = {
-          run: () => {
-            throw new Error('Database connection failed')
-          },
+        const modifiedEnv = {
+          ...env,
+          DB: {
+            prepare: () => {
+              throw new Error('Database connection failed')
+            },
+          } as D1Database,
         }
-        c.set('db', brokenDb as any)
+        ;(c as any).env = modifiedEnv
         await next()
       })
       appWithBrokenDb.route('/health', health)

@@ -24,19 +24,10 @@ import { sessionMiddleware } from '../../../src/server/lib/session'
 import { errorHandler } from '../../../src/server/middleware/error-handler'
 
 /**
- * Creates a database wrapper that adds the `execute` method
- * The better-sqlite3 drizzle doesn't have execute, but D1 does
+ * Creates a D1-compatible database instance for tests
  */
 function createTestDb() {
-  const db = getDb()
-  return new Proxy(db, {
-    get(target, prop) {
-      if (prop === 'execute') {
-        return target.run.bind(target)
-      }
-      return (target as any)[prop]
-    },
-  })
+  return getDb()
 }
 
 describe('Session Authentication Integration', () => {

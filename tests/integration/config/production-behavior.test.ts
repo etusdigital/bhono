@@ -22,19 +22,10 @@ import { secureHeaders } from 'hono/secure-headers'
 import { uuidv7 } from 'uuidv7'
 
 /**
- * Creates a database wrapper that adds the `execute` method
- * The better-sqlite3 drizzle doesn't have execute, but D1 does
+ * Creates a D1-compatible database instance for tests
  */
 function createTestDb() {
-  const db = getDb()
-  return new Proxy(db, {
-    get(target, prop) {
-      if (prop === 'execute') {
-        return target.run.bind(target)
-      }
-      return (target as any)[prop]
-    },
-  })
+  return getDb()
 }
 
 /**

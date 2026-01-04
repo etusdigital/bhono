@@ -100,7 +100,7 @@ function HomePage() {
               <TechBadge name="Hono" />
               <TechBadge name="React" />
               <TechBadge name="TypeScript" />
-              <TechBadge name="Drizzle" />
+              <TechBadge name="SQL" />
               <TechBadge name="Tailwind" />
               <TechBadge name="Cloudflare" />
             </div>

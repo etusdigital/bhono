@@ -1,9 +1,7 @@
 // src/server/services/audits.ts
-import { eq, and, sql } from 'drizzle-orm'
-import type { Database } from '../db/client'
-import { auditLogs } from '../db/schema'
 import { createPaginationMeta, calculateOffset } from '../lib/pagination'
 import type { ServiceContext, PaginatedResponse, AuditLog } from '../types'
+import { queryAll, queryOne, type SqlRow } from '../db/sql'
 
 export interface AuditLogFilters {
   page: number
@@ -13,70 +11,125 @@ export interface AuditLogFilters {
   action?: string
 }
 
+
+const AUDIT_SELECT_COLUMNS = `
+  id,
+  transaction_id as transactionId,
+  account_id as accountId,
+  user_id as userId,
+  entity,
+  entity_id as entityId,
+  action,
+  changes,
+  ip_address as ipAddress,
+  user_agent as userAgent,
+  timestamp
+`
+
+
+function parseChanges(value: unknown): Record<string, unknown> | null {
+  if (value === null || value === undefined) return null
+  if (typeof value === 'object') return value as Record<string, unknown>
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value) as unknown
+      if (parsed && typeof parsed === 'object') {
+        return parsed as Record<string, unknown>
+      }
+    } catch {
+      return null
+    }
+  }
+  return null
+}
+
+function mapAuditRow(row: SqlRow): AuditLog {
+  const transactionId = row.transactionId ?? row.transaction_id
+  const accountId = row.accountId ?? row.account_id
+  const userId = row.userId ?? row.user_id
+  const entityId = row.entityId ?? row.entity_id
+  const ipAddress = row.ipAddress ?? row.ip_address
+  const userAgent = row.userAgent ?? row.user_agent
+  const changesValue = row.changes
+
+  return {
+    id: String(row.id ?? ''),
+    transactionId: String(transactionId ?? ''),
+    accountId: accountId ? String(accountId) : null,
+    userId: userId ? String(userId) : null,
+    entity: String(row.entity ?? ''),
+    entityId: String(entityId ?? ''),
+    action: String(row.action ?? '') as AuditLog['action'],
+    changes: parseChanges(changesValue),
+    ipAddress: ipAddress ? String(ipAddress) : null,
+    userAgent: userAgent ? String(userAgent) : null,
+    timestamp: String(row.timestamp ?? ''),
+  }
+}
+
+
+async function findAllSql(
+  db: D1Database,
+  ctx: ServiceContext,
+  filters: AuditLogFilters
+): Promise<PaginatedResponse<AuditLog>> {
+  const offset = calculateOffset(filters.page, filters.limit)
+  const whereClauses: string[] = []
+  const params: unknown[] = []
+
+  // Super-admin can see all logs, non-super-admin only their account
+  if (!ctx.user.isSuperAdmin) {
+    whereClauses.push('account_id = ?')
+    params.push(ctx.accountId)
+  }
+
+  if (filters.entity) {
+    whereClauses.push('entity = ?')
+    params.push(filters.entity)
+  }
+
+  if (filters.entityId) {
+    whereClauses.push('entity_id = ?')
+    params.push(filters.entityId)
+  }
+
+  if (filters.action) {
+    whereClauses.push('action = ?')
+    params.push(filters.action)
+  }
+
+  const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''
+
+  const countRow = await queryOne<{ count: number }>(
+    db,
+    `SELECT count(*) as count FROM audit_logs ${whereSql}`,
+    params
+  )
+
+  const totalItems = countRow?.count ?? 0
+
+  const rows = await queryAll(
+    db,
+    `SELECT ${AUDIT_SELECT_COLUMNS}
+     FROM audit_logs
+     ${whereSql}
+     ORDER BY timestamp DESC
+     LIMIT ? OFFSET ?`,
+    [...params, filters.limit, offset]
+  )
+
+  return {
+    data: rows.map((row) => mapAuditRow(row)),
+    meta: createPaginationMeta(totalItems, filters.page, filters.limit),
+  }
+}
+
 export const auditsService = {
   async findAll(
-    db: Database,
+    db: D1Database,
     ctx: ServiceContext,
     filters: AuditLogFilters
   ): Promise<PaginatedResponse<AuditLog>> {
-    const offset = calculateOffset(filters.page, filters.limit)
-
-    // Build query conditions - always filter by accountId for multi-tenancy
-    const conditions = []
-
-    // Super-admin can see all logs, non-super-admin only their account
-    if (!ctx.user.isSuperAdmin) {
-      conditions.push(eq(auditLogs.accountId, ctx.accountId))
-    }
-
-    // Optional filters
-    if (filters.entity) {
-      conditions.push(eq(auditLogs.entity, filters.entity))
-    }
-
-    if (filters.entityId) {
-      conditions.push(eq(auditLogs.entityId, filters.entityId))
-    }
-
-    if (filters.action) {
-      conditions.push(eq(auditLogs.action, filters.action as AuditLog['action']))
-    }
-
-    // Build where clause
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined
-
-    // Get total count
-    const countResults = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(auditLogs)
-      .where(whereClause)
-
-    const totalItems = countResults.at(0)?.count ?? 0
-
-    // Get paginated data
-    const data = await db
-      .select()
-      .from(auditLogs)
-      .where(whereClause)
-      .limit(filters.limit)
-      .offset(offset)
-      .orderBy(sql`${auditLogs.timestamp} DESC`)
-
-    return {
-      data: data.map((log) => ({
-        id: log.id,
-        transactionId: log.transactionId,
-        accountId: log.accountId,
-        userId: log.userId,
-        entity: log.entity,
-        entityId: log.entityId,
-        action: log.action as AuditLog['action'],
-        changes: log.changes,
-        ipAddress: log.ipAddress,
-        userAgent: log.userAgent,
-        timestamp: log.timestamp,
-      })),
-      meta: createPaginationMeta(totalItems, filters.page, filters.limit),
-    }
+    return findAllSql(db, ctx, filters)
   },
 }

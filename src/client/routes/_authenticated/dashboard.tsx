@@ -82,7 +82,7 @@ function DashboardPage() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              Built with Drizzle ORM for type-safe database queries.
+              Built with SQL-first access to Cloudflare D1.
             </p>
           </CardContent>
         </Card>

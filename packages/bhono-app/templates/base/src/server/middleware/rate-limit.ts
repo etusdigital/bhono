@@ -240,8 +240,13 @@ export function rateLimit(options: RateLimitOptions = {}) {
 export function authRateLimit() {
   return rateLimit({
     windowMs: 60000, // 1 minute
-    max: 10, // 10 requests per minute for auth endpoints
+    max: 10, // 10 requests per minute for login endpoints (brute force protection)
     message: 'Too many authentication attempts, please try again later',
+    // Use separate key prefix to not conflict with global rate limit
+    keyGenerator: (c) => {
+      const ip = c.get('ip') || c.req.header('x-forwarded-for')?.split(',')[0].trim() || 'unknown'
+      return `auth:${ip}` // Different prefix than global rate limit
+    },
   })
 }
 

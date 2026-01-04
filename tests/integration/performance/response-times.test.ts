@@ -36,15 +36,7 @@ const THRESHOLDS = {
  * Creates a database wrapper that adds the `execute` method
  */
 function createTestDb() {
-  const db = getDb()
-  return new Proxy(db, {
-    get(target, prop) {
-      if (prop === 'execute') {
-        return target.run.bind(target)
-      }
-      return (target as unknown as Record<string | symbol, unknown>)[prop]
-    },
-  })
+  return getDb()
 }
 
 /**

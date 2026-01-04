@@ -14,13 +14,14 @@ import type {
 export const listUsersHandler: RouteHandler<typeof listUsersRoute, HonoEnv> = async (c) => {
   const query = c.req.valid('query')
   const db = c.get('db')
+  const usersDb = c.env.DB ?? db
   const accountId = c.get('accountId')
   const user = c.get('user')
   const transactionId = c.get('transactionId')
   const ip = c.get('ip')
   const userAgent = c.get('userAgent')
 
-  if (!db || !accountId || !user) {
+  if (!db || !usersDb || !accountId || !user) {
     throw new Error('Missing required context')
   }
 
@@ -32,7 +33,7 @@ export const listUsersHandler: RouteHandler<typeof listUsersRoute, HonoEnv> = as
     userAgent,
   }
 
-  const result = await usersService.findAll(db, ctx, {
+  const result = await usersService.findAll(usersDb, ctx, {
     page: query.page,
     limit: query.limit,
     sortBy: query.sortBy,
@@ -46,13 +47,14 @@ export const listUsersHandler: RouteHandler<typeof listUsersRoute, HonoEnv> = as
 export const getUserHandler: RouteHandler<typeof getUserRoute, HonoEnv> = async (c) => {
   const { id } = c.req.valid('param')
   const db = c.get('db')
+  const usersDb = c.env.DB ?? db
   const accountId = c.get('accountId')
   const user = c.get('user')
   const transactionId = c.get('transactionId')
   const ip = c.get('ip')
   const userAgent = c.get('userAgent')
 
-  if (!db || !accountId || !user) {
+  if (!db || !usersDb || !accountId || !user) {
     throw new Error('Missing required context')
   }
 
@@ -64,7 +66,7 @@ export const getUserHandler: RouteHandler<typeof getUserRoute, HonoEnv> = async 
     userAgent,
   }
 
-  const foundUser = await usersService.findById(db, ctx, id)
+  const foundUser = await usersService.findById(usersDb, ctx, id)
   return c.json({ data: foundUser }, 200)
 }
 
@@ -100,13 +102,14 @@ export const updateUserHandler: RouteHandler<typeof updateUserRoute, HonoEnv> = 
   const { id } = c.req.valid('param')
   const data = c.req.valid('json')
   const db = c.get('db')
+  const usersDb = c.env.DB ?? db
   const accountId = c.get('accountId')
   const user = c.get('user')
   const transactionId = c.get('transactionId')
   const ip = c.get('ip')
   const userAgent = c.get('userAgent')
 
-  if (!db || !accountId || !user) {
+  if (!db || !usersDb || !accountId || !user) {
     throw new Error('Missing required context')
   }
 
@@ -118,7 +121,7 @@ export const updateUserHandler: RouteHandler<typeof updateUserRoute, HonoEnv> = 
     userAgent,
   }
 
-  const updatedUser = await usersService.update(db, ctx, id, {
+  const updatedUser = await usersService.update(usersDb, ctx, id, {
     name: data.name,
     status: data.status,
   })
@@ -129,13 +132,14 @@ export const updateUserHandler: RouteHandler<typeof updateUserRoute, HonoEnv> = 
 export const deleteUserHandler: RouteHandler<typeof deleteUserRoute, HonoEnv> = async (c) => {
   const { id } = c.req.valid('param')
   const db = c.get('db')
+  const usersDb = c.env.DB ?? db
   const accountId = c.get('accountId')
   const user = c.get('user')
   const transactionId = c.get('transactionId')
   const ip = c.get('ip')
   const userAgent = c.get('userAgent')
 
-  if (!db || !accountId || !user) {
+  if (!db || !usersDb || !accountId || !user) {
     throw new Error('Missing required context')
   }
 
@@ -147,7 +151,7 @@ export const deleteUserHandler: RouteHandler<typeof deleteUserRoute, HonoEnv> = 
     userAgent,
   }
 
-  await usersService.delete(db, ctx, id)
+  await usersService.delete(usersDb, ctx, id)
   return c.body(null, 204)
 }
 
@@ -155,13 +159,14 @@ export const deleteUserHandler: RouteHandler<typeof deleteUserRoute, HonoEnv> = 
 export const createBulkUserAccountsHandler: RouteHandler<typeof createBulkUserAccountsRoute, HonoEnv> = async (c) => {
   const data = c.req.valid('json')
   const db = c.get('db')
+  const usersDb = c.env.DB ?? db
   const accountId = c.get('accountId')
   const user = c.get('user')
   const transactionId = c.get('transactionId')
   const ip = c.get('ip')
   const userAgent = c.get('userAgent')
 
-  if (!db || !accountId || !user) {
+  if (!db || !usersDb || !accountId || !user) {
     throw new Error('Missing required context')
   }
 
@@ -173,20 +178,21 @@ export const createBulkUserAccountsHandler: RouteHandler<typeof createBulkUserAc
     userAgent,
   }
 
-  const result = await usersService.createUserAccounts(db, ctx, data)
+  const result = await usersService.createUserAccounts(usersDb, ctx, data)
   return c.json(result, 201)
 }
 
 export const deleteBulkUserAccountsHandler: RouteHandler<typeof deleteBulkUserAccountsRoute, HonoEnv> = async (c) => {
   const data = c.req.valid('json')
   const db = c.get('db')
+  const usersDb = c.env.DB ?? db
   const accountId = c.get('accountId')
   const user = c.get('user')
   const transactionId = c.get('transactionId')
   const ip = c.get('ip')
   const userAgent = c.get('userAgent')
 
-  if (!db || !accountId || !user) {
+  if (!db || !usersDb || !accountId || !user) {
     throw new Error('Missing required context')
   }
 
@@ -198,20 +204,21 @@ export const deleteBulkUserAccountsHandler: RouteHandler<typeof deleteBulkUserAc
     userAgent,
   }
 
-  const result = await usersService.deleteUserAccounts(db, ctx, data)
+  const result = await usersService.deleteUserAccounts(usersDb, ctx, data)
   return c.json(result, 200)
 }
 
 export const restoreUserHandler: RouteHandler<typeof restoreUserRoute, HonoEnv> = async (c) => {
   const { id } = c.req.valid('param')
   const db = c.get('db')
+  const usersDb = c.env.DB ?? db
   const accountId = c.get('accountId')
   const user = c.get('user')
   const transactionId = c.get('transactionId')
   const ip = c.get('ip')
   const userAgent = c.get('userAgent')
 
-  if (!db || !accountId || !user) {
+  if (!db || !usersDb || !accountId || !user) {
     throw new Error('Missing required context')
   }
 
@@ -223,6 +230,6 @@ export const restoreUserHandler: RouteHandler<typeof restoreUserRoute, HonoEnv> 
     userAgent,
   }
 
-  const result = await usersService.restore(db, ctx, id)
+  const result = await usersService.restore(usersDb, ctx, id)
   return c.json({ data: result }, 200)
 }

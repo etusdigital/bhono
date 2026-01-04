@@ -27,7 +27,12 @@ export function useAuth() {
     queryKey: ['auth', 'me'],
     queryFn: fetchMe,
     retry: false,
+    // Balance between reducing API calls and detecting expired sessions
     staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 30, // 30 minutes
+    refetchOnMount: false, // Avoid redundant calls on component mount
+    refetchOnWindowFocus: true, // Re-check when user returns to tab (industry standard)
+    refetchOnReconnect: true, // Re-check after network reconnection
   })
 
   const logoutMutation = useMutation({

@@ -1,6 +1,5 @@
 import type { Role } from '../auth/roles'
 import type { Env } from '../env'
-import type { Database } from '../db/client'
 
 export interface User {
   id: string
@@ -106,7 +105,7 @@ export interface HonoEnv {
     userRole: Role | null
     isSystemAdminAccess: boolean
     // Set by database middleware (may be undefined before middleware runs or in health checks)
-    db?: Database
+    db?: D1Database
     // Session variables (set by session middleware)
     sessionId?: string
     sessionData?: SessionData

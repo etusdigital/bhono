@@ -51,3 +51,12 @@ api.doc('/doc', openApiConfig)
 api.get('/swagger', swaggerUI({ url: '/api/doc' }))
 
 export { api }
+
+// Re-export individual routers for testing
+export { users } from './users'
+export { accounts } from './accounts'
+export { invitationsRouter } from './invitations'
+export { audits } from './audits'
+export { storage } from './storage'
+export { health } from './health'
+export { auth } from './auth'

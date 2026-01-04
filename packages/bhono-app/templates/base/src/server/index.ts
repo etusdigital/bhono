@@ -54,8 +54,22 @@ app.use('*', secureHeaders())
 // 7. Rate limiting - global limit of 100 requests per minute
 app.use('*', rateLimit())
 
-// 8. Stricter rate limiting for auth endpoints (10 requests per minute)
-app.use('/auth/*', authRateLimit())
+// 8. Stricter rate limiting for auth LOGIN endpoints only (10 requests per minute)
+// These are the endpoints vulnerable to brute force attacks
+// Note: /auth/me, /auth/refresh, /auth/logout use the global rate limit (100 req/min)
+// because they are session verification/maintenance, not login attempts
+// Create auth rate limiter instance once (not per-request)
+const loginRateLimiter = authRateLimit()
+
+app.use('/auth/*', async (c, next) => {
+  const path = c.req.path
+  // Only apply strict rate limit to login-related endpoints (brute force protection)
+  if (path === '/auth/login' || path === '/auth/callback') {
+    return loginRateLimiter(c, next)
+  }
+  // Other auth endpoints (/auth/me, /auth/refresh, /auth/logout) use global rate limit
+  return next()
+})
 
 // 9. Database middleware - create db instance per request
 app.use('*', async (c, next) => {
