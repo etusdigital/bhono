@@ -4,50 +4,133 @@ description: Check if all skills are mapped in skill-rules.json and report any m
 
 # Check Skill Rules Mapping
 
-Audit the skill-rules.json file against actual skill directories to find:
-1. **Unmapped skills** - Skills that exist but aren't in skill-rules.json
-2. **Orphaned entries** - Entries in skill-rules.json that have no matching skill
+Audit the skill-rules.json file against actual skill directories and validate the hook system.
 
 ## Instructions
 
-1. **Find all project skills** in `.claude/skills/`:
-   - List all directories (skills are directories, not files)
-   - Exclude `skill-rules.json` (it's the config file, not a skill)
+### 1. Validate Hook System
 
-2. **Find all user skills** in `~/.claude/skills/`:
-   - List all directories there too
+First, check that all hooks are properly configured:
 
-3. **Read skill-rules.json** and extract the skill names from the `skills` object keys
+```bash
+# Check hooks exist and are executable
+ls -la .claude/hooks/*.sh
 
-4. **Compare and report**:
+# Test skill-activation-prompt hook
+echo '{"session_id":"test","prompt":"analyze architecture"}' | .claude/hooks/skill-activation-prompt.sh
 
-### Output Format
-
+# Test skill-tool-guard hook
+echo '{"session_id":"test","tool_name":"Bash","tool_input":{"command":"git push"}}' | .claude/hooks/skill-tool-guard.sh
 ```
-## Skill Rules Audit
 
-### Project Skills (.claude/skills/)
-| Skill | Mapped |
-|-------|--------|
-| skill-name | ✅ / ❌ |
+### 2. Find All Skills
 
-### User Skills (~/.claude/skills/)
-| Skill | Mapped |
-|-------|--------|
-| skill-name | ✅ / ❌ |
+**Project skills** in `.claude/skills/`:
+- List all `.md` files (skills are markdown files)
+- Exclude `skill-rules.json` (config file)
 
-### Orphaned Entries (in rules but no skill file)
-| Entry | Status |
-|-------|--------|
-| entry-name | ❌ No skill directory found |
+**User skills** in `~/.claude/skills/`:
+- List all `.md` files
+
+**Plugin skills** (from enabled plugins):
+- Check `superpowers:*` skills
+- Check other plugin namespaced skills
+
+### 3. Read skill-rules.json
+
+Extract from the `skills` object:
+- Skill names (keys)
+- For each skill:
+  - `promptTriggers` (keywords + intentPatterns)
+  - `toolGuards` (tool + patterns)
+  - `enforcement` level
+  - `priority` level
+
+### 4. Compare and Report
+
+## Output Format
+
+```markdown
+## Skill Rules Audit (v1.2)
+
+### Hook System Status
+| Hook | File Exists | Executable | Test |
+|------|-------------|------------|------|
+| skill-activation-prompt | ✅/❌ | ✅/❌ | ✅/❌ |
+| skill-tool-guard | ✅/❌ | ✅/❌ | ✅/❌ |
+
+### Local Skills (.claude/skills/)
+| Skill | In Rules | promptTriggers | toolGuards |
+|-------|----------|----------------|------------|
+| skill-name | ✅/❌ | X keywords, Y patterns | Z guards |
+
+### Plugin Skills (superpowers, etc)
+| Skill | In Rules | promptTriggers | toolGuards |
+|-------|----------|----------------|------------|
+| superpowers:skill-name | ✅/❌ | X keywords, Y patterns | Z guards |
+
+### Orphaned Entries (in rules but no matching skill)
+| Entry | Type | Issue |
+|-------|------|-------|
+| entry-name | local/plugin | No skill file/plugin found |
+
+### Tool Guard Coverage
+| Tool | Skills with Guards |
+|------|-------------------|
+| Bash | skill1, skill2 |
+| Edit | skill3 |
+| Write | skill4 |
 
 ### Summary
-- Project skills: X mapped, Y unmapped
-- User skills: X mapped, Y unmapped
+- Local skills: X mapped, Y unmapped
+- Plugin skills: X mapped, Y unmapped
 - Orphaned entries: Z
+- Skills with promptTriggers: N
+- Skills with toolGuards: M
+- Hooks status: OK/ISSUES
 
 ### Recommended Actions
-[If there are unmapped skills or orphaned entries, suggest specific actions]
+[If there are issues, suggest specific fixes]
 ```
 
-5. If there are discrepancies, ask if I want you to update skill-rules.json automatically.
+### 5. Validation Checks
+
+Verify for each skill in rules:
+- [ ] Has at least `promptTriggers` OR `toolGuards`
+- [ ] `enforcement` is valid (suggest/warn/block)
+- [ ] `priority` is valid (critical/high/medium/low)
+- [ ] `toolGuards` patterns are valid regex
+- [ ] `intentPatterns` are valid regex
+
+### 6. Auto-fix Option
+
+If there are discrepancies, ask if I want you to:
+1. Add missing skills to skill-rules.json with default config
+2. Remove orphaned entries
+3. Fix invalid patterns
+
+## Current skill-rules.json Structure (v1.2)
+
+```json
+{
+  "version": "1.2",
+  "skills": {
+    "skill-name": {
+      "type": "domain|guardrail",
+      "enforcement": "suggest|warn|block",
+      "priority": "critical|high|medium|low",
+      "description": "What this skill does",
+      "promptTriggers": {
+        "keywords": ["exact match words"],
+        "intentPatterns": ["regex patterns"]
+      },
+      "toolGuards": [
+        {
+          "tool": "Bash|Edit|Write|Read|Glob|Task|*",
+          "patterns": ["regex to match tool input"]
+        }
+      ]
+    }
+  }
+}
+```

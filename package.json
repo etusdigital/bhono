@@ -52,7 +52,9 @@
     "changeset:version": "changeset version",
     "changeset:publish": "changeset publish",
     "prepare": "husky || true",
-    "test:run": "pnpm test:unit:server && pnpm test:unit:client"
+    "test:run": "pnpm test:unit:server && pnpm test:unit:client",
+    "sync:template": "./scripts/sync-template.sh",
+    "sync:template:check": "./scripts/sync-template.sh && git diff --exit-code packages/bhono-app/templates/"
   },
   "dependencies": {
     "@hono/swagger-ui": "^0.5.3",

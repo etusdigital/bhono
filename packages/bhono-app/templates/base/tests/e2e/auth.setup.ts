@@ -9,7 +9,7 @@ const accountFile = path.join(__dirname, '.auth/account.json')
 
 // Production URL pattern - skip test-login for these
 const PRODUCTION_URLS = [
-  '{{projectName}}.a3s.workers.dev',
+  'hono-boilerplate.a3s.workers.dev',
   'workers.dev',
 ]
 

@@ -6,7 +6,7 @@ import { UnauthorizedError } from '../lib/errors'
 import { logAuthEvent, type AuthEventContext } from '../lib/audit'
 import type { GoogleUserInfo, AuthTokens } from '../types/auth'
 import type { User } from '../types'
-import { execute, queryOne, type SqlRow } from '../db/sql'
+import { execute, queryOne, toStringValue, toNullableString, type SqlRow, type SqlParams } from '../db/sql'
 
 interface AuthResult {
   user: User
@@ -60,17 +60,17 @@ function parseProviderIds(value: unknown): string[] {
 
 function mapUserRow(row: SqlRow): UserRecord {
   return {
-    id: String(row.id ?? ''),
-    googleId: String(row.googleId ?? ''),
-    email: String(row.email ?? ''),
-    name: String(row.name ?? ''),
-    avatarUrl: row.avatarUrl ? String(row.avatarUrl) : null,
+    id: toStringValue(row.id),
+    googleId: toStringValue(row.googleId),
+    email: toStringValue(row.email),
+    name: toStringValue(row.name),
+    avatarUrl: toNullableString(row.avatarUrl),
     status: (row.status === 'inactive' ? 'inactive' : 'active'),
     providerIds: parseProviderIds(row.providerIds),
     isSuperAdmin: toBoolean(row.isSuperAdmin),
-    createdAt: String(row.createdAt ?? ''),
-    updatedAt: String(row.updatedAt ?? ''),
-    deletedAt: row.deletedAt ? String(row.deletedAt) : null,
+    createdAt: toStringValue(row.createdAt),
+    updatedAt: toStringValue(row.updatedAt),
+    deletedAt: toNullableString(row.deletedAt),
   }
 }
 
@@ -80,7 +80,7 @@ function toUser(record: UserRecord): User {
     email: record.email,
     name: record.name,
     status: record.status,
-    providerIds: record.providerIds ?? [],
+    providerIds: record.providerIds,
     isSuperAdmin: record.isSuperAdmin,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
@@ -121,7 +121,7 @@ async function updateUserSql(
   if (columns.length === 0) return selectUserById(db, userId)
 
   const setClause = columns.map((column) => `${column} = ?`).join(', ')
-  const params = columns.map((column) => updates[column])
+  const params = columns.map((column) => updates[column]) as SqlParams
   await execute(
     db,
     `UPDATE users SET ${setClause} WHERE id = ?`,
@@ -137,7 +137,7 @@ async function insertUserSql(
 ): Promise<UserRecord | null> {
   const columns = Object.keys(values)
   const placeholders = columns.map(() => '?').join(', ')
-  const params = columns.map((column) => values[column])
+  const params = columns.map((column) => values[column]) as SqlParams
 
   await execute(
     db,
@@ -145,7 +145,7 @@ async function insertUserSql(
     params
   )
 
-  return selectUserById(db, String(values.id ?? ''))
+  return selectUserById(db, toStringValue(values.id))
 }
 
 async function findOrCreateUserSql(
@@ -265,8 +265,8 @@ async function refreshAccessTokenSql(
     throw new UnauthorizedError('Invalid or expired refresh token')
   }
 
-  const userRecord = await selectUserById(db, String(tokenRecord.userId ?? ''))
-  if (!userRecord || userRecord.status !== 'active') {
+  const userRecord = await selectUserById(db, toStringValue(tokenRecord.userId))
+  if (userRecord?.status !== 'active') {
     throw new UnauthorizedError('User not found or inactive')
   }
 

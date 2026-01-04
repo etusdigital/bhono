@@ -28,7 +28,7 @@ const deviceConfig = devices['Desktop Chrome']
 
 // Default configuration
 const DEFAULT_CONFIG = {
-  baseURL: process.env.BASE_URL || 'https://{{projectName}}.a3s.workers.dev',
+  baseURL: process.env.BASE_URL || 'https://hono-boilerplate.a3s.workers.dev',
   loginPath: '/login',
   successURLPattern: '**/dashboard',
   outputPath: 'tests/e2e/.auth/user.json',
@@ -89,7 +89,7 @@ Options:
   --help, -h          Show this help message
 
 Environment Variables:
-  BASE_URL            Base URL (default: https://{{projectName}}.a3s.workers.dev)
+  BASE_URL            Base URL (default: https://hono-boilerplate.a3s.workers.dev)
 
 Examples:
   # Capture session from production

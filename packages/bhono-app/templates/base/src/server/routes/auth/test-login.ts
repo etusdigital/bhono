@@ -2,7 +2,7 @@
 import type { RouteHandler } from '@hono/zod-openapi'
 import { createRoute, z } from '@hono/zod-openapi'
 import { HTTPException } from 'hono/http-exception'
-import { execute, queryOne, type SqlRow } from '../../db/sql'
+import { execute, queryOne, toStringValue, toNullableString, type SqlRow } from '../../db/sql'
 import type { UserRecord } from '../../db/records'
 import { createSession } from '../../lib/session'
 import type { HonoEnv } from '../../types'
@@ -34,17 +34,17 @@ function toBoolean(value: unknown): boolean {
 
 function mapUserRow(row: SqlRow): UserRecord {
   return {
-    id: String(row.id ?? ''),
-    googleId: String(row.googleId ?? row.google_id ?? ''),
-    email: String(row.email ?? ''),
-    name: String(row.name ?? ''),
-    avatarUrl: row.avatarUrl ? String(row.avatarUrl) : null,
+    id: toStringValue(row.id),
+    googleId: toStringValue(row.googleId ?? row.google_id),
+    email: toStringValue(row.email),
+    name: toStringValue(row.name),
+    avatarUrl: toNullableString(row.avatarUrl),
     status: row.status === 'inactive' ? 'inactive' : 'active',
     providerIds: [],
     isSuperAdmin: toBoolean(row.isSuperAdmin ?? row.is_super_admin),
-    createdAt: String(row.createdAt ?? row.created_at ?? ''),
-    updatedAt: String(row.updatedAt ?? row.updated_at ?? ''),
-    deletedAt: row.deletedAt ? String(row.deletedAt) : null,
+    createdAt: toStringValue(row.createdAt ?? row.created_at),
+    updatedAt: toStringValue(row.updatedAt ?? row.updated_at),
+    deletedAt: toNullableString(row.deletedAt),
   }
 }
 

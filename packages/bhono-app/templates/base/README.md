@@ -96,8 +96,8 @@ This boilerplate provides everything you need to build a modern, secure, and sca
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/{{projectName}}.git
-cd {{projectName}}
+git clone https://github.com/your-org/hono-boilerplate.git
+cd hono-boilerplate
 
 # Install dependencies
 pnpm install
@@ -236,6 +236,8 @@ pnpm dlx @etus/bhono-app <project-name>
 # npm shortcut (uses create-bhono-app)
 npm init bhono-app <project-name>
 ```
+
+If the CLI cannot find local templates, it will clone the default Bhono template repo. You can override this by setting `BHONO_TEMPLATE_REPO` (or `ETUS_TEMPLATE_REPO`) to a git URL.
 
 ---
 
@@ -483,17 +485,17 @@ wrangler deploy --config config/wrangler.json
 
 ```json
 {
-  "name": "{{projectName}}",
+  "name": "hono-boilerplate",
   "main": "../src/server/index.ts",
   "compatibility_date": "2025-01-01",
   "compatibility_flags": ["nodejs_compat"],
   "d1_databases": [{
     "binding": "DB",
-    "database_name": "{{projectName}}-db"
+    "database_name": "boilerplate-db"
   }],
   "r2_buckets": [{
     "binding": "R2_BUCKET",
-    "bucket_name": "{{projectName}}-storage"
+    "bucket_name": "boilerplate-storage"
   }],
   "kv_namespaces": [{
     "binding": "SESSIONS",
@@ -514,10 +516,10 @@ wrangler deploy --config config/wrangler.json
 
 ```bash
 # Create D1 database
-wrangler d1 create {{projectName}}-db
+wrangler d1 create boilerplate-db
 
 # Create R2 bucket
-wrangler r2 bucket create {{projectName}}-storage
+wrangler r2 bucket create boilerplate-storage
 
 # Create KV namespace
 wrangler kv:namespace create SESSIONS

@@ -11,4 +11,4 @@ export const openApiConfig = {
     { url: 'http://localhost:3000', description: 'Development server' },
   ],
   security: [{ SessionCookie: [] }],
-} as const
+}

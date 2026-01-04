@@ -52,7 +52,7 @@ export const accountMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 
   // Set accountId and userRole in context
   c.set('accountId', accountId)
-  c.set('userRole', membership.role as Role)
+  c.set('userRole', membership.role)
   c.set('isSystemAdminAccess', false)
 
   await next()

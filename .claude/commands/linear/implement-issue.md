@@ -61,9 +61,14 @@ git pull origin develop
 # Create feature branch
 BRANCH_NAME="feat/$ARGUMENTS-short-description"  # Adjust type and description
 git checkout -b "$BRANCH_NAME"
+
+# Verify you're NOT on master/develop
+git branch --show-current  # Should show your feature branch
 ```
 
-**IMPORTANT**: Replace `short-description` with 2-4 words describing the work (lowercase, hyphenated).
+**IMPORTANT**:
+- Replace `short-description` with 2-4 words describing the work (lowercase, hyphenated)
+- **NEVER work directly on `master` or `develop`** - always create a feature branch
 
 ---
 
@@ -324,21 +329,35 @@ Closes AA-789"
 
 ## Phase 9: Push and Create PR
 
-### 9.1 Push Branch
+> **⚠️ NEVER push directly to `master` or `develop`!**
+>
+> All changes MUST go through a Pull Request. This ensures:
+> - Code review before merge
+> - CI checks run on the PR
+> - Changeset validation for package releases
+> - Audit trail of all changes
+
+### 9.1 Push Feature Branch
 
 ```bash
+# Push your feature branch (NOT master/develop)
 git push -u origin HEAD
+```
+
+**Verify you're on a feature branch:**
+```bash
+git branch --show-current  # Should show feat/AA-123-xxx, NOT master/develop
 ```
 
 ### 9.2 Determine PR Target Branch
 
-| Scenario | Target Branch |
-|----------|---------------|
-| Regular feature/fix | `develop` |
-| Hotfix for production | `master` |
-| Release candidate | `master` |
+| Scenario | Target Branch | Example |
+|----------|---------------|---------|
+| Regular feature/fix | `develop` | New feature, bug fix, refactor |
+| Hotfix for production | `master` | Critical bug in production |
+| Release candidate | `master` | Merging develop → master |
 
-### 9.3 Create Pull Request
+### 9.3 Create Pull Request (REQUIRED)
 
 ```bash
 gh pr create --base develop --title "<type>(<scope>): <description>" --body "$(cat <<'EOF'

@@ -7,7 +7,7 @@ import {
   UpdateAccountSchema,
   CreateInvitationSchema,
   CreateWebhookSchema,
-} from '../index'
+} from '@shared/schemas'
 
 describe('User Schemas', () => {
   describe('CreateUserSchema', () => {

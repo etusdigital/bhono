@@ -18,7 +18,9 @@ export default defineConfig({
       generatedRouteTree: "./src/client/routeTree.gen.ts",
     }),
     react(),
-    cloudflare(),
+    cloudflare({
+      configPath: "./config/wrangler.json",
+    }),
     // Istanbul instrumentation for E2E coverage
     // Only add plugin when E2E_COVERAGE is true, then it instruments without additional env check
     ...(isE2ECoverage

@@ -49,11 +49,8 @@ class RateLimitStore {
   private cleanupInterval: ReturnType<typeof setInterval> | null = null
   private lastCleanup = 0
 
-  constructor() {
-    // Don't use setInterval at construction time - Cloudflare Workers
-    // don't allow async I/O at global scope. Instead, we'll cleanup
-    // lazily during request processing.
-  }
+  // Note: Don't use setInterval at construction time - Cloudflare Workers
+  // don't allow async I/O at global scope. Instead, we cleanup lazily.
 
   /**
    * Start periodic cleanup (call from within a handler, not at global scope)
@@ -244,7 +241,7 @@ export function authRateLimit() {
     message: 'Too many authentication attempts, please try again later',
     // Use separate key prefix to not conflict with global rate limit
     keyGenerator: (c) => {
-      const ip = c.get('ip') || c.req.header('x-forwarded-for')?.split(',')[0].trim() || 'unknown'
+      const ip = c.get('ip') ?? c.req.header('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown'
       return `auth:${ip}` // Different prefix than global rate limit
     },
   })

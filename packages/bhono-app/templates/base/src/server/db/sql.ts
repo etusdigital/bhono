@@ -16,6 +16,26 @@ export type SqlParams = SqlValue[]
 export type SqlRow = Record<string, unknown>
 export type RowMapper<T> = (row: SqlRow) => T
 
+/**
+ * Safely convert an unknown database value to a string.
+ * Returns empty string for null/undefined/objects.
+ */
+export function toStringValue(value: unknown): string {
+  if (typeof value === 'string') return value
+  if (typeof value === 'number' || typeof value === 'bigint') return String(value)
+  return ''
+}
+
+/**
+ * Safely convert an unknown database value to a string or null.
+ */
+export function toNullableString(value: unknown): string | null {
+  if (value === null || value === undefined) return null
+  if (typeof value === 'string') return value
+  if (typeof value === 'number' || typeof value === 'bigint') return String(value)
+  return null
+}
+
 function normalizeValue(value: SqlValue): unknown {
   if (value === undefined) return null
   if (value instanceof Date) return value.toISOString()
@@ -41,7 +61,7 @@ export async function queryAll<T = SqlRow>(
 ): Promise<T[]> {
   const prepared = prepareStatement(db, statement, params)
   const result = await prepared.all<SqlRow>()
-  const rows = result.results ?? []
+  const rows = result.results
   return mapper ? rows.map(mapper) : (rows as T[])
 }
 
@@ -63,7 +83,7 @@ export async function queryValue<T = unknown>(
   params?: SqlParams,
   column?: string
 ): Promise<T | null> {
-  const row = await queryOne<SqlRow>(db, statement, params)
+  const row = await queryOne(db, statement, params)
   if (!row) return null
   if (column) return (row[column] as T) ?? null
   const firstKey = Object.keys(row)[0]
@@ -75,7 +95,7 @@ export async function execute(
   db: D1Database,
   statement: string,
   params?: SqlParams
-): Promise<D1Result<unknown>> {
+): Promise<D1Result> {
   const prepared = prepareStatement(db, statement, params)
   return prepared.run()
 }
@@ -88,7 +108,7 @@ export interface BatchStatement {
 export async function executeBatch(
   db: D1Database,
   statements: BatchStatement[]
-): Promise<D1Result<unknown>[]> {
+): Promise<D1Result[]> {
   const preparedStatements = statements.map((item) =>
     prepareStatement(db, item.statement, item.params)
   )

@@ -61,9 +61,14 @@ git pull origin develop
 # Create feature branch
 BRANCH_NAME="feat/$ARGUMENTS-short-description"  # Adjust type and description
 git checkout -b "$BRANCH_NAME"
+
+# Verify you're NOT on master/develop
+git branch --show-current  # Should show your feature branch
 ```
 
-**IMPORTANT**: Replace `short-description` with 2-4 words describing the work (lowercase, hyphenated).
+**IMPORTANT**:
+- Replace `short-description` with 2-4 words describing the work (lowercase, hyphenated)
+- **NEVER work directly on `master` or `develop`** - always create a feature branch
 
 ---
 
@@ -185,8 +190,9 @@ Fix any issues before proceeding.
 
 | Changed Files | Changeset Needed? | Reason |
 |---------------|-------------------|--------|
-| `packages/*/src/*` | **YES** | Package code published to npm |
-| `packages/*/templates/*` | **YES** | Templates shipped to users |
+| `packages/bhono-app/src/*` | **YES** | CLI code published to npm |
+| `packages/bhono-app/templates/*` | **YES** | Templates shipped to users |
+| `packages/create-bhono-app/*` | **YES** | Published to npm |
 | `src/*` (app code) | **NO** | Not published, internal app |
 | `tests/*` | **NO** | Test-only changes |
 | `config/*`, `.github/*` | **NO** | Build/CI infrastructure |
@@ -200,7 +206,7 @@ Fix any issues before proceeding.
 git diff --name-only develop | grep -E "^packages/.*/src/|^packages/.*/templates/" && echo "CHANGESET NEEDED" || echo "NO CHANGESET NEEDED"
 ```
 
-**Rule of thumb:** If users who install your npm package won't notice the change, you don't need a changeset.
+**Rule of thumb:** If users who `npm install @etus/bhono-app` won't notice the change, you don't need a changeset.
 
 ### 7.3 Determine Changeset Type (if needed)
 
@@ -323,21 +329,35 @@ Closes AA-789"
 
 ## Phase 9: Push and Create PR
 
-### 9.1 Push Branch
+> **⚠️ NEVER push directly to `master` or `develop`!**
+>
+> All changes MUST go through a Pull Request. This ensures:
+> - Code review before merge
+> - CI checks run on the PR
+> - Changeset validation for package releases
+> - Audit trail of all changes
+
+### 9.1 Push Feature Branch
 
 ```bash
+# Push your feature branch (NOT master/develop)
 git push -u origin HEAD
+```
+
+**Verify you're on a feature branch:**
+```bash
+git branch --show-current  # Should show feat/AA-123-xxx, NOT master/develop
 ```
 
 ### 9.2 Determine PR Target Branch
 
-| Scenario | Target Branch |
-|----------|---------------|
-| Regular feature/fix | `develop` |
-| Hotfix for production | `master` |
-| Release candidate | `master` |
+| Scenario | Target Branch | Example |
+|----------|---------------|---------|
+| Regular feature/fix | `develop` | New feature, bug fix, refactor |
+| Hotfix for production | `master` | Critical bug in production |
+| Release candidate | `master` | Merging develop → master |
 
-### 9.3 Create Pull Request
+### 9.3 Create Pull Request (REQUIRED)
 
 ```bash
 gh pr create --base develop --title "<type>(<scope>): <description>" --body "$(cat <<'EOF'
