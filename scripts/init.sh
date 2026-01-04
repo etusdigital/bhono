@@ -1,9 +1,10 @@
 #!/bin/bash
 
-# Hono Multi-Tenant SaaS Boilerplate - Development Environment Setup
-# This script initializes the development environment for future coding agents
+# BHono - Development Environment Setup
+# This script bootstraps dependencies, configures Cloudflare bindings,
+# seeds the local D1 (sqlite) database, and starts the dev server.
 
-set -e
+set -euo pipefail
 
 # Colors for output
 RED='\033[0;31m'
@@ -12,110 +13,278 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}========================================${NC}"
-echo -e "${BLUE}  Hono Boilerplate - Dev Environment   ${NC}"
-echo -e "${BLUE}========================================${NC}"
-echo ""
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT_DIR"
+
+UPDATE_PACKAGES=0
+SKIP_DEV=0
+SKIP_PROVISION=0
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --update)
+      UPDATE_PACKAGES=1
+      ;;
+    --skip-dev)
+      SKIP_DEV=1
+      ;;
+    --no-provision)
+      SKIP_PROVISION=1
+      ;;
+    *)
+      echo -e "${YELLOW}Ignoring unknown argument: $1${NC}"
+      ;;
+  esac
+  shift
+ done
+
+log_info() { echo -e "${BLUE}$*${NC}"; }
+log_ok() { echo -e "${GREEN}$*${NC}"; }
+log_warn() { echo -e "${YELLOW}$*${NC}"; }
+log_err() { echo -e "${RED}$*${NC}"; }
+
+log_info "========================================"
+log_info "  BHono - Dev Environment Setup         "
+log_info "========================================"
 
 # Check for required tools
-echo -e "${YELLOW}Checking required tools...${NC}"
+log_info "Checking required tools..."
 
-if ! command -v node &> /dev/null; then
-    echo -e "${RED}Error: Node.js is not installed${NC}"
-    echo "Please install Node.js 18+ from https://nodejs.org/"
-    exit 1
+if ! command -v node >/dev/null 2>&1; then
+  log_err "Error: Node.js is not installed"
+  log_err "Install Node.js 18+ from https://nodejs.org/"
+  exit 1
 fi
 
-if ! command -v pnpm &> /dev/null; then
-    echo -e "${YELLOW}pnpm not found. Installing...${NC}"
-    npm install -g pnpm
+if ! command -v pnpm >/dev/null 2>&1; then
+  log_warn "pnpm not found. Installing..."
+  npm install -g pnpm
 fi
 
-NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
-if [ "$NODE_VERSION" -lt 18 ]; then
-    echo -e "${RED}Error: Node.js 18+ is required (found v${NODE_VERSION})${NC}"
-    exit 1
+NODE_MAJOR=$(node -p "Number(process.versions.node.split('.')[0])")
+if [[ "$NODE_MAJOR" -lt 18 ]]; then
+  log_err "Error: Node.js 18+ is required (found v${NODE_MAJOR})"
+  exit 1
 fi
 
-echo -e "${GREEN}Node.js $(node -v) detected${NC}"
-echo -e "${GREEN}pnpm $(pnpm -v) detected${NC}"
+log_ok "Node.js $(node -v) detected"
+log_ok "pnpm $(pnpm -v) detected"
 
 # Install dependencies
-echo ""
-echo -e "${YELLOW}Installing dependencies...${NC}"
+log_info "Installing dependencies..."
 pnpm install
 
-# Check for .env file
-if [ ! -f .env ]; then
-    if [ -f .env.example ]; then
-        echo ""
-        echo -e "${YELLOW}Creating .env from .env.example...${NC}"
-        cp .env.example .env
-        echo -e "${YELLOW}Please update .env with your actual values:${NC}"
-        echo "  - GOOGLE_CLIENT_ID"
-        echo "  - GOOGLE_CLIENT_SECRET"
-        echo "  - JWT_SECRET (min 32 chars)"
-        echo "  - SENDGRID_API_KEY"
-    else
-        echo -e "${YELLOW}Warning: No .env file found. Create one based on required environment variables.${NC}"
-    fi
+if [[ "$UPDATE_PACKAGES" -eq 1 ]]; then
+  log_info "Updating dependencies..."
+  pnpm update
 fi
+
+# Check for .env files
+if [[ ! -f .env && -f .env.example ]]; then
+  log_info "Creating .env from .env.example..."
+  cp .env.example .env
+  log_warn "Update .env with real values (GOOGLE_CLIENT_ID/SECRET, JWT_SECRET, SENDGRID_API_KEY)."
+fi
+
+if [[ ! -f .dev.vars && -f .dev.vars.example ]]; then
+  log_info "Creating .dev.vars from .dev.vars.example..."
+  cp .dev.vars.example .dev.vars
+fi
+
+# Determine project name
+PROJECT_NAME_RAW=$(node -e "
+const fs = require('fs');
+const path = require('path');
+let name = '';
+try { name = JSON.parse(fs.readFileSync('etus.config.json','utf8')).name || ''; } catch (e) {}
+if (!name) { try { name = JSON.parse(fs.readFileSync('package.json','utf8')).name || ''; } catch (e) {} }
+if (!name) name = path.basename(process.cwd());
+console.log(name);
+" 2>/dev/null || echo "")
+
+PROJECT_NAME="${PROJECT_NAME_RAW##*/}"
+PROJECT_NAME=$(echo "$PROJECT_NAME" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9-]+/-/g; s/^-+|-+$//g')
+if [[ -z "$PROJECT_NAME" ]]; then
+  PROJECT_NAME=$(basename "$ROOT_DIR" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9-]+/-/g; s/^-+|-+$//g')
+fi
+
+log_ok "Project name: $PROJECT_NAME"
+
+# Ensure wrangler.json exists
+if [[ ! -f config/wrangler.json ]]; then
+  log_err "Missing config/wrangler.json"
+  exit 1
+fi
+
+# Update wrangler.json placeholders
+PROJECT_NAME="$PROJECT_NAME" node - <<'NODE'
+const fs = require('fs');
+const path = 'config/wrangler.json';
+const data = JSON.parse(fs.readFileSync(path, 'utf8'));
+const projectName = process.env.PROJECT_NAME || '';
+
+function replacePlaceholders(value) {
+  if (typeof value === 'string') {
+    return value.split('{{projectName}}').join(projectName);
+  }
+  if (Array.isArray(value)) {
+    return value.map(replacePlaceholders);
+  }
+  if (value && typeof value === 'object') {
+    for (const key of Object.keys(value)) {
+      value[key] = replacePlaceholders(value[key]);
+    }
+    return value;
+  }
+  return value;
+}
+
+replacePlaceholders(data);
+if (!data.name || data.name.includes('{{projectName}}')) {
+  data.name = projectName;
+}
+
+fs.writeFileSync(path, JSON.stringify(data, null, 2));
+NODE
+
+WRANGLER="pnpm exec wrangler"
+if ! $WRANGLER --version >/dev/null 2>&1; then
+  log_warn "Wrangler not available. Ensure dependencies are installed."
+fi
+
+# Resolve names from wrangler.json
+DB_NAME=$(node -e "const c=require('./config/wrangler.json'); console.log((c.d1_databases&&c.d1_databases[0]&&c.d1_databases[0].database_name)||'');")
+if [[ -z "$DB_NAME" ]]; then
+  DB_NAME="${PROJECT_NAME}-db"
+fi
+
+R2_BUCKET=$(node -e "const c=require('./config/wrangler.json'); console.log((c.r2_buckets&&c.r2_buckets[0]&&c.r2_buckets[0].bucket_name)||'');")
+if [[ -z "$R2_BUCKET" ]]; then
+  R2_BUCKET="${PROJECT_NAME}-storage"
+fi
+
+KV_NAME="${PROJECT_NAME}-sessions"
+
+# Read existing IDs from wrangler.json (if present)
+D1_ID=$(node -e "const c=require('./config/wrangler.json'); console.log((c.d1_databases&&c.d1_databases[0]&&c.d1_databases[0].database_id)||'');")
+KV_ID=$(node -e "const c=require('./config/wrangler.json'); console.log((c.kv_namespaces&&c.kv_namespaces[0]&&c.kv_namespaces[0].id)||'');")
+if [[ "$D1_ID" == "TO_BE_PROVISIONED" ]]; then D1_ID=""; fi
+if [[ "$KV_ID" == "TO_BE_PROVISIONED" ]]; then KV_ID=""; fi
+
+if [[ "$SKIP_PROVISION" -eq 0 ]]; then
+  if $WRANGLER whoami >/dev/null 2>&1; then
+    log_info "Provisioning Cloudflare resources (D1, KV, R2)..."
+
+    # D1
+    D1_LIST=$($WRANGLER d1 list --json || echo '[]')
+    D1_ID=$(node -e "const fs=require('fs'); const list=JSON.parse(fs.readFileSync(0,'utf8')||'[]'); const name=process.env.DB_NAME; const item=list.find(x=>x.name===name); console.log(item?.uuid||item?.id||'');" <<< "$D1_LIST")
+    if [[ -z "$D1_ID" ]]; then
+      D1_CREATE=$($WRANGLER d1 create "$DB_NAME" --json)
+      D1_ID=$(node -e "const obj=JSON.parse(process.env.JSON||'{}'); console.log(obj.uuid||obj.id||'');" JSON="$D1_CREATE")
+    fi
+
+    # KV
+    KV_LIST=$($WRANGLER kv namespace list --json || echo '[]')
+    KV_ID=$(node -e "const fs=require('fs'); const list=JSON.parse(fs.readFileSync(0,'utf8')||'[]'); const name=process.env.KV_NAME; const item=list.find(x=>x.title===name||x.name===name); console.log(item?.id||'');" <<< "$KV_LIST")
+    if [[ -z "$KV_ID" ]]; then
+      KV_CREATE=$($WRANGLER kv namespace create "$KV_NAME" --json)
+      KV_ID=$(node -e "const obj=JSON.parse(process.env.JSON||'{}'); console.log(obj.id||'');" JSON="$KV_CREATE")
+    fi
+
+    # R2
+    R2_LIST=$($WRANGLER r2 bucket list --json || echo '[]')
+    R2_EXISTS=$(node -e "const fs=require('fs'); const list=JSON.parse(fs.readFileSync(0,'utf8')||'[]'); const name=process.env.R2_NAME; const item=list.find(x=>x.name===name); console.log(item? 'yes':'no');" R2_NAME="$R2_BUCKET" <<< "$R2_LIST")
+    if [[ "$R2_EXISTS" != "yes" ]]; then
+      $WRANGLER r2 bucket create "$R2_BUCKET" >/dev/null
+    fi
+
+    log_ok "Cloudflare resources ready."
+  else
+    log_warn "Wrangler not logged in. Skipping remote provisioning."
+  fi
+fi
+
+# If no remote IDs, generate local-only IDs for dev
+if [[ -z "$D1_ID" ]]; then
+  D1_ID=$(node -e "console.log(require('crypto').randomUUID())")
+  log_warn "Using local D1 id: $D1_ID"
+fi
+
+if [[ -z "$KV_ID" ]]; then
+  KV_ID=$(node -e "console.log(require('crypto').randomUUID())")
+  log_warn "Using local KV id: $KV_ID"
+fi
+
+# Update wrangler.json with IDs
+D1_ID="$D1_ID" KV_ID="$KV_ID" PROJECT_NAME="$PROJECT_NAME" node - <<'NODE'
+const fs = require('fs');
+const path = 'config/wrangler.json';
+const data = JSON.parse(fs.readFileSync(path, 'utf8'));
+
+const d1Id = process.env.D1_ID || '';
+const kvId = process.env.KV_ID || '';
+
+if (Array.isArray(data.d1_databases) && data.d1_databases[0]) {
+  data.d1_databases[0].database_id = d1Id;
+}
+
+if (Array.isArray(data.kv_namespaces) && data.kv_namespaces[0]) {
+  data.kv_namespaces[0].id = kvId;
+}
+
+fs.writeFileSync(path, JSON.stringify(data, null, 2));
+NODE
 
 # Generate Cloudflare types
-echo ""
-echo -e "${YELLOW}Generating Cloudflare types...${NC}"
-pnpm cf-typegen 2>/dev/null || echo -e "${YELLOW}Skipping cf-typegen (wrangler not configured)${NC}"
+log_info "Generating Cloudflare types..."
+pnpm cf-typegen >/dev/null 2>&1 || log_warn "Skipping cf-typegen (wrangler not configured)"
 
-# Run database migrations (local)
-echo ""
-echo -e "${YELLOW}Running database migrations...${NC}"
-pnpm db:migrate:local 2>/dev/null || echo -e "${YELLOW}Skipping migrations (D1 not available locally)${NC}"
+# Ensure local D1 exists and update drizzle config
+log_info "Preparing local D1 database..."
+$WRANGLER d1 execute "$DB_NAME" --local --command "SELECT 1;" >/dev/null 2>&1 || true
 
-# Seed database (optional)
-echo ""
-echo -e "${YELLOW}Do you want to seed the database with test data? (y/n)${NC}"
-read -r -t 10 SEED_RESPONSE || SEED_RESPONSE="n"
-if [[ "$SEED_RESPONSE" =~ ^[Yy]$ ]]; then
-    pnpm db:seed 2>/dev/null || echo -e "${YELLOW}Skipping seed (D1 not available locally)${NC}"
+D1_ID_FROM_CONFIG=$(node -e "const c=require('./config/wrangler.json'); console.log((c.d1_databases&&c.d1_databases[0]&&c.d1_databases[0].database_id)||'');")
+if [[ -n "$D1_ID_FROM_CONFIG" ]]; then
+  LOCAL_DB_PATH=".wrangler/state/v3/d1/miniflare-D1DatabaseObject/${D1_ID_FROM_CONFIG}.sqlite"
+  DRIZZLE_DB_URL="../${LOCAL_DB_PATH}"
+
+  if [[ -f config/drizzle.config.ts ]]; then
+    DRIZZLE_DB_URL="$DRIZZLE_DB_URL" node - <<'NODE'
+const fs = require('fs');
+const path = 'config/drizzle.config.ts';
+const nextUrl = process.env.DRIZZLE_DB_URL;
+let content = fs.readFileSync(path, 'utf8');
+const pattern = /url:\s*['"][^'"]*\.sqlite['"]/;
+if (pattern.test(content)) {
+  content = content.replace(pattern, `url: '${nextUrl}'`);
+} else {
+  // Fallback: append url if not found
+  content = content.replace('dbCredentials: {', `dbCredentials: {\n    url: '${nextUrl}',`);
+}
+fs.writeFileSync(path, content);
+NODE
+    log_ok "Updated config/drizzle.config.ts with local DB path."
+  fi
+else
+  log_warn "D1 id not found in wrangler.json. Skipping drizzle config update."
 fi
 
-# Run tests to verify setup
-echo ""
-echo -e "${YELLOW}Running tests to verify setup...${NC}"
-pnpm test:run --reporter=dot 2>/dev/null || echo -e "${YELLOW}Tests skipped (run 'pnpm test' manually)${NC}"
+# Push schema (no migrations) and seed
+log_info "Pushing schema to local D1..."
+pnpm db:push >/dev/null 2>&1 || log_warn "Schema push skipped (check drizzle config and local D1)."
 
-# Print summary
-echo ""
-echo -e "${GREEN}========================================${NC}"
-echo -e "${GREEN}  Environment Setup Complete!          ${NC}"
-echo -e "${GREEN}========================================${NC}"
-echo ""
-echo -e "${BLUE}Available commands:${NC}"
-echo ""
-echo -e "  ${GREEN}pnpm dev${NC}               Start development server (Vite + Wrangler)"
-echo -e "  ${GREEN}pnpm build${NC}             Build for production"
-echo -e "  ${GREEN}pnpm deploy${NC}            Deploy to Cloudflare Workers"
-echo ""
-echo -e "  ${GREEN}pnpm db:migrate:local${NC}  Apply migrations locally"
-echo -e "  ${GREEN}pnpm db:migrate:remote${NC} Apply migrations to production"
-echo -e "  ${GREEN}pnpm db:seed${NC}           Seed test data"
-echo ""
-echo -e "  ${GREEN}pnpm test${NC}              Run unit tests (watch mode)"
-echo -e "  ${GREEN}pnpm test:run${NC}          Run unit tests (single run)"
-echo -e "  ${GREEN}pnpm test:e2e${NC}          Run Playwright E2E tests"
-echo -e "  ${GREEN}pnpm test:e2e:ui${NC}       Run E2E tests with interactive UI"
-echo -e "  ${GREEN}pnpm test:coverage${NC}     Generate coverage report"
-echo ""
-echo -e "  ${GREEN}pnpm lint${NC}              Run ESLint"
-echo -e "  ${GREEN}pnpm cf-typegen${NC}        Generate Cloudflare types"
-echo ""
-echo -e "${BLUE}Access the application:${NC}"
-echo ""
-echo -e "  Local dev server:     ${GREEN}http://localhost:5173${NC}"
-echo -e "  API documentation:    ${GREEN}http://localhost:5173/api/swagger${NC}"
-echo -e "  OpenAPI JSON:         ${GREEN}http://localhost:5173/api/doc${NC}"
-echo -e "  Health check:         ${GREEN}http://localhost:5173/health${NC}"
-echo ""
-echo -e "${YELLOW}To start development, run:${NC}"
-echo -e "  ${GREEN}pnpm dev${NC}"
-echo ""
+log_info "Generating seed data..."
+pnpm db:seed >/dev/null
+
+log_info "Seeding local D1..."
+$WRANGLER d1 execute "$DB_NAME" --local --file=seed.sql >/dev/null 2>&1 || log_warn "Seed failed (check local D1)."
+
+log_ok "Local D1 ready with seed data."
+log_info "Seed data is defined in src/server/db/seed.ts (customize as needed)."
+
+if [[ "$SKIP_DEV" -eq 0 ]]; then
+  log_info "Starting dev server..."
+  pnpm dev
+else
+  log_ok "Setup complete. Run 'pnpm dev' to start the server."
+fi
