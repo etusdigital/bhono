@@ -1,6 +1,6 @@
 {
   "name": "create-bhono-app",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "bin": {
     "create-bhono-app": "./index.js"
@@ -9,6 +9,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@etus/bhono-app": "workspace:^"
+    "@etus/bhono-app": "^0.1.1"
   }
 }
