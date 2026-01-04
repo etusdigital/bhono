@@ -1,0 +1,40 @@
+#!/usr/bin/env sh
+
+echo "🔍 Running pre-push checks..."
+
+# Type checking
+echo "📝 Type checking..."
+pnpm typecheck || {
+  echo "❌ Type check failed. Push aborted."
+  exit 1
+}
+
+# Unit tests (backend + frontend)
+echo "🧪 Running unit tests..."
+pnpm test:run || {
+  echo "❌ Unit tests failed. Push aborted."
+  exit 1
+}
+
+# Integration tests
+echo "🔗 Running integration tests..."
+pnpm test:integration || {
+  echo "❌ Integration tests failed. Push aborted."
+  exit 1
+}
+
+# E2E tests
+echo "🎭 Running E2E tests..."
+pnpm test:e2e || {
+  echo "❌ E2E tests failed. Push aborted."
+  exit 1
+}
+
+# Build verification
+echo "🏗️ Verifying build..."
+pnpm build || {
+  echo "❌ Build failed. Push aborted."
+  exit 1
+}
+
+echo "✅ All pre-push checks passed!"
