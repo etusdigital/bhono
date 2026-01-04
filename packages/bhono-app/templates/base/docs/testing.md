@@ -19,22 +19,22 @@ npm run test:run
 ## Test Structure
 
 ```
-src/
-├── server/
-│   ├── __tests__/mocks/     # D1, KV, R2 mocks for Cloudflare services
-│   ├── services/__tests__/  # Service layer tests
-│   ├── routes/*/__tests__/  # Route handler tests
-│   └── middleware/*.test.ts # Middleware tests
-├── client/
-│   ├── __tests__/           # Component and route tests
-│   ├── components/__tests__/ # UI component tests
-│   └── hooks/__tests__/     # Custom hook tests
-e2e/
-├── fixtures.ts              # Playwright fixtures
-├── auth.setup.ts            # Auth state setup
-├── smoke.unauth.spec.ts     # Smoke tests (no auth)
-├── auth/                    # Authentication flow tests
-└── crud/                    # CRUD operation tests
+tests/
+├── unit/
+│   ├── server/              # Backend unit tests (services/routes/middleware/lib)
+│   ├── client/              # Frontend unit tests (components/routes/hooks)
+│   └── shared/              # Shared schema/unit tests
+├── integration/             # Integration tests (D1/KV/R2 + workflows)
+├── e2e/                     # Playwright E2E tests
+│   ├── journeys/            # User journey tests
+│   ├── crud/                # CRUD operation tests
+│   ├── api/                 # API tests
+│   ├── a11y/                # Accessibility tests
+│   ├── visual/              # Visual regression
+│   └── mobile/              # Responsive tests
+├── fixtures/                # Test fixtures
+├── mocks/                   # Test mocks (D1/KV/R2)
+└── helpers/                 # Test utilities
 ```
 
 ## Backend Tests (Vitest)
@@ -45,7 +45,7 @@ e2e/
 npm test                        # Watch mode
 npm run test:run                # Single run
 npm run test:coverage           # With coverage report
-vitest run src/server/services  # Specific folder
+vitest run tests/unit/server/services  # Specific folder
 ```
 
 ### Mock Services
@@ -53,17 +53,17 @@ vitest run src/server/services  # Specific folder
 Import mocks for Cloudflare services:
 
 ```typescript
-import { createMockD1Database, createMockSession } from '../__tests__/mocks/db'
-import { MockKVStore } from '../__tests__/mocks/kv'
-import { MockR2Bucket } from '../__tests__/mocks/r2'
+import { createMockD1, setMockQueryResult } from '@tests/mocks/db'
+import { createMockKV, type MockKVNamespace } from '@tests/mocks/kv'
+import { createMockR2, type MockR2Bucket } from '@tests/mocks/r2'
 
 describe('MyService', () => {
-  let db: MockD1Database
+  let db: ReturnType<typeof createMockD1>
 
   beforeEach(() => {
-    db = createMockD1Database([
-      // Seed data for your test
-      { id: '1', name: 'Test User', ... }
+    db = createMockD1()
+    setMockQueryResult(db, [1], [
+      { id: '1', name: 'Test User' }
     ])
   })
 })
@@ -75,9 +75,17 @@ Use Hono's testClient for type-safe route testing:
 
 ```typescript
 import { testClient } from 'hono/testing'
-import { createTestApp } from '../test-helpers'
+import { Hono } from 'hono'
+import { users } from '@server/routes/index'
+import { createMockEnv } from '@tests/helpers/server'
 
-const { app, db, kv } = createTestApp()
+const app = new Hono()
+app.use('*', async (c, next) => {
+  ;(c as any).env = createMockEnv()
+  await next()
+})
+app.route('/users', users)
+
 const client = testClient(app)
 
 it('should create user', async () => {
@@ -114,11 +122,10 @@ it('should handle click', async () => {
 ### Route Testing
 
 ```typescript
-import { renderRoute, waitForRouteLoad } from '../__tests__/setup'
+import { renderRouteAsync } from '@tests/helpers/client-test-utils'
 
 it('should render dashboard', async () => {
-  renderRoute('/dashboard', { authenticated: true })
-  await waitForRouteLoad()
+  await renderRouteAsync({ initialEntries: ['/dashboard'] })
 
   expect(screen.getByText('Dashboard')).toBeInTheDocument()
 })

@@ -7,6 +7,7 @@ import type { listAuditLogsRoute } from './routes'
 export const listAuditLogsHandler: RouteHandler<typeof listAuditLogsRoute, HonoEnv> = async (c) => {
   const query = c.req.valid('query')
   const db = c.get('db')
+  const envDb = c.env.DB
   const accountId = c.get('accountId')
   const user = c.get('user')
   const transactionId = c.get('transactionId')
@@ -25,7 +26,8 @@ export const listAuditLogsHandler: RouteHandler<typeof listAuditLogsRoute, HonoE
     userAgent,
   }
 
-  const result = await auditsService.findAll(db, ctx, {
+  const auditsDb = envDb ?? db
+  const result = await auditsService.findAll(auditsDb, ctx, {
     page: query.page,
     limit: query.limit,
     entity: query.entity,

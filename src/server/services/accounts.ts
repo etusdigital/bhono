@@ -173,6 +173,10 @@ async function updateSql(
   id: string,
   input: UpdateAccountInput
 ): Promise<Account> {
+  if (!ctx.user.isSuperAdmin) {
+    throw new ForbiddenError('Only super-admin can update accounts')
+  }
+
   await findByIdSql(db, ctx, id)
 
   if (input.domain) {

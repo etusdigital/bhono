@@ -13,6 +13,7 @@ import type {
 export const listAccountsHandler: RouteHandler<typeof listAccountsRoute, HonoEnv> = async (c) => {
   const query = c.req.valid('query')
   const db = c.get('db')
+  const envDb = c.env.DB
   const accountId = c.get('accountId')
   const user = c.get('user')
   const transactionId = c.get('transactionId')
@@ -31,7 +32,8 @@ export const listAccountsHandler: RouteHandler<typeof listAccountsRoute, HonoEnv
     userAgent,
   }
 
-  const result = await accountsService.findAll(db, ctx, {
+  const accountsDb = envDb ?? db
+  const result = await accountsService.findAll(accountsDb, ctx, {
     page: query.page,
     limit: query.limit,
     sortBy: query.sortBy,
@@ -45,6 +47,7 @@ export const listAccountsHandler: RouteHandler<typeof listAccountsRoute, HonoEnv
 export const getAccountHandler: RouteHandler<typeof getAccountRoute, HonoEnv> = async (c) => {
   const { id } = c.req.valid('param')
   const db = c.get('db')
+  const envDb = c.env.DB
   const accountId = c.get('accountId')
   const user = c.get('user')
   const transactionId = c.get('transactionId')
@@ -63,13 +66,15 @@ export const getAccountHandler: RouteHandler<typeof getAccountRoute, HonoEnv> = 
     userAgent,
   }
 
-  const account = await accountsService.findById(db, ctx, id)
+  const accountsDb = envDb ?? db
+  const account = await accountsService.findById(accountsDb, ctx, id)
   return c.json({ data: account }, 200)
 }
 
 export const createAccountHandler: RouteHandler<typeof createAccountRoute, HonoEnv> = async (c) => {
   const data = c.req.valid('json')
   const db = c.get('db')
+  const envDb = c.env.DB
   const accountId = c.get('accountId')
   const user = c.get('user')
   const transactionId = c.get('transactionId')
@@ -88,7 +93,8 @@ export const createAccountHandler: RouteHandler<typeof createAccountRoute, HonoE
     userAgent,
   }
 
-  const newAccount = await accountsService.create(db, ctx, {
+  const accountsDb = envDb ?? db
+  const newAccount = await accountsService.create(accountsDb, ctx, {
     name: data.name,
     description: data.description,
     domain: data.domain,
@@ -101,6 +107,7 @@ export const updateAccountHandler: RouteHandler<typeof updateAccountRoute, HonoE
   const { id } = c.req.valid('param')
   const data = c.req.valid('json')
   const db = c.get('db')
+  const envDb = c.env.DB
   const accountId = c.get('accountId')
   const user = c.get('user')
   const transactionId = c.get('transactionId')
@@ -119,7 +126,8 @@ export const updateAccountHandler: RouteHandler<typeof updateAccountRoute, HonoE
     userAgent,
   }
 
-  const updatedAccount = await accountsService.update(db, ctx, id, {
+  const accountsDb = envDb ?? db
+  const updatedAccount = await accountsService.update(accountsDb, ctx, id, {
     name: data.name,
     description: data.description,
     domain: data.domain,
@@ -131,6 +139,7 @@ export const updateAccountHandler: RouteHandler<typeof updateAccountRoute, HonoE
 export const deleteAccountHandler: RouteHandler<typeof deleteAccountRoute, HonoEnv> = async (c) => {
   const { id } = c.req.valid('param')
   const db = c.get('db')
+  const envDb = c.env.DB
   const accountId = c.get('accountId')
   const user = c.get('user')
   const transactionId = c.get('transactionId')
@@ -149,13 +158,15 @@ export const deleteAccountHandler: RouteHandler<typeof deleteAccountRoute, HonoE
     userAgent,
   }
 
-  await accountsService.delete(db, ctx, id)
+  const accountsDb = envDb ?? db
+  await accountsService.delete(accountsDb, ctx, id)
   return c.body(null, 204)
 }
 
 export const restoreAccountHandler: RouteHandler<typeof restoreAccountRoute, HonoEnv> = async (c) => {
   const { id } = c.req.valid('param')
   const db = c.get('db')
+  const envDb = c.env.DB
   const accountId = c.get('accountId')
   const user = c.get('user')
   const transactionId = c.get('transactionId')
@@ -174,6 +185,7 @@ export const restoreAccountHandler: RouteHandler<typeof restoreAccountRoute, Hon
     userAgent,
   }
 
-  const result = await accountsService.restore(db, ctx, id)
+  const accountsDb = envDb ?? db
+  const result = await accountsService.restore(accountsDb, ctx, id)
   return c.json({ data: result }, 200)
 }

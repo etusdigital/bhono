@@ -34,7 +34,7 @@ export const createInvitationHandler: RouteHandler<typeof createInvitationRoute,
   const env = c.env
   const ctx = getServiceContext(c)
 
-  const invitationsDb = env.DB ?? db
+  const invitationsDb = env?.DB ?? db
   if (!invitationsDb) {
     throw new HTTPException(500, { message: 'Database not initialized' })
   }
@@ -48,7 +48,7 @@ export const listInvitationsHandler: RouteHandler<typeof listInvitationsRoute, H
   const db = c.get('db')
   const ctx = getServiceContext(c)
 
-  const invitationsDb = c.env.DB ?? db
+  const invitationsDb = c.env?.DB ?? db
   if (!invitationsDb) {
     throw new HTTPException(500, { message: 'Database not initialized' })
   }
@@ -63,7 +63,7 @@ export const revokeInvitationHandler: RouteHandler<typeof revokeInvitationRoute,
   const db = c.get('db')
   const ctx = getServiceContext(c)
 
-  const invitationsDb = c.env.DB ?? db
+  const invitationsDb = c.env?.DB ?? db
   if (!invitationsDb) {
     throw new HTTPException(500, { message: 'Database not initialized' })
   }

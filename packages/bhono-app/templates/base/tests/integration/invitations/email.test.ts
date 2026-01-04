@@ -28,15 +28,7 @@ import { sendInvitationEmail } from '../../../src/server/lib/email'
 // ============================================================================
 
 function createTestDb() {
-  const db = getDb()
-  return new Proxy(db, {
-    get(target, prop) {
-      if (prop === 'execute') {
-        return target.run.bind(target)
-      }
-      return (target as any)[prop]
-    },
-  })
+  return getDb()
 }
 
 describe('Invitation Email Integration Tests', () => {

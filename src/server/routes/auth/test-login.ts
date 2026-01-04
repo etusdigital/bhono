@@ -1,9 +1,9 @@
 // src/server/routes/auth/test-login.ts
 import type { RouteHandler } from '@hono/zod-openapi'
 import { createRoute, z } from '@hono/zod-openapi'
-import { eq } from 'drizzle-orm'
 import { HTTPException } from 'hono/http-exception'
-import { users, accounts, userAccounts, type UserRecord } from '../../db/schema'
+import { execute, queryOne, type SqlRow } from '../../db/sql'
+import type { UserRecord } from '../../db/records'
 import { createSession } from '../../lib/session'
 import type { HonoEnv } from '../../types'
 
@@ -11,6 +11,42 @@ const TestLoginSchema = z.object({
   email: z.email(),
   name: z.string().optional(),
 })
+
+const USER_SELECT_COLUMNS = `
+  id,
+  google_id as googleId,
+  email,
+  name,
+  avatar_url as avatarUrl,
+  status,
+  is_super_admin as isSuperAdmin,
+  created_at as createdAt,
+  updated_at as updatedAt,
+  deleted_at as deletedAt
+`
+
+function toBoolean(value: unknown): boolean {
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'number') return value !== 0
+  if (typeof value === 'string') return value === '1' || value.toLowerCase() === 'true'
+  return false
+}
+
+function mapUserRow(row: SqlRow): UserRecord {
+  return {
+    id: String(row.id ?? ''),
+    googleId: String(row.googleId ?? row.google_id ?? ''),
+    email: String(row.email ?? ''),
+    name: String(row.name ?? ''),
+    avatarUrl: row.avatarUrl ? String(row.avatarUrl) : null,
+    status: row.status === 'inactive' ? 'inactive' : 'active',
+    providerIds: [],
+    isSuperAdmin: toBoolean(row.isSuperAdmin ?? row.is_super_admin),
+    createdAt: String(row.createdAt ?? row.created_at ?? ''),
+    updatedAt: String(row.updatedAt ?? row.updated_at ?? ''),
+    deletedAt: row.deletedAt ? String(row.deletedAt) : null,
+  }
+}
 
 export const testLoginRoute = createRoute({
   method: 'post',
@@ -61,20 +97,23 @@ export const testLoginHandler: RouteHandler<typeof testLoginRoute, HonoEnv> = as
   }
 
   const { email, name } = c.req.valid('json')
-  const db = c.get('db')
+  const db = c.env?.DB ?? c.get('db')
 
   if (!db) {
     throw new Error('Database not initialized')
   }
 
   // Find or create user
-  const existingUsers = await db
-    .select()
-    .from(users)
-    .where(eq(users.email, email))
-    .limit(1)
+  const existingUser = await queryOne(
+    db,
+    `SELECT ${USER_SELECT_COLUMNS}
+     FROM users
+     WHERE email = ? AND deleted_at IS NULL
+     LIMIT 1`,
+    [email]
+  )
 
-  let user: UserRecord | undefined = existingUsers.at(0)
+  let user: UserRecord | undefined = existingUser ? mapUserRow(existingUser) : undefined
   let defaultAccountId: string | null = null
 
   if (user === undefined) {
@@ -82,49 +121,64 @@ export const testLoginHandler: RouteHandler<typeof testLoginRoute, HonoEnv> = as
     const userId = crypto.randomUUID()
     const now = new Date().toISOString()
 
-    await db.insert(users).values({
-      id: userId,
-      email,
-      name: name ?? 'E2E Test User',
-      googleId: `test-${userId}`,
-      status: 'active',
-      createdAt: now,
-      updatedAt: now,
-    })
+    await execute(
+      db,
+      `INSERT INTO users (
+        id,
+        email,
+        name,
+        google_id,
+        status,
+        is_super_admin,
+        created_at,
+        updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        userId,
+        email,
+        name ?? 'E2E Test User',
+        `test-${userId}`,
+        'active',
+        0,
+        now,
+        now,
+      ]
+    )
 
-    const createdUsers = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1)
+    const createdUser = await queryOne(
+      db,
+      `SELECT ${USER_SELECT_COLUMNS}
+       FROM users
+       WHERE id = ?
+       LIMIT 1`,
+      [userId]
+    )
 
-    user = createdUsers.at(0)
+    user = createdUser ? mapUserRow(createdUser) : undefined
 
     // Create a default account for the user
     defaultAccountId = crypto.randomUUID()
-    await db.insert(accounts).values({
-      id: defaultAccountId,
-      name: `${name ?? 'Test'}'s Workspace`,
-      createdAt: now,
-      updatedAt: now,
-    })
+    await execute(
+      db,
+      `INSERT INTO accounts (id, name, created_at, updated_at) VALUES (?, ?, ?, ?)`,
+      [defaultAccountId, `${name ?? 'Test'}'s Workspace`, now, now]
+    )
 
     // Link user to account as ADMIN
-    await db.insert(userAccounts).values({
-      userId,
-      accountId: defaultAccountId,
-      role: 'ADMIN',
-    })
+    await execute(
+      db,
+      `INSERT INTO user_accounts (user_id, account_id, role) VALUES (?, ?, ?)`,
+      [userId, defaultAccountId, 'ADMIN']
+    )
   } else {
     // Get the user's first account
-    const userAccountResults = await db
-      .select()
-      .from(userAccounts)
-      .where(eq(userAccounts.userId, user.id))
-      .limit(1)
+    const userAccount = await queryOne<{ accountId: string }>(
+      db,
+      `SELECT account_id as accountId FROM user_accounts WHERE user_id = ? LIMIT 1`,
+      [user.id]
+    )
 
-    const userAccount = userAccountResults.at(0)
-    if (userAccount !== undefined) {
+    if (userAccount?.accountId) {
       defaultAccountId = userAccount.accountId
     }
   }

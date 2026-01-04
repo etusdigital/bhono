@@ -15,21 +15,12 @@ import { createUser } from '../fixtures'
 import { authService } from '../../../src/server/services/auth'
 import { generateRefreshToken, hashToken } from '../../../src/server/lib/tokens'
 import type { GoogleUserInfo, AuthEventContext } from '../../../src/server/types/auth'
-import * as schema from '../../../src/server/db/schema'
 
 /**
  * Creates a database wrapper
  */
 function createTestDb() {
-  const db = getDb()
-  return new Proxy(db, {
-    get(target, prop) {
-      if (prop === 'execute') {
-        return target.run.bind(target)
-      }
-      return (target as any)[prop]
-    },
-  }) as any
+  return getDb()
 }
 
 describe('Auth Service Integration', () => {

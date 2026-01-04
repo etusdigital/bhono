@@ -10,13 +10,14 @@ export default defineConfig({
     alias: {
       "@": fileURLToPath(new URL("./src/client", import.meta.url)),
       "@shared": fileURLToPath(new URL("./src/shared", import.meta.url)),
+      "@tests": fileURLToPath(new URL("./tests", import.meta.url)),
     },
   },
   test: {
     globals: true,
     environment: "jsdom",
-    setupFiles: ["./src/client/__tests__/setup.ts"],
-    include: ["src/client/**/*.test.{ts,tsx}"],
+    setupFiles: ["./tests/helpers/client-setup.ts"],
+    include: ["tests/unit/client/**/*.test.{ts,tsx}"],
     exclude: ["node_modules", ".claude", "dist"],
     // Increase timeout for route tests that have async loading
     testTimeout: 15000,

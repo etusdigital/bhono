@@ -1,7 +1,7 @@
 # ERD - Hono Boilerplate (D1/SQLite)
 
 ## Visao geral
-Este documento descreve o modelo relacional atual utilizado no banco D1 (SQLite) do projeto. Ele foi derivado diretamente dos schemas em `src/server/db/schema`.
+Este documento descreve o modelo relacional atual utilizado no banco D1 (SQLite) do projeto. Ele foi derivado diretamente de `schema.sql`.
 
 ## Diagrama (Mermaid)
 ```mermaid

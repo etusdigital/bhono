@@ -20,19 +20,10 @@ import {
 } from '../setup'
 
 /**
- * Creates a database wrapper that adds the `execute` method
- * The better-sqlite3 drizzle doesn't have execute, but D1 does
+ * Creates a D1-compatible database instance for tests
  */
 function createTestDb() {
-  const db = getDb()
-  return new Proxy(db, {
-    get(target, prop) {
-      if (prop === 'execute') {
-        return (target as any).run.bind(target)
-      }
-      return (target as any)[prop]
-    },
-  })
+  return getDb()
 }
 
 describe('Auth Middleware', () => {
@@ -57,7 +48,7 @@ describe('Auth Middleware', () => {
       const env = getEnv()
       ;(c as any).env = env
 
-      // Set up the db for middleware (use the test drizzle instance with proxy)
+      // Set up the db for middleware
       const db = createTestDb()
       c.set('db', db)
 

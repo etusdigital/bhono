@@ -1,13 +1,11 @@
 // src/services/invitations.ts
-import { eq, and, isNull, gt } from 'drizzle-orm'
-import type { Database } from '../db/client'
-import { invitations, users, userAccounts, accounts } from '../db/schema'
 import { sendInvitationEmail } from '../lib/email'
 import { logAuthEvent, type AuthEventContext } from '../lib/audit'
 import { ConflictError, NotFoundError, ForbiddenError } from '../lib/errors'
 import type { Env } from '../env'
 import { hasMinimumRole, type Role } from '../auth/roles'
 import type { ServiceContext } from '../types'
+import { execute, queryAll, queryOne, type SqlRow } from '../db/sql'
 
 function generateToken(): string {
   const array = new Uint8Array(32)
@@ -44,133 +42,295 @@ interface InvitationResult {
   }
 }
 
-export const invitationsService = {
-  async create(db: Database, env: Env, ctx: ServiceContext, input: CreateInvitationInput): Promise<InvitationResult> {
-    const { email, role } = input
 
-    // Check inviter has a role in this account
-    if (!ctx.userRole) {
-      throw new ForbiddenError('User must have a role in this account to invite others')
-    }
+function mapInvitationRow(row: SqlRow): {
+  id: string
+  email: string
+  role: Role
+  invitedById: string
+  inviterName: string
+  expiresAt: string
+  createdAt: string
+} {
+  const invitedById = row.invitedById ?? row.invited_by_id
+  const inviterName = row.inviterName ?? row.inviter_name
+  const expiresAt = row.expiresAt ?? row.expires_at
+  const createdAt = row.createdAt ?? row.created_at
 
-    // Check inviter can assign this role (can't assign higher than own role)
-    if (!hasMinimumRole(ctx.userRole, role)) {
-      throw new ForbiddenError('Cannot assign a role higher than your own')
-    }
+  return {
+    id: String(row.id ?? ''),
+    email: String(row.email ?? ''),
+    role: String(row.role ?? '') as Role,
+    invitedById: String(invitedById ?? ''),
+    inviterName: String(inviterName ?? ''),
+    expiresAt: String(expiresAt ?? ''),
+    createdAt: String(createdAt ?? ''),
+  }
+}
 
-    // Check if user already in this account
-    const membershipResults = await db
-      .select()
-      .from(userAccounts)
-      .innerJoin(users, eq(users.id, userAccounts.userId))
-      .where(
-        and(
-          eq(userAccounts.accountId, ctx.accountId),
-          eq(users.email, email),
-          isNull(users.deletedAt)
-        )
-      )
-      .limit(1)
+async function createSql(
+  db: D1Database,
+  env: Env,
+  ctx: ServiceContext,
+  input: CreateInvitationInput
+): Promise<InvitationResult> {
+  const { email, role } = input
 
-    if (membershipResults.at(0)) {
-      throw new ConflictError('User is already a member of this account')
-    }
+  if (!ctx.userRole) {
+    throw new ForbiddenError('User must have a role in this account to invite others')
+  }
 
-    // Check if user exists in system
-    const existingUserResults = await db
-      .select()
-      .from(users)
-      .where(and(eq(users.email, email), isNull(users.deletedAt)))
-      .limit(1)
+  if (!hasMinimumRole(ctx.userRole, role)) {
+    throw new ForbiddenError('Cannot assign a role higher than your own')
+  }
 
-    const existingUser = existingUserResults.at(0)
-    if (existingUser) {
-      // Link immediately
-      await db.insert(userAccounts).values({
-        userId: existingUser.id,
-        accountId: ctx.accountId,
-        role,
-      })
+  const membership = await queryOne(
+    db,
+    `SELECT 1 as ok
+     FROM user_accounts ua
+     INNER JOIN users u ON u.id = ua.user_id
+     WHERE ua.account_id = ? AND u.email = ? AND u.deleted_at IS NULL
+     LIMIT 1`,
+    [ctx.accountId, email]
+  )
 
-      return {
-        linked: true,
-        invited: false,
-        user: {
-          id: existingUser.id,
-          email: existingUser.email,
-          name: existingUser.name,
-        },
-      }
-    }
+  if (membership) {
+    throw new ConflictError('User is already a member of this account')
+  }
 
-    // Check for existing pending invitation
-    const existingInvitationResults = await db
-      .select()
-      .from(invitations)
-      .where(
-        and(
-          eq(invitations.accountId, ctx.accountId),
-          eq(invitations.email, email),
-          isNull(invitations.acceptedAt),
-          gt(invitations.expiresAt, new Date().toISOString())
-        )
-      )
-      .limit(1)
+  const existingUser = await queryOne<{
+    id: string
+    email: string
+    name: string
+  }>(
+    db,
+    `SELECT id, email, name FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`,
+    [email]
+  )
 
-    if (existingInvitationResults.at(0)) {
-      throw new ConflictError('Pending invitation already exists for this email')
-    }
-
-    // Get account name for email
-    const accountResults = await db
-      .select()
-      .from(accounts)
-      .where(eq(accounts.id, ctx.accountId))
-      .limit(1)
-
-    const account = accountResults.at(0)
-    if (!account) {
-      throw new Error('Account not found')
-    }
-
-    // Create invitation
-    const token = generateToken()
-    const expiresAt = getExpiryDate()
-
-    const insertResults = await db
-      .insert(invitations)
-      .values({
-        accountId: ctx.accountId,
-        email,
-        role,
-        token,
-        invitedById: ctx.user.id,
-        expiresAt,
-      })
-      .returning()
-
-    const invitation = insertResults.at(0)
-    if (!invitation) {
-      throw new Error('Failed to create invitation')
-    }
-
-    // Send email
-    const inviteUrl = `${env.APP_URL}/auth/invite/${token}`
-    await sendInvitationEmail(env, email, ctx.user.name, account.name, inviteUrl)
+  if (existingUser) {
+    await execute(
+      db,
+      `INSERT INTO user_accounts (user_id, account_id, role) VALUES (?, ?, ?)`,
+      [existingUser.id, ctx.accountId, role]
+    )
 
     return {
-      linked: false,
-      invited: true,
-      invitation: {
-        id: invitation.id,
-        email: invitation.email,
-        role: invitation.role as Role,
-        expiresAt: invitation.expiresAt,
+      linked: true,
+      invited: false,
+      user: {
+        id: existingUser.id,
+        email: existingUser.email,
+        name: existingUser.name,
       },
     }
+  }
+
+  const existingInvitation = await queryOne(
+    db,
+    `SELECT id FROM invitations
+     WHERE account_id = ? AND email = ? AND accepted_at IS NULL AND expires_at > ?
+     LIMIT 1`,
+    [ctx.accountId, email, new Date().toISOString()]
+  )
+
+  if (existingInvitation) {
+    throw new ConflictError('Pending invitation already exists for this email')
+  }
+
+  const account = await queryOne<{ name: string }>(
+    db,
+    `SELECT name FROM accounts WHERE id = ? LIMIT 1`,
+    [ctx.accountId]
+  )
+
+  if (!account) {
+    throw new Error('Account not found')
+  }
+
+  const token = generateToken()
+  const expiresAt = getExpiryDate()
+  const invitationId = crypto.randomUUID()
+
+  await execute(
+    db,
+    `INSERT INTO invitations (
+      id,
+      account_id,
+      email,
+      role,
+      token,
+      invited_by_id,
+      expires_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [invitationId, ctx.accountId, email, role, token, ctx.user.id, expiresAt]
+  )
+
+  const inviteUrl = `${env.APP_URL}/auth/invite/${token}`
+  await sendInvitationEmail(env, email, ctx.user.name, account.name, inviteUrl)
+
+  return {
+    linked: false,
+    invited: true,
+    invitation: {
+      id: invitationId,
+      email,
+      role,
+      expiresAt,
+    },
+  }
+}
+
+async function listSql(
+  db: D1Database,
+  ctx: ServiceContext
+): Promise<{
+  id: string
+  email: string
+  role: Role
+  invitedBy: { id: string; name: string }
+  expiresAt: string
+  createdAt: string
+}[]> {
+  const rows = await queryAll(
+    db,
+    `SELECT
+       i.id,
+       i.email,
+       i.role,
+       i.expires_at as expiresAt,
+       i.created_at as createdAt,
+       i.invited_by_id as invitedById,
+       u.name as inviterName
+     FROM invitations i
+     INNER JOIN users u ON u.id = i.invited_by_id
+     WHERE i.account_id = ? AND i.accepted_at IS NULL AND i.expires_at > ?
+     ORDER BY i.created_at`,
+    [ctx.accountId, new Date().toISOString()]
+  )
+
+  return rows.map((row) => {
+    const mapped = mapInvitationRow(row)
+    return {
+      id: mapped.id,
+      email: mapped.email,
+      role: mapped.role,
+      invitedBy: { id: mapped.invitedById, name: mapped.inviterName },
+      expiresAt: mapped.expiresAt,
+      createdAt: mapped.createdAt,
+    }
+  })
+}
+
+async function revokeSql(db: D1Database, ctx: ServiceContext, id: string): Promise<void> {
+  const invitation = await queryOne(
+    db,
+    `SELECT id FROM invitations
+     WHERE id = ? AND account_id = ? AND accepted_at IS NULL
+     LIMIT 1`,
+    [id, ctx.accountId]
+  )
+
+  if (!invitation) {
+    throw new NotFoundError('Invitation')
+  }
+
+  await execute(db, `DELETE FROM invitations WHERE id = ?`, [id])
+}
+
+async function getByTokenSql(
+  db: D1Database,
+  token: string
+): Promise<{
+  id: string
+  accountId: string
+  email: string
+  role: Role
+  accountName: string
+} | null> {
+  const row = await queryOne(
+    db,
+    `SELECT
+       i.id,
+       i.account_id as accountId,
+       i.email,
+       i.role,
+       i.expires_at as expiresAt,
+       i.accepted_at as acceptedAt,
+       a.name as accountName
+     FROM invitations i
+     INNER JOIN accounts a ON a.id = i.account_id
+     WHERE i.token = ?
+     LIMIT 1`,
+    [token]
+  )
+
+  if (!row) return null
+
+  const acceptedAt = row.acceptedAt ?? row.accepted_at
+  if (acceptedAt) return null
+
+  const expiresAtValue = row.expiresAt ?? row.expires_at
+  if (expiresAtValue && new Date(String(expiresAtValue)) < new Date()) return null
+
+  return {
+    id: String(row.id ?? ''),
+    accountId: String(row.accountId ?? row.account_id ?? ''),
+    email: String(row.email ?? ''),
+    role: String(row.role ?? '') as Role,
+    accountName: String(row.accountName ?? row.account_name ?? ''),
+  }
+}
+
+async function acceptSql(
+  db: D1Database,
+  invitationId: string,
+  userId: string,
+  ctx: AuthEventContext
+): Promise<void> {
+  const invitation = await queryOne(
+    db,
+    `SELECT id, account_id as accountId, role FROM invitations WHERE id = ? LIMIT 1`,
+    [invitationId]
+  )
+
+  if (!invitation) {
+    throw new NotFoundError('Invitation')
+  }
+
+  const accountId = String(invitation.accountId ?? invitation.account_id ?? '')
+  const role = String(invitation.role ?? '') as Role
+
+  await execute(
+    db,
+    `INSERT INTO user_accounts (user_id, account_id, role) VALUES (?, ?, ?)`,
+    [userId, accountId, role]
+  )
+
+  await execute(
+    db,
+    `UPDATE invitations SET accepted_at = ? WHERE id = ?`,
+    [new Date().toISOString(), invitationId]
+  )
+
+  await logAuthEvent(db, ctx, 'LOGIN', userId, {
+    invitationAccepted: true,
+    accountId,
+    role,
+  })
+}
+
+export const invitationsService = {
+  async create(
+    db: D1Database,
+    env: Env,
+    ctx: ServiceContext,
+    input: CreateInvitationInput
+  ): Promise<InvitationResult> {
+    return createSql(db, env, ctx, input)
   },
 
-  async list(db: Database, ctx: ServiceContext): Promise<{
+  async list(db: D1Database, ctx: ServiceContext): Promise<{
     id: string
     email: string
     role: Role
@@ -178,129 +338,29 @@ export const invitationsService = {
     expiresAt: string
     createdAt: string
   }[]> {
-    const results = await db
-      .select({
-        id: invitations.id,
-        email: invitations.email,
-        role: invitations.role,
-        expiresAt: invitations.expiresAt,
-        createdAt: invitations.createdAt,
-        invitedById: invitations.invitedById,
-        inviterName: users.name,
-      })
-      .from(invitations)
-      .innerJoin(users, eq(users.id, invitations.invitedById))
-      .where(
-        and(
-          eq(invitations.accountId, ctx.accountId),
-          isNull(invitations.acceptedAt),
-          gt(invitations.expiresAt, new Date().toISOString())
-        )
-      )
-      .orderBy(invitations.createdAt)
-
-    return results.map((r) => ({
-      id: r.id,
-      email: r.email,
-      role: r.role as Role,
-      invitedBy: { id: r.invitedById, name: r.inviterName },
-      expiresAt: r.expiresAt,
-      createdAt: r.createdAt,
-    }))
+    return listSql(db, ctx)
   },
 
-  async revoke(db: Database, ctx: ServiceContext, id: string): Promise<void> {
-    const invitationResults = await db
-      .select()
-      .from(invitations)
-      .where(
-        and(
-          eq(invitations.id, id),
-          eq(invitations.accountId, ctx.accountId),
-          isNull(invitations.acceptedAt)
-        )
-      )
-      .limit(1)
-
-    const invitation = invitationResults.at(0)
-    if (!invitation) {
-      throw new NotFoundError('Invitation')
-    }
-
-    await db.delete(invitations).where(eq(invitations.id, id))
+  async revoke(db: D1Database, ctx: ServiceContext, id: string): Promise<void> {
+    await revokeSql(db, ctx, id)
   },
 
-  async getByToken(db: Database, token: string): Promise<{
+  async getByToken(db: D1Database, token: string): Promise<{
     id: string
     accountId: string
     email: string
     role: Role
     accountName: string
   } | null> {
-    const tokenResults = await db
-      .select({
-        id: invitations.id,
-        accountId: invitations.accountId,
-        email: invitations.email,
-        role: invitations.role,
-        expiresAt: invitations.expiresAt,
-        acceptedAt: invitations.acceptedAt,
-        accountName: accounts.name,
-      })
-      .from(invitations)
-      .innerJoin(accounts, eq(accounts.id, invitations.accountId))
-      .where(eq(invitations.token, token))
-      .limit(1)
-
-    const result = tokenResults.at(0)
-    if (!result) return null
-    if (result.acceptedAt) return null
-    if (new Date(result.expiresAt) < new Date()) return null
-
-    return {
-      id: result.id,
-      accountId: result.accountId,
-      email: result.email,
-      role: result.role as Role,
-      accountName: result.accountName,
-    }
+    return getByTokenSql(db, token)
   },
 
   async accept(
-    db: Database,
+    db: D1Database,
     invitationId: string,
     userId: string,
     ctx: AuthEventContext
   ): Promise<void> {
-    const invitationResults = await db
-      .select()
-      .from(invitations)
-      .where(eq(invitations.id, invitationId))
-      .limit(1)
-
-    const invitation = invitationResults.at(0)
-    if (!invitation) {
-      throw new NotFoundError('Invitation')
-    }
-
-    // Create user-account relationship
-    await db.insert(userAccounts).values({
-      userId,
-      accountId: invitation.accountId,
-      role: invitation.role,
-    })
-
-    // Mark invitation as accepted
-    await db
-      .update(invitations)
-      .set({ acceptedAt: new Date().toISOString() })
-      .where(eq(invitations.id, invitationId))
-
-    // Log event
-    await logAuthEvent(db, ctx, 'LOGIN', userId, {
-      invitationAccepted: true,
-      accountId: invitation.accountId,
-      role: invitation.role,
-    })
+    await acceptSql(db, invitationId, userId, ctx)
   },
 }

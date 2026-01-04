@@ -19,10 +19,11 @@
     "paths": {
       "@/*": ["./src/client/*"],
       "@shared/*": ["./src/shared/*"],
-      "@server/*": ["./src/server/*"]
+      "@server/*": ["./src/server/*"],
+      "@tests/*": ["./tests/*"]
     }
   },
-  "include": ["src"],
+  "include": ["src", "tests"],
   "exclude": [
     "src/**/__integration__/**",
     "src/**/__tests__/**",
