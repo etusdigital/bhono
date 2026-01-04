@@ -137,5 +137,213 @@ describe('auditsService', () => {
 
       expect(result.data).toHaveLength(1)
     })
+
+    it('should filter by entityId when provided', async () => {
+      ;(queryOne as Mock).mockResolvedValueOnce({ count: 1 })
+      ;(queryAll as Mock).mockResolvedValueOnce([{
+        id: 'log-1',
+        transactionId: 'tx-1',
+        accountId: 'account-123',
+        userId: 'user-123',
+        entity: 'user',
+        entityId: 'specific-entity-id',
+        action: 'INSERT',
+        changes: null,
+        ipAddress: '127.0.0.1',
+        userAgent: 'TestAgent',
+        timestamp: '2025-01-01T00:00:00Z',
+      }])
+
+      const result = await auditsService.findAll(db, superAdminCtx, { ...defaultFilters, entityId: 'specific-entity-id' })
+
+      expect(result.data).toHaveLength(1)
+      expect(result.data[0].entityId).toBe('specific-entity-id')
+    })
+
+    it('should filter by action when provided', async () => {
+      ;(queryOne as Mock).mockResolvedValueOnce({ count: 1 })
+      ;(queryAll as Mock).mockResolvedValueOnce([{
+        id: 'log-1',
+        transactionId: 'tx-1',
+        accountId: 'account-123',
+        userId: 'user-123',
+        entity: 'user',
+        entityId: 'user-456',
+        action: 'DELETE',
+        changes: null,
+        ipAddress: '127.0.0.1',
+        userAgent: 'TestAgent',
+        timestamp: '2025-01-01T00:00:00Z',
+      }])
+
+      const result = await auditsService.findAll(db, superAdminCtx, { ...defaultFilters, action: 'DELETE' })
+
+      expect(result.data).toHaveLength(1)
+      expect(result.data[0].action).toBe('DELETE')
+    })
+
+    it('should handle null count result', async () => {
+      ;(queryOne as Mock).mockResolvedValueOnce(null)
+      ;(queryAll as Mock).mockResolvedValueOnce([])
+
+      const result = await auditsService.findAll(db, superAdminCtx, defaultFilters)
+
+      expect(result.data).toHaveLength(0)
+      expect(result.meta.totalItems).toBe(0)
+    })
+
+    it('should handle snake_case column names', async () => {
+      ;(queryOne as Mock).mockResolvedValueOnce({ count: 1 })
+      ;(queryAll as Mock).mockResolvedValueOnce([{
+        id: 'log-1',
+        transaction_id: 'tx-snake',
+        account_id: 'account-snake',
+        user_id: 'user-snake',
+        entity: 'user',
+        entity_id: 'entity-snake',
+        action: 'UPDATE',
+        changes: '{"field": "value"}',
+        ip_address: '192.168.1.1',
+        user_agent: 'SnakeAgent',
+        timestamp: '2025-01-01T00:00:00Z',
+      }])
+
+      const result = await auditsService.findAll(db, superAdminCtx, defaultFilters)
+
+      expect(result.data[0].transactionId).toBe('tx-snake')
+      expect(result.data[0].accountId).toBe('account-snake')
+      expect(result.data[0].userId).toBe('user-snake')
+      expect(result.data[0].entityId).toBe('entity-snake')
+      expect(result.data[0].ipAddress).toBe('192.168.1.1')
+      expect(result.data[0].userAgent).toBe('SnakeAgent')
+    })
+
+    it('should parse changes as JSON string', async () => {
+      ;(queryOne as Mock).mockResolvedValueOnce({ count: 1 })
+      ;(queryAll as Mock).mockResolvedValueOnce([{
+        id: 'log-1',
+        transactionId: 'tx-1',
+        accountId: 'account-123',
+        userId: 'user-123',
+        entity: 'user',
+        entityId: 'user-456',
+        action: 'UPDATE',
+        changes: '{"old": "value", "new": "changed"}',
+        ipAddress: null,
+        userAgent: null,
+        timestamp: '2025-01-01T00:00:00Z',
+      }])
+
+      const result = await auditsService.findAll(db, superAdminCtx, defaultFilters)
+
+      expect(result.data[0].changes).toEqual({ old: 'value', new: 'changed' })
+    })
+
+    it('should parse changes as object', async () => {
+      ;(queryOne as Mock).mockResolvedValueOnce({ count: 1 })
+      ;(queryAll as Mock).mockResolvedValueOnce([{
+        id: 'log-1',
+        transactionId: 'tx-1',
+        accountId: 'account-123',
+        userId: 'user-123',
+        entity: 'user',
+        entityId: 'user-456',
+        action: 'UPDATE',
+        changes: { already: 'object' },
+        ipAddress: null,
+        userAgent: null,
+        timestamp: '2025-01-01T00:00:00Z',
+      }])
+
+      const result = await auditsService.findAll(db, superAdminCtx, defaultFilters)
+
+      expect(result.data[0].changes).toEqual({ already: 'object' })
+    })
+
+    it('should handle invalid JSON in changes', async () => {
+      ;(queryOne as Mock).mockResolvedValueOnce({ count: 1 })
+      ;(queryAll as Mock).mockResolvedValueOnce([{
+        id: 'log-1',
+        transactionId: 'tx-1',
+        accountId: 'account-123',
+        userId: 'user-123',
+        entity: 'user',
+        entityId: 'user-456',
+        action: 'UPDATE',
+        changes: 'not-valid-json',
+        ipAddress: null,
+        userAgent: null,
+        timestamp: '2025-01-01T00:00:00Z',
+      }])
+
+      const result = await auditsService.findAll(db, superAdminCtx, defaultFilters)
+
+      expect(result.data[0].changes).toBeNull()
+    })
+
+    it('should handle null/undefined changes', async () => {
+      ;(queryOne as Mock).mockResolvedValueOnce({ count: 1 })
+      ;(queryAll as Mock).mockResolvedValueOnce([{
+        id: 'log-1',
+        transactionId: 'tx-1',
+        accountId: 'account-123',
+        userId: 'user-123',
+        entity: 'user',
+        entityId: 'user-456',
+        action: 'DELETE',
+        changes: null,
+        ipAddress: null,
+        userAgent: null,
+        timestamp: '2025-01-01T00:00:00Z',
+      }])
+
+      const result = await auditsService.findAll(db, superAdminCtx, defaultFilters)
+
+      expect(result.data[0].changes).toBeNull()
+    })
+
+    it('should handle null accountId and userId', async () => {
+      ;(queryOne as Mock).mockResolvedValueOnce({ count: 1 })
+      ;(queryAll as Mock).mockResolvedValueOnce([{
+        id: 'log-1',
+        transactionId: 'tx-1',
+        accountId: null,
+        userId: null,
+        entity: 'system',
+        entityId: 'sys-1',
+        action: 'INSERT',
+        changes: null,
+        ipAddress: null,
+        userAgent: null,
+        timestamp: '2025-01-01T00:00:00Z',
+      }])
+
+      const result = await auditsService.findAll(db, superAdminCtx, defaultFilters)
+
+      expect(result.data[0].accountId).toBeNull()
+      expect(result.data[0].userId).toBeNull()
+    })
+
+    it('should handle non-object parsed JSON in changes', async () => {
+      ;(queryOne as Mock).mockResolvedValueOnce({ count: 1 })
+      ;(queryAll as Mock).mockResolvedValueOnce([{
+        id: 'log-1',
+        transactionId: 'tx-1',
+        accountId: 'account-123',
+        userId: 'user-123',
+        entity: 'user',
+        entityId: 'user-456',
+        action: 'UPDATE',
+        changes: '"just a string"',
+        ipAddress: null,
+        userAgent: null,
+        timestamp: '2025-01-01T00:00:00Z',
+      }])
+
+      const result = await auditsService.findAll(db, superAdminCtx, defaultFilters)
+
+      // A JSON string that parses to a primitive should return null
+      expect(result.data[0].changes).toBeNull()
+    })
   })
 })

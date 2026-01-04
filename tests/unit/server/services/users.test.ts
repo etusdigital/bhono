@@ -82,7 +82,7 @@ describe('usersService', () => {
       ;(queryAll as Mock).mockResolvedValueOnce([
         {
           id: user.id,
-          google_id: user.googleId,
+          google_id: `google-${user.id}`,
           email: user.email,
           name: user.name,
           avatar_url: user.avatarUrl,
@@ -115,7 +115,7 @@ describe('usersService', () => {
       ;(queryOne as Mock)
         .mockResolvedValueOnce({
           id: user.id,
-          google_id: user.googleId,
+          google_id: `google-${user.id}`,
           email: user.email,
           name: user.name,
           avatar_url: user.avatarUrl,
@@ -138,7 +138,7 @@ describe('usersService', () => {
 
       ;(queryOne as Mock).mockResolvedValueOnce({
         id: user.id,
-        google_id: user.googleId,
+        google_id: `google-${user.id}`,
         email: user.email,
         name: user.name,
         avatar_url: user.avatarUrl,
@@ -178,7 +178,7 @@ describe('usersService', () => {
       const user = createUserFixture({ id: 'user-1' })
       ;(queryOne as Mock).mockResolvedValueOnce({
         id: user.id,
-        google_id: user.googleId,
+        google_id: `google-${user.id}`,
         email: user.email,
         name: user.name,
         avatar_url: user.avatarUrl,
@@ -201,7 +201,7 @@ describe('usersService', () => {
       const user = createUserFixture({ id: 'user-1', deletedAt: new Date().toISOString() })
       ;(queryOne as Mock).mockResolvedValueOnce({
         id: user.id,
-        google_id: user.googleId,
+        google_id: `google-${user.id}`,
         email: user.email,
         name: user.name,
         avatar_url: user.avatarUrl,
@@ -243,7 +243,7 @@ describe('usersService', () => {
       ;(queryOne as Mock)
         .mockResolvedValueOnce({
           id: user.id,
-          google_id: user.googleId,
+          google_id: `google-${user.id}`,
           email: user.email,
           name: user.name,
           avatar_url: user.avatarUrl,
@@ -274,7 +274,7 @@ describe('usersService', () => {
       ;(queryOne as Mock)
         .mockResolvedValueOnce({
           id: user.id,
-          google_id: user.googleId,
+          google_id: `google-${user.id}`,
           email: user.email,
           name: user.name,
           avatar_url: user.avatarUrl,
@@ -300,7 +300,7 @@ describe('usersService', () => {
 
       ;(queryOne as Mock).mockResolvedValueOnce({
         id: user.id,
-        google_id: user.googleId,
+        google_id: `google-${user.id}`,
         email: user.email,
         name: user.name,
         avatar_url: user.avatarUrl,
@@ -346,6 +346,350 @@ describe('usersService', () => {
 
       expect(result.count).toBe(2)
       expect(logAudit).toHaveBeenCalled()
+    })
+  })
+
+  describe('findAll edge cases', () => {
+    const defaultPagination: PaginationQuery = { page: 1, limit: 10 }
+
+    it('should filter by query parameter', async () => {
+      ;(queryOne as Mock).mockResolvedValueOnce({ count: 1 })
+      ;(queryAll as Mock).mockResolvedValueOnce([
+        {
+          id: 'user-1',
+          google_id: 'google-1',
+          email: 'search@example.com',
+          name: 'Search User',
+          avatar_url: null,
+          status: 'active',
+          provider_ids: JSON.stringify(['google']),
+          is_super_admin: 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          deleted_at: null,
+        },
+      ])
+
+      const result = await usersService.findAll(db, superAdminCtx, { ...defaultPagination, query: 'search' })
+
+      expect(result.data).toHaveLength(1)
+    })
+
+    it('should filter by account for non-super-admin', async () => {
+      ;(queryOne as Mock).mockResolvedValueOnce({ count: 1 })
+      ;(queryAll as Mock).mockResolvedValueOnce([
+        {
+          id: 'user-1',
+          google_id: 'google-1',
+          email: 'user@example.com',
+          name: 'User',
+          avatar_url: null,
+          status: 'active',
+          provider_ids: '[]',
+          is_super_admin: 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          deleted_at: null,
+        },
+      ])
+
+      await usersService.findAll(db, ctx, defaultPagination)
+
+      // Check that account filter was applied
+      expect((queryOne as Mock).mock.calls[0][2]).toContain(ctx.accountId)
+    })
+
+    it('should handle null count result', async () => {
+      ;(queryOne as Mock).mockResolvedValueOnce(null)
+      ;(queryAll as Mock).mockResolvedValueOnce([])
+
+      const result = await usersService.findAll(db, superAdminCtx, defaultPagination)
+
+      expect(result.data).toHaveLength(0)
+      expect(result.meta.totalItems).toBe(0)
+    })
+
+    it('should parse providerIds as array', async () => {
+      ;(queryOne as Mock).mockResolvedValueOnce({ count: 1 })
+      ;(queryAll as Mock).mockResolvedValueOnce([
+        {
+          id: 'user-1',
+          google_id: 'google-1',
+          email: 'user@example.com',
+          name: 'User',
+          avatar_url: null,
+          status: 'active',
+          provider_ids: ['google', 'github'],
+          is_super_admin: 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          deleted_at: null,
+        },
+      ])
+
+      const result = await usersService.findAll(db, superAdminCtx, defaultPagination)
+
+      expect(result.data[0].providerIds).toEqual(['google', 'github'])
+    })
+
+    it('should handle invalid JSON in providerIds', async () => {
+      ;(queryOne as Mock).mockResolvedValueOnce({ count: 1 })
+      ;(queryAll as Mock).mockResolvedValueOnce([
+        {
+          id: 'user-1',
+          google_id: 'google-1',
+          email: 'user@example.com',
+          name: 'User',
+          avatar_url: null,
+          status: 'active',
+          provider_ids: 'invalid-json',
+          is_super_admin: 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          deleted_at: null,
+        },
+      ])
+
+      const result = await usersService.findAll(db, superAdminCtx, defaultPagination)
+
+      expect(result.data[0].providerIds).toEqual([])
+    })
+
+    it('should handle non-array JSON in providerIds', async () => {
+      ;(queryOne as Mock).mockResolvedValueOnce({ count: 1 })
+      ;(queryAll as Mock).mockResolvedValueOnce([
+        {
+          id: 'user-1',
+          google_id: 'google-1',
+          email: 'user@example.com',
+          name: 'User',
+          avatar_url: null,
+          status: 'active',
+          provider_ids: '{"key": "value"}',
+          is_super_admin: 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          deleted_at: null,
+        },
+      ])
+
+      const result = await usersService.findAll(db, superAdminCtx, defaultPagination)
+
+      expect(result.data[0].providerIds).toEqual([])
+    })
+
+    it('should handle isSuperAdmin as boolean true', async () => {
+      ;(queryOne as Mock).mockResolvedValueOnce({ count: 1 })
+      ;(queryAll as Mock).mockResolvedValueOnce([
+        {
+          id: 'user-1',
+          google_id: 'google-1',
+          email: 'user@example.com',
+          name: 'User',
+          avatar_url: null,
+          status: 'active',
+          provider_ids: '[]',
+          is_super_admin: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          deleted_at: null,
+        },
+      ])
+
+      const result = await usersService.findAll(db, superAdminCtx, defaultPagination)
+
+      expect(result.data[0].isSuperAdmin).toBe(true)
+    })
+
+    it('should handle isSuperAdmin as string "1"', async () => {
+      ;(queryOne as Mock).mockResolvedValueOnce({ count: 1 })
+      ;(queryAll as Mock).mockResolvedValueOnce([
+        {
+          id: 'user-1',
+          google_id: 'google-1',
+          email: 'user@example.com',
+          name: 'User',
+          avatar_url: null,
+          status: 'active',
+          provider_ids: '[]',
+          is_super_admin: '1',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          deleted_at: null,
+        },
+      ])
+
+      const result = await usersService.findAll(db, superAdminCtx, defaultPagination)
+
+      expect(result.data[0].isSuperAdmin).toBe(true)
+    })
+
+    it('should handle isSuperAdmin as string "true"', async () => {
+      ;(queryOne as Mock).mockResolvedValueOnce({ count: 1 })
+      ;(queryAll as Mock).mockResolvedValueOnce([
+        {
+          id: 'user-1',
+          google_id: 'google-1',
+          email: 'user@example.com',
+          name: 'User',
+          avatar_url: null,
+          status: 'active',
+          provider_ids: '[]',
+          is_super_admin: 'TRUE',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          deleted_at: null,
+        },
+      ])
+
+      const result = await usersService.findAll(db, superAdminCtx, defaultPagination)
+
+      expect(result.data[0].isSuperAdmin).toBe(true)
+    })
+  })
+
+  describe('update edge cases', () => {
+    it('should throw when auditedUpdate returns empty array', async () => {
+      const user = createUserFixture({ id: 'user-1' })
+
+      ;(queryOne as Mock).mockResolvedValueOnce({
+        id: user.id,
+        google_id: `google-${user.id}`,
+        email: user.email,
+        name: user.name,
+        avatar_url: user.avatarUrl,
+        status: user.status,
+        provider_ids: JSON.stringify(user.providerIds),
+        is_super_admin: user.isSuperAdmin ? 1 : 0,
+        created_at: user.createdAt,
+        updated_at: user.updatedAt,
+        deleted_at: user.deletedAt,
+      })
+
+      ;(auditedUpdate as Mock).mockResolvedValueOnce([])
+
+      await expect(usersService.update(db, superAdminCtx, user.id, { name: 'New' })).rejects.toThrow('Failed to update user')
+    })
+  })
+
+  describe('restore edge cases', () => {
+    it('should throw NotFoundError when user not found', async () => {
+      ;(queryOne as Mock).mockResolvedValueOnce(null)
+
+      await expect(usersService.restore(db, superAdminCtx, 'missing')).rejects.toThrow(NotFoundError)
+    })
+
+    it('should throw NotFoundError when restore fails', async () => {
+      const user = createUserFixture({ id: 'user-1', deletedAt: new Date().toISOString() })
+
+      ;(queryOne as Mock).mockResolvedValueOnce({
+        id: user.id,
+        google_id: `google-${user.id}`,
+        email: user.email,
+        name: user.name,
+        avatar_url: user.avatarUrl,
+        status: user.status,
+        provider_ids: JSON.stringify(user.providerIds),
+        is_super_admin: user.isSuperAdmin ? 1 : 0,
+        created_at: user.createdAt,
+        updated_at: user.updatedAt,
+        deleted_at: user.deletedAt,
+      })
+
+      ;(auditedUpdate as Mock).mockResolvedValueOnce([])
+
+      await expect(usersService.restore(db, superAdminCtx, user.id)).rejects.toThrow(NotFoundError)
+    })
+  })
+
+  describe('updateRole edge cases', () => {
+    it('should throw NotFoundError when membership not found', async () => {
+      const user = createUserFixture({ id: 'user-1' })
+
+      ;(queryOne as Mock)
+        .mockResolvedValueOnce({
+          id: user.id,
+          google_id: `google-${user.id}`,
+          email: user.email,
+          name: user.name,
+          avatar_url: user.avatarUrl,
+          status: user.status,
+          provider_ids: JSON.stringify(user.providerIds),
+          is_super_admin: user.isSuperAdmin ? 1 : 0,
+          created_at: user.createdAt,
+          updated_at: user.updatedAt,
+          deleted_at: user.deletedAt,
+        })
+        .mockResolvedValueOnce(null)
+
+      await expect(usersService.updateRole(db, superAdminCtx, user.id, 'account-1', 'ADMIN')).rejects.toThrow('User not found in account')
+    })
+  })
+
+  describe('createUserAccounts edge cases', () => {
+    it('should update existing membership', async () => {
+      const items = [{ userId: 'user-1', accountId: 'account-1', role: 'ADMIN' as const }]
+
+      ;(queryOne as Mock).mockResolvedValueOnce({ role: 'VIEWER' })
+
+      const result = await usersService.createUserAccounts(db, superAdminCtx, items)
+
+      expect(result.count).toBe(1)
+      expect(execute).toHaveBeenCalled()
+    })
+  })
+
+  describe('listUserRoles edge cases', () => {
+    it('should handle snake_case column names', async () => {
+      const user = createUserFixture({ id: 'user-1' })
+
+      ;(queryOne as Mock)
+        .mockResolvedValueOnce({
+          id: user.id,
+          google_id: `google-${user.id}`,
+          email: user.email,
+          name: user.name,
+          avatar_url: user.avatarUrl,
+          status: user.status,
+          provider_ids: JSON.stringify(user.providerIds),
+          is_super_admin: user.isSuperAdmin ? 1 : 0,
+          created_at: user.createdAt,
+          updated_at: user.updatedAt,
+          deleted_at: user.deletedAt,
+        })
+        .mockResolvedValueOnce({ ok: 1 })
+
+      ;(queryAll as Mock).mockResolvedValueOnce([{ account_id: 'account-1', role: 'ADMIN' }])
+
+      const result = await usersService.listUserRoles(db, ctx, user.id)
+
+      expect(result[0].accountId).toBe('account-1')
+    })
+  })
+
+  describe('findById edge cases', () => {
+    it('should return user for super admin without membership check', async () => {
+      const user = createUserFixture({ id: 'user-1' })
+
+      ;(queryOne as Mock).mockResolvedValueOnce({
+        id: user.id,
+        googleId: user.googleId,
+        email: user.email,
+        name: user.name,
+        avatarUrl: user.avatarUrl,
+        status: user.status,
+        providerIds: user.providerIds,
+        isSuperAdmin: user.isSuperAdmin,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+        deletedAt: user.deletedAt,
+      })
+
+      const result = await usersService.findById(db, superAdminCtx, user.id)
+
+      expect(result.id).toBe(user.id)
+      // queryOne should only be called once (no membership check)
+      expect(queryOne).toHaveBeenCalledTimes(1)
     })
   })
 })

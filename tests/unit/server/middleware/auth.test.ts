@@ -371,4 +371,277 @@ describe('jwtAuth', () => {
       isSuperAdmin: false,
     })
   })
+
+  it('handles snake_case column names from DB', async () => {
+    vi.mocked(verify).mockResolvedValue({
+      sub: 'user-123',
+      email: 'test@example.com',
+      iat: Date.now(),
+      exp: Date.now() + 3600000,
+    })
+
+    // Use snake_case column names as returned by SQLite
+    setMockQueryResult(mockDb, ['user-123'], {
+      id: 'user-123',
+      email: 'test@example.com',
+      name: 'Test User',
+      status: 'active',
+      provider_ids: JSON.stringify(['google']),
+      is_super_admin: 1,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      deleted_at: null,
+    })
+
+    const app = createApp()
+    const res = await app.request('/test', {
+      headers: { Authorization: 'Bearer valid-token' },
+    })
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(body.user.providerIds).toEqual(['google'])
+    expect(body.user.isSuperAdmin).toBe(true)
+  })
+
+  it('handles providerIds as JSON string', async () => {
+    vi.mocked(verify).mockResolvedValue({
+      sub: 'user-123',
+      email: 'test@example.com',
+      iat: Date.now(),
+      exp: Date.now() + 3600000,
+    })
+
+    setMockQueryResult(mockDb, ['user-123'], {
+      id: 'user-123',
+      email: 'test@example.com',
+      name: 'Test User',
+      status: 'active',
+      providerIds: '["google", "github"]',
+      isSuperAdmin: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      deletedAt: null,
+    })
+
+    const app = createApp()
+    const res = await app.request('/test', {
+      headers: { Authorization: 'Bearer valid-token' },
+    })
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(body.user.providerIds).toEqual(['google', 'github'])
+  })
+
+  it('handles invalid JSON in providerIds', async () => {
+    vi.mocked(verify).mockResolvedValue({
+      sub: 'user-123',
+      email: 'test@example.com',
+      iat: Date.now(),
+      exp: Date.now() + 3600000,
+    })
+
+    setMockQueryResult(mockDb, ['user-123'], {
+      id: 'user-123',
+      email: 'test@example.com',
+      name: 'Test User',
+      status: 'active',
+      providerIds: 'invalid-json',
+      isSuperAdmin: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      deletedAt: null,
+    })
+
+    const app = createApp()
+    const res = await app.request('/test', {
+      headers: { Authorization: 'Bearer valid-token' },
+    })
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(body.user.providerIds).toEqual([])
+  })
+
+  it('handles non-array JSON in providerIds', async () => {
+    vi.mocked(verify).mockResolvedValue({
+      sub: 'user-123',
+      email: 'test@example.com',
+      iat: Date.now(),
+      exp: Date.now() + 3600000,
+    })
+
+    setMockQueryResult(mockDb, ['user-123'], {
+      id: 'user-123',
+      email: 'test@example.com',
+      name: 'Test User',
+      status: 'active',
+      providerIds: '{"key": "value"}',
+      isSuperAdmin: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      deletedAt: null,
+    })
+
+    const app = createApp()
+    const res = await app.request('/test', {
+      headers: { Authorization: 'Bearer valid-token' },
+    })
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(body.user.providerIds).toEqual([])
+  })
+
+  it('handles null providerIds', async () => {
+    vi.mocked(verify).mockResolvedValue({
+      sub: 'user-123',
+      email: 'test@example.com',
+      iat: Date.now(),
+      exp: Date.now() + 3600000,
+    })
+
+    setMockQueryResult(mockDb, ['user-123'], {
+      id: 'user-123',
+      email: 'test@example.com',
+      name: 'Test User',
+      status: 'active',
+      providerIds: null,
+      isSuperAdmin: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      deletedAt: null,
+    })
+
+    const app = createApp()
+    const res = await app.request('/test', {
+      headers: { Authorization: 'Bearer valid-token' },
+    })
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(body.user.providerIds).toEqual([])
+  })
+
+  it('handles isSuperAdmin as boolean true', async () => {
+    vi.mocked(verify).mockResolvedValue({
+      sub: 'user-123',
+      email: 'test@example.com',
+      iat: Date.now(),
+      exp: Date.now() + 3600000,
+    })
+
+    setMockQueryResult(mockDb, ['user-123'], {
+      id: 'user-123',
+      email: 'test@example.com',
+      name: 'Test User',
+      status: 'active',
+      providerIds: [],
+      isSuperAdmin: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      deletedAt: null,
+    })
+
+    const app = createApp()
+    const res = await app.request('/test', {
+      headers: { Authorization: 'Bearer valid-token' },
+    })
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(body.user.isSuperAdmin).toBe(true)
+  })
+
+  it('handles isSuperAdmin as string "1"', async () => {
+    vi.mocked(verify).mockResolvedValue({
+      sub: 'user-123',
+      email: 'test@example.com',
+      iat: Date.now(),
+      exp: Date.now() + 3600000,
+    })
+
+    setMockQueryResult(mockDb, ['user-123'], {
+      id: 'user-123',
+      email: 'test@example.com',
+      name: 'Test User',
+      status: 'active',
+      providerIds: [],
+      isSuperAdmin: '1',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      deletedAt: null,
+    })
+
+    const app = createApp()
+    const res = await app.request('/test', {
+      headers: { Authorization: 'Bearer valid-token' },
+    })
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(body.user.isSuperAdmin).toBe(true)
+  })
+
+  it('handles isSuperAdmin as string "true"', async () => {
+    vi.mocked(verify).mockResolvedValue({
+      sub: 'user-123',
+      email: 'test@example.com',
+      iat: Date.now(),
+      exp: Date.now() + 3600000,
+    })
+
+    setMockQueryResult(mockDb, ['user-123'], {
+      id: 'user-123',
+      email: 'test@example.com',
+      name: 'Test User',
+      status: 'active',
+      providerIds: [],
+      isSuperAdmin: 'true',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      deletedAt: null,
+    })
+
+    const app = createApp()
+    const res = await app.request('/test', {
+      headers: { Authorization: 'Bearer valid-token' },
+    })
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(body.user.isSuperAdmin).toBe(true)
+  })
+
+  it('handles deletedAt with value', async () => {
+    vi.mocked(verify).mockResolvedValue({
+      sub: 'user-123',
+      email: 'test@example.com',
+      iat: Date.now(),
+      exp: Date.now() + 3600000,
+    })
+
+    const deletedDate = new Date().toISOString()
+    setMockQueryResult(mockDb, ['user-123'], {
+      id: 'user-123',
+      email: 'test@example.com',
+      name: 'Test User',
+      status: 'active',
+      providerIds: [],
+      isSuperAdmin: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      deleted_at: deletedDate,
+    })
+
+    const app = createApp()
+    const res = await app.request('/test', {
+      headers: { Authorization: 'Bearer valid-token' },
+    })
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(body.user.deletedAt).toBe(deletedDate)
+  })
 })

@@ -104,6 +104,26 @@ describe('accountsService', () => {
 
       expect((queryOne as Mock).mock.calls[0][2]).toContain(ctx.user.id)
     })
+
+    it('should filter by query when provided', async () => {
+      ;(queryOne as Mock).mockResolvedValueOnce({ count: 1 })
+      ;(queryAll as Mock).mockResolvedValueOnce([])
+
+      await accountsService.findAll(db, superAdminCtx, { ...defaultPagination, query: 'test' })
+
+      // Query should include LIKE clauses for name and domain
+      expect((queryOne as Mock).mock.calls[0][2]).toContain('%test%')
+    })
+
+    it('should handle null count result', async () => {
+      ;(queryOne as Mock).mockResolvedValueOnce(null)
+      ;(queryAll as Mock).mockResolvedValueOnce([])
+
+      const result = await accountsService.findAll(db, superAdminCtx, defaultPagination)
+
+      expect(result.data).toHaveLength(0)
+      expect(result.meta.totalItems).toBe(0)
+    })
   })
 
   describe('findById', () => {
@@ -140,6 +160,22 @@ describe('accountsService', () => {
 
       await expect(accountsService.findById(db, ctx, account.id)).rejects.toThrow(NotFoundError)
     })
+
+    it('should allow non-super-admin with valid membership', async () => {
+      const account = createAccountFixture({ id: 'account-1' })
+      ;(queryOne as Mock)
+        .mockResolvedValueOnce({
+          ...account,
+          created_at: account.createdAt,
+          updated_at: account.updatedAt,
+          deleted_at: account.deletedAt,
+        })
+        .mockResolvedValueOnce({ ok: 1 })
+
+      const result = await accountsService.findById(db, ctx, account.id)
+
+      expect(result.id).toBe(account.id)
+    })
   })
 
   describe('create', () => {
@@ -165,6 +201,27 @@ describe('accountsService', () => {
 
       expect(result.name).toBe('New Account')
       expect(auditedInsert).toHaveBeenCalled()
+    })
+
+    it('should create account with domain when no conflict', async () => {
+      ;(queryOne as Mock).mockResolvedValueOnce(null)
+
+      const account = createAccountFixture({ id: 'account-1', name: 'New Account', domain: 'unique.com' })
+      ;(auditedInsert as Mock).mockResolvedValueOnce([
+        { ...account, created_at: account.createdAt, updated_at: account.updatedAt, deleted_at: account.deletedAt },
+      ])
+
+      const result = await accountsService.create(db, superAdminCtx, { name: 'New Account', domain: 'unique.com' })
+
+      expect(result.domain).toBe('unique.com')
+    })
+
+    it('should throw when auditedInsert returns empty array', async () => {
+      ;(auditedInsert as Mock).mockResolvedValueOnce([])
+
+      await expect(
+        accountsService.create(db, superAdminCtx, { name: 'New Account' })
+      ).rejects.toThrow('Failed to create account')
     })
   })
 
@@ -208,6 +265,67 @@ describe('accountsService', () => {
 
       expect(result.name).toBe('Updated')
       expect(auditedUpdate).toHaveBeenCalled()
+    })
+
+    it('should update with domain when no conflict', async () => {
+      const account = createAccountFixture({ id: 'account-1' })
+      ;(queryOne as Mock)
+        .mockResolvedValueOnce({
+          ...account,
+          created_at: account.createdAt,
+          updated_at: account.updatedAt,
+          deleted_at: account.deletedAt,
+        })
+        .mockResolvedValueOnce(null)
+
+      const updated = { ...account, domain: 'new.com' }
+      ;(auditedUpdate as Mock).mockResolvedValueOnce([
+        { ...updated, created_at: updated.createdAt, updated_at: updated.updatedAt, deleted_at: updated.deletedAt },
+      ])
+
+      const result = await accountsService.update(db, superAdminCtx, account.id, { domain: 'new.com' })
+
+      expect(result.domain).toBe('new.com')
+    })
+
+    it('should update description and domain', async () => {
+      const account = createAccountFixture({ id: 'account-1' })
+      ;(queryOne as Mock)
+        .mockResolvedValueOnce({
+          ...account,
+          created_at: account.createdAt,
+          updated_at: account.updatedAt,
+          deleted_at: account.deletedAt,
+        })
+        .mockResolvedValueOnce(null)
+
+      const updated = { ...account, description: 'New desc', domain: 'new.com' }
+      ;(auditedUpdate as Mock).mockResolvedValueOnce([
+        { ...updated, created_at: updated.createdAt, updated_at: updated.updatedAt, deleted_at: updated.deletedAt },
+      ])
+
+      const result = await accountsService.update(db, superAdminCtx, account.id, {
+        description: 'New desc',
+        domain: 'new.com',
+      })
+
+      expect(result.description).toBe('New desc')
+      expect(result.domain).toBe('new.com')
+    })
+
+    it('should throw when auditedUpdate returns empty array', async () => {
+      const account = createAccountFixture({ id: 'account-1' })
+      ;(queryOne as Mock).mockResolvedValueOnce({
+        ...account,
+        created_at: account.createdAt,
+        updated_at: account.updatedAt,
+        deleted_at: account.deletedAt,
+      })
+      ;(auditedUpdate as Mock).mockResolvedValueOnce([])
+
+      await expect(
+        accountsService.update(db, superAdminCtx, account.id, { name: 'Updated' })
+      ).rejects.toThrow('Failed to update account')
     })
   })
 
@@ -253,6 +371,25 @@ describe('accountsService', () => {
       const result = await accountsService.restore(db, superAdminCtx, deleted.id)
 
       expect(result.deletedAt).toBeNull()
+    })
+
+    it('should throw NotFoundError when account not found or not deleted', async () => {
+      ;(queryOne as Mock).mockResolvedValueOnce(null)
+
+      await expect(accountsService.restore(db, superAdminCtx, 'not-deleted')).rejects.toThrow(NotFoundError)
+    })
+
+    it('should throw when auditedUpdate returns empty array', async () => {
+      const deleted = createDeletedAccountFixture({ id: 'account-1' })
+      ;(queryOne as Mock).mockResolvedValueOnce({
+        ...deleted,
+        created_at: deleted.createdAt,
+        updated_at: deleted.updatedAt,
+        deleted_at: deleted.deletedAt,
+      })
+      ;(auditedUpdate as Mock).mockResolvedValueOnce([])
+
+      await expect(accountsService.restore(db, superAdminCtx, deleted.id)).rejects.toThrow(NotFoundError)
     })
   })
 })

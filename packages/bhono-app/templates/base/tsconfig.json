@@ -23,7 +23,7 @@
       "@tests/*": ["./tests/*"]
     }
   },
-  "include": ["src", "tests"],
+  "include": ["src"],
   "exclude": [
     "src/**/__integration__/**",
     "src/**/__tests__/**",

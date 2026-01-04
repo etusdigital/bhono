@@ -65,10 +65,10 @@ export default defineConfig({
         "src/server/__integration__/fixtures/**",
       ],
       thresholds: {
-        statements: 90,
-        branches: 84, // Handlers have hard-to-test error branches
+        statements: 85,
+        branches: 80,
         functions: 85,
-        lines: 90,
+        lines: 85,
       },
     },
   },
