@@ -17,19 +17,26 @@ jobs:
             exit 0
           fi
 
+          # Allow develop branch (release flow)
+          if [[ "${{ github.head_ref }}" == "develop" ]]; then
+            echo "✅ Develop branch PR allowed to master (release flow)"
+            exit 0
+          fi
+
           # Allow hotfix branches (emergency fixes)
           if [[ "${{ github.head_ref }}" == hotfix/* ]]; then
             echo "✅ Hotfix PR allowed to master"
             exit 0
           fi
 
-          # Block all other PRs to master
+          # Block all other PRs to master (feature branches should go to develop first)
           echo "❌ PRs must target 'develop' branch, not 'master'"
           echo ""
           echo "To fix this, run:"
           echo "  gh pr edit ${{ github.event.pull_request.number }} --base develop"
           echo ""
           echo "Allowed exceptions:"
+          echo "  - develop branch (release flow)"
           echo "  - changeset-release/* branches (automated releases)"
           echo "  - hotfix/* branches (emergency production fixes)"
           exit 1
