@@ -445,48 +445,6 @@ if [[ "$WRANGLER_AVAILABLE" -eq 1 ]]; then
   $WRANGLER_CONFIG d1 execute "$DB_NAME" --local --command "SELECT 1;" >/dev/null 2>&1 || log_warn "Local D1 init failed (continuing)."
 fi
 
-D1_ID_FROM_CONFIG=$(node -e "const c=require('./config/wrangler.json'); console.log((c.d1_databases&&c.d1_databases[0]&&c.d1_databases[0].database_id)||'');")
-if [[ -n "$D1_ID_FROM_CONFIG" ]]; then
-  LOCAL_D1_DIR=".wrangler/state/v3/d1/miniflare-D1DatabaseObject"
-  LOCAL_DB_PATH="${LOCAL_D1_DIR}/${D1_ID_FROM_CONFIG}.sqlite"
-  # Use ./ prefix for paths relative to project root (drizzle runs from root)
-  DRIZZLE_DB_URL="./${LOCAL_DB_PATH}"
-
-  mkdir -p "$LOCAL_D1_DIR"
-  touch "$LOCAL_DB_PATH"
-
-  if [[ -f config/drizzle.config.ts ]]; then
-    # Fix schema and out paths to be relative to root, not config/
-    DRIZZLE_DB_URL="$DRIZZLE_DB_URL" node - <<'NODE'
-const fs = require('fs');
-const path = 'config/drizzle.config.ts';
-const nextUrl = process.env.DRIZZLE_DB_URL;
-let content = fs.readFileSync(path, 'utf8');
-
-// Fix database URL
-const urlPattern = /url:\s*['"][^'"]*\.sqlite['"]/;
-if (urlPattern.test(content)) {
-  content = content.replace(urlPattern, `url: '${nextUrl}'`);
-} else {
-  content = content.replace('dbCredentials: {', `dbCredentials: {\n    url: '${nextUrl}',`);
-}
-
-// Fix schema path: ../src/ -> ./src/ (relative to root, not config/)
-content = content.replace(/schema:\s*['"]\.\.\/src\//g, "schema: './src/");
-
-// Fix out path: ../src/ -> ./src/
-content = content.replace(/out:\s*['"]\.\.\/src\//g, "out: './src/");
-
-fs.writeFileSync(path, content);
-NODE
-    log_ok "Updated config/drizzle.config.ts with correct paths."
-  else
-    log_warn "config/drizzle.config.ts not found. Skipping DB config update."
-  fi
-else
-  log_warn "D1 id not found in wrangler.json. Skipping drizzle config update."
-fi
-
 # Apply schema.sql and seed
 DB_BOOTSTRAP_OK=0
 SEED_OK=0
