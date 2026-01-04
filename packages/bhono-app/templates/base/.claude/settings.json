@@ -80,16 +80,18 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/scripts/install_pkgs.sh"
+            "command": "$CLAUDE_PROJECT_DIR/.claude/scripts/install_pkgs.sh",
+            "timeout": 10
           },
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/scripts/validate-skill-rules.sh"
+            "command": "$CLAUDE_PROJECT_DIR/.claude/scripts/validate-skill-rules.sh",
+            "timeout": 10
           },
           {
             "type": "command",
             "command": "echo \"Current date: $(date '+%Y-%m-%d') | Year: $(date +%Y)\"",
-            "timeout": 5
+            "timeout": 10
           }
         ]
       }
@@ -101,7 +103,7 @@
           {
             "type": "command",
             "command": "q=$(cat | jq -r '.tool_input.query'); y=$(date +%Y); echo $q | grep -qE '20[0-9]{2}|latest|recent|current|new|now|today' && nq=\"$q\" || nq=\"$q $y\"; echo \"{\\\"hookSpecificOutput\\\":{\\\"hookEventName\\\":\\\"PreToolUse\\\",\\\"permissionDecision\\\":\\\"allow\\\",\\\"updatedInput\\\":{\\\"query\\\":\\\"$nq\\\"}}}\"",
-            "timeout": 5
+            "timeout": 10
           }
         ]
       },
@@ -114,8 +116,5 @@
         ]
       }
     ]
-  },
-  "enabledPlugins": {
-    "frontend-design@claude-plugins-official": true
   }
 }
