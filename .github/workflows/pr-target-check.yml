@@ -1,0 +1,35 @@
+name: PR Target Check
+
+on:
+  pull_request:
+    branches: [master]
+    types: [opened, edited, synchronize]
+
+jobs:
+  check-target:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR target branch
+        run: |
+          # Allow changeset-release PRs (automated releases)
+          if [[ "${{ github.head_ref }}" == changeset-release/* ]]; then
+            echo "✅ Changeset release PR allowed to master"
+            exit 0
+          fi
+
+          # Allow hotfix branches (emergency fixes)
+          if [[ "${{ github.head_ref }}" == hotfix/* ]]; then
+            echo "✅ Hotfix PR allowed to master"
+            exit 0
+          fi
+
+          # Block all other PRs to master
+          echo "❌ PRs must target 'develop' branch, not 'master'"
+          echo ""
+          echo "To fix this, run:"
+          echo "  gh pr edit ${{ github.event.pull_request.number }} --base develop"
+          echo ""
+          echo "Allowed exceptions:"
+          echo "  - changeset-release/* branches (automated releases)"
+          echo "  - hotfix/* branches (emergency production fixes)"
+          exit 1
