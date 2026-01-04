@@ -13,7 +13,7 @@ import type {
 export const listAccountsHandler: RouteHandler<typeof listAccountsRoute, HonoEnv> = async (c) => {
   const query = c.req.valid('query')
   const db = c.get('db')
-  const envDb = c.env?.DB
+  const envDb = c.env.DB
   const accountId = c.get('accountId')
   const user = c.get('user')
   const transactionId = c.get('transactionId')
@@ -47,7 +47,7 @@ export const listAccountsHandler: RouteHandler<typeof listAccountsRoute, HonoEnv
 export const getAccountHandler: RouteHandler<typeof getAccountRoute, HonoEnv> = async (c) => {
   const { id } = c.req.valid('param')
   const db = c.get('db')
-  const envDb = c.env?.DB
+  const envDb = c.env.DB
   const accountId = c.get('accountId')
   const user = c.get('user')
   const transactionId = c.get('transactionId')
@@ -74,7 +74,7 @@ export const getAccountHandler: RouteHandler<typeof getAccountRoute, HonoEnv> = 
 export const createAccountHandler: RouteHandler<typeof createAccountRoute, HonoEnv> = async (c) => {
   const data = c.req.valid('json')
   const db = c.get('db')
-  const envDb = c.env?.DB
+  const envDb = c.env.DB
   const accountId = c.get('accountId')
   const user = c.get('user')
   const transactionId = c.get('transactionId')
@@ -107,7 +107,7 @@ export const updateAccountHandler: RouteHandler<typeof updateAccountRoute, HonoE
   const { id } = c.req.valid('param')
   const data = c.req.valid('json')
   const db = c.get('db')
-  const envDb = c.env?.DB
+  const envDb = c.env.DB
   const accountId = c.get('accountId')
   const user = c.get('user')
   const transactionId = c.get('transactionId')
@@ -139,7 +139,7 @@ export const updateAccountHandler: RouteHandler<typeof updateAccountRoute, HonoE
 export const deleteAccountHandler: RouteHandler<typeof deleteAccountRoute, HonoEnv> = async (c) => {
   const { id } = c.req.valid('param')
   const db = c.get('db')
-  const envDb = c.env?.DB
+  const envDb = c.env.DB
   const accountId = c.get('accountId')
   const user = c.get('user')
   const transactionId = c.get('transactionId')
@@ -166,7 +166,7 @@ export const deleteAccountHandler: RouteHandler<typeof deleteAccountRoute, HonoE
 export const restoreAccountHandler: RouteHandler<typeof restoreAccountRoute, HonoEnv> = async (c) => {
   const { id } = c.req.valid('param')
   const db = c.get('db')
-  const envDb = c.env?.DB
+  const envDb = c.env.DB
   const accountId = c.get('accountId')
   const user = c.get('user')
   const transactionId = c.get('transactionId')

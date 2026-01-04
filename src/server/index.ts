@@ -65,6 +65,7 @@ app.use('/auth/*', async (c, next) => {
   const path = c.req.path
   // Only apply strict rate limit to login-related endpoints (brute force protection)
   if (path === '/auth/login' || path === '/auth/callback') {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Hono wildcard route typing
     return loginRateLimiter(c, next)
   }
   // Other auth endpoints (/auth/me, /auth/refresh, /auth/logout) use global rate limit

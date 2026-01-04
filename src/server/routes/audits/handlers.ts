@@ -7,7 +7,7 @@ import type { listAuditLogsRoute } from './routes'
 export const listAuditLogsHandler: RouteHandler<typeof listAuditLogsRoute, HonoEnv> = async (c) => {
   const query = c.req.valid('query')
   const db = c.get('db')
-  const envDb = c.env?.DB
+  const envDb = c.env.DB
   const accountId = c.get('accountId')
   const user = c.get('user')
   const transactionId = c.get('transactionId')

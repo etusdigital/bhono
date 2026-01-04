@@ -29,18 +29,14 @@ export interface paths {
             responses: {
                 /** @description List of users */
                 200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["PaginatedUsers"];
                     };
                 };
                 /** @description Unauthorized */
                 401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
@@ -83,36 +79,28 @@ export interface paths {
             responses: {
                 /** @description User accounts created successfully */
                 201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["BulkOperationSuccess"];
                     };
                 };
                 /** @description Invalid input */
                 400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
                 /** @description Unauthorized */
                 401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
                 /** @description Forbidden - requires MANAGER role or higher */
                 403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
@@ -138,36 +126,28 @@ export interface paths {
             responses: {
                 /** @description User accounts deleted successfully */
                 200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["BulkOperationSuccess"];
                     };
                 };
                 /** @description Invalid input */
                 400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
                 /** @description Unauthorized */
                 401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
                 /** @description Forbidden - requires MANAGER role or higher */
                 403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
@@ -200,9 +180,7 @@ export interface paths {
             responses: {
                 /** @description User details */
                 200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": {
                             data: components["schemas"]["User"];
@@ -211,18 +189,14 @@ export interface paths {
                 };
                 /** @description Unauthorized */
                 401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
                 /** @description User not found */
                 404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
@@ -245,25 +219,19 @@ export interface paths {
             responses: {
                 /** @description User deleted */
                 204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content?: never;
                 };
                 /** @description Unauthorized */
                 401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
                 /** @description User not found */
                 404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
@@ -290,9 +258,7 @@ export interface paths {
             responses: {
                 /** @description User updated */
                 200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": {
                             data: components["schemas"]["User"];
@@ -301,27 +267,21 @@ export interface paths {
                 };
                 /** @description Invalid input */
                 400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
                 /** @description Unauthorized */
                 401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
                 /** @description User not found */
                 404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
@@ -353,9 +313,7 @@ export interface paths {
             responses: {
                 /** @description User restored successfully */
                 200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": {
                             data: components["schemas"]["User"];
@@ -364,27 +322,21 @@ export interface paths {
                 };
                 /** @description Unauthorized */
                 401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
                 /** @description Forbidden - requires ADMIN role */
                 403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
                 /** @description User not found or not deleted */
                 404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
@@ -422,18 +374,14 @@ export interface paths {
             responses: {
                 /** @description List of accounts */
                 200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["PaginatedAccounts"];
                     };
                 };
                 /** @description Unauthorized */
                 401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
@@ -457,9 +405,7 @@ export interface paths {
             responses: {
                 /** @description Account created */
                 201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": {
                             data: components["schemas"]["Account"];
@@ -468,36 +414,28 @@ export interface paths {
                 };
                 /** @description Invalid input */
                 400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
                 /** @description Unauthorized */
                 401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
                 /** @description Forbidden - Super admin only */
                 403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
                 /** @description Domain already exists */
                 409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
@@ -531,9 +469,7 @@ export interface paths {
             responses: {
                 /** @description Account details */
                 200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": {
                             data: components["schemas"]["Account"];
@@ -542,18 +478,14 @@ export interface paths {
                 };
                 /** @description Unauthorized */
                 401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
                 /** @description Account not found */
                 404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
@@ -576,34 +508,26 @@ export interface paths {
             responses: {
                 /** @description Account deleted */
                 204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content?: never;
                 };
                 /** @description Unauthorized */
                 401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
                 /** @description Forbidden - Super admin only */
                 403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
                 /** @description Account not found */
                 404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
@@ -630,9 +554,7 @@ export interface paths {
             responses: {
                 /** @description Account updated */
                 200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": {
                             data: components["schemas"]["Account"];
@@ -641,36 +563,28 @@ export interface paths {
                 };
                 /** @description Invalid input */
                 400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
                 /** @description Unauthorized */
                 401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
                 /** @description Account not found */
                 404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
                 /** @description Domain already exists */
                 409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
@@ -705,9 +619,7 @@ export interface paths {
             responses: {
                 /** @description Account restored successfully */
                 200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": {
                             data: components["schemas"]["Account"];
@@ -716,27 +628,21 @@ export interface paths {
                 };
                 /** @description Unauthorized */
                 401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
                 /** @description Forbidden - Super admin only */
                 403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
                 /** @description Account not found or not deleted */
                 404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
@@ -771,9 +677,7 @@ export interface paths {
             responses: {
                 /** @description List of pending invitations */
                 200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": {
                             data: {
@@ -824,9 +728,7 @@ export interface paths {
             responses: {
                 /** @description User linked or invitation sent */
                 200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": {
                             linked: boolean;
@@ -847,18 +749,14 @@ export interface paths {
                 };
                 /** @description Cannot assign role higher than own */
                 403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
                 /** @description User already in account or pending invitation exists */
                 409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
@@ -898,16 +796,12 @@ export interface paths {
             responses: {
                 /** @description Invitation revoked */
                 204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content?: never;
                 };
                 /** @description Invitation not found */
                 404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
@@ -950,27 +844,21 @@ export interface paths {
             responses: {
                 /** @description List of audit logs */
                 200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["PaginatedAuditLogs"];
                     };
                 };
                 /** @description Unauthorized */
                 401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
                 /** @description Forbidden - requires ADMIN or ANALYTICS role */
                 403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
@@ -1010,27 +898,21 @@ export interface paths {
             responses: {
                 /** @description Upload URL generated successfully */
                 200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["UploadUrlResponse"];
                     };
                 };
                 /** @description Invalid input */
                 400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
                 /** @description Unauthorized */
                 401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
@@ -1066,27 +948,21 @@ export interface paths {
             responses: {
                 /** @description File uploaded successfully */
                 200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["UploadSuccess"];
                     };
                 };
                 /** @description Invalid input or missing file */
                 400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
                 /** @description Unauthorized */
                 401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
@@ -1125,25 +1001,19 @@ export interface paths {
             responses: {
                 /** @description File deleted successfully */
                 204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content?: never;
                 };
                 /** @description Unauthorized */
                 401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
                 /** @description File not found */
                 404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
+                    headers: Record<string, unknown>;
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
@@ -1330,9 +1200,7 @@ export interface components {
              *       "status": "active"
              *     }
              */
-            changes: {
-                [key: string]: unknown;
-            } | null;
+            changes: Record<string, unknown> | null;
             /** @example 192.168.1.1 */
             ipAddress: string | null;
             /** @example Mozilla/5.0... */

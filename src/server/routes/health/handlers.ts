@@ -4,7 +4,7 @@ import { queryOne } from '../../db/sql'
 
 async function checkDatabase(c: Context<HonoEnv>): Promise<'up' | 'down'> {
   try {
-    const db = c.env?.DB
+    const db = c.env.DB
     if (!db) {
       return 'down'
     }
@@ -19,7 +19,7 @@ async function checkDatabase(c: Context<HonoEnv>): Promise<'up' | 'down'> {
 
 async function checkStorage(c: Context<HonoEnv>): Promise<'up' | 'down'> {
   try {
-    const r2Bucket = c.env?.R2_BUCKET
+    const r2Bucket = c.env.R2_BUCKET
     if (!r2Bucket) {
       return 'down'
     }

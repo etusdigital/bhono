@@ -5,7 +5,7 @@ import { ConflictError, NotFoundError, ForbiddenError } from '../lib/errors'
 import type { Env } from '../env'
 import { hasMinimumRole, type Role } from '../auth/roles'
 import type { ServiceContext } from '../types'
-import { execute, queryAll, queryOne, type SqlRow } from '../db/sql'
+import { execute, queryAll, queryOne, toStringValue, type SqlRow } from '../db/sql'
 
 function generateToken(): string {
   const array = new Uint8Array(32)
@@ -58,13 +58,13 @@ function mapInvitationRow(row: SqlRow): {
   const createdAt = row.createdAt ?? row.created_at
 
   return {
-    id: String(row.id ?? ''),
-    email: String(row.email ?? ''),
-    role: String(row.role ?? '') as Role,
-    invitedById: String(invitedById ?? ''),
-    inviterName: String(inviterName ?? ''),
-    expiresAt: String(expiresAt ?? ''),
-    createdAt: String(createdAt ?? ''),
+    id: toStringValue(row.id),
+    email: toStringValue(row.email),
+    role: toStringValue(row.role) as Role,
+    invitedById: toStringValue(invitedById),
+    inviterName: toStringValue(inviterName),
+    expiresAt: toStringValue(expiresAt),
+    createdAt: toStringValue(createdAt),
   }
 }
 
@@ -271,14 +271,14 @@ async function getByTokenSql(
   if (acceptedAt) return null
 
   const expiresAtValue = row.expiresAt ?? row.expires_at
-  if (expiresAtValue && new Date(String(expiresAtValue)) < new Date()) return null
+  if (expiresAtValue && new Date(toStringValue(expiresAtValue)) < new Date()) return null
 
   return {
-    id: String(row.id ?? ''),
-    accountId: String(row.accountId ?? row.account_id ?? ''),
-    email: String(row.email ?? ''),
-    role: String(row.role ?? '') as Role,
-    accountName: String(row.accountName ?? row.account_name ?? ''),
+    id: toStringValue(row.id),
+    accountId: toStringValue(row.accountId ?? row.account_id),
+    email: toStringValue(row.email),
+    role: toStringValue(row.role) as Role,
+    accountName: toStringValue(row.accountName ?? row.account_name),
   }
 }
 
@@ -298,8 +298,8 @@ async function acceptSql(
     throw new NotFoundError('Invitation')
   }
 
-  const accountId = String(invitation.accountId ?? invitation.account_id ?? '')
-  const role = String(invitation.role ?? '') as Role
+  const accountId = toStringValue(invitation.accountId ?? invitation.account_id)
+  const role = toStringValue(invitation.role) as Role
 
   await execute(
     db,

@@ -1,7 +1,7 @@
 // src/server/lib/audited-db.ts
 import type { ServiceContext } from '../types'
 import { logAudit, createChangeDiff } from './audit'
-import { execute, queryAll, type SqlParams } from '../db/sql'
+import { execute, queryAll, toStringValue, type SqlParams } from '../db/sql'
 
 /**
  * Base interface for auditable records - requires an id field
@@ -64,7 +64,7 @@ function normalizeRows(
     }
   }
 
-  const columns = Array.from(columnSet)
+  const columns = [...columnSet]
   if (columns.length === 0) {
     throw new Error('No columns provided for SQL operation')
   }
@@ -100,7 +100,7 @@ async function auditedInsertSql<TRecord extends AuditableRecord>(
   const results = await queryAll<Record<string, unknown>>(db, sql, params)
 
   for (const record of results) {
-    const entityId = String(record[options?.primaryKey ?? 'id'] ?? '')
+    const entityId = toStringValue(record[options?.primaryKey ?? 'id'])
     await logAudit(db, ctx, tableName, entityId, 'INSERT', record)
   }
 
@@ -133,7 +133,7 @@ async function auditedUpdateSql<TRecord extends AuditableRecord>(
   )
 
   const setClause = columns.map((column) => `${column} = ?`).join(', ')
-  const params = columns.map((column) => mappedValues[column]).concat(where.params ?? []) as SqlParams
+  const params = [...columns.map((column) => mappedValues[column]), ...(where.params ?? [])] as SqlParams
 
   let results: Record<string, unknown>[] = []
   try {
@@ -154,12 +154,12 @@ async function auditedUpdateSql<TRecord extends AuditableRecord>(
   const primaryKey = options?.primaryKey ?? 'id'
   const oldById = new Map<string, Record<string, unknown>>()
   for (const record of oldRecords) {
-    const id = String(record[primaryKey] ?? '')
+    const id = toStringValue(record[primaryKey])
     oldById.set(id, record)
   }
 
   for (const record of results) {
-    const entityId = String(record[primaryKey] ?? '')
+    const entityId = toStringValue(record[primaryKey])
     const oldData = oldById.get(entityId) ?? {}
     const diff = createChangeDiff(oldData, record)
     await logAudit(db, ctx, tableName, entityId, 'UPDATE', diff)
@@ -187,7 +187,7 @@ async function auditedDeleteSql(
     ...options?.softDeleteColumns,
   }
 
-  const setColumns: Array<[string, unknown]> = [
+  const setColumns: [string, unknown][] = [
     [columns.deletedAt, timestamp],
     [columns.deletedById, ctx.user.id],
     [columns.updatedAt, timestamp],
@@ -195,7 +195,7 @@ async function auditedDeleteSql(
   ]
 
   const setClause = setColumns.map(([column]) => `${column} = ?`).join(', ')
-  const params = setColumns.map(([, value]) => value).concat(where.params ?? []) as SqlParams
+  const params = [...setColumns.map(([, value]) => value), ...(where.params ?? [])] as SqlParams
 
   let results: Record<string, unknown>[] = []
   try {
@@ -215,7 +215,7 @@ async function auditedDeleteSql(
 
   const primaryKey = options?.primaryKey ?? 'id'
   for (const record of results) {
-    const entityId = String(record[primaryKey] ?? '')
+    const entityId = toStringValue(record[primaryKey])
     await logAudit(db, ctx, tableName, entityId, 'DELETE', { deleted: true })
   }
 }
