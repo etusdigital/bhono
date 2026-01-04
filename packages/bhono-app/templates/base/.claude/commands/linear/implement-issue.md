@@ -61,9 +61,14 @@ git pull origin develop
 # Create feature branch
 BRANCH_NAME="feat/$ARGUMENTS-short-description"  # Adjust type and description
 git checkout -b "$BRANCH_NAME"
+
+# Verify you're NOT on master/develop
+git branch --show-current  # Should show your feature branch
 ```
 
-**IMPORTANT**: Replace `short-description` with 2-4 words describing the work (lowercase, hyphenated).
+**IMPORTANT**:
+- Replace `short-description` with 2-4 words describing the work (lowercase, hyphenated)
+- **NEVER work directly on `master` or `develop`** - always create a feature branch
 
 ---
 
