@@ -26,7 +26,7 @@ function buildProgram(): Command {
   return new Command()
     .name('bhono-app')
     .description('Create a new project from the Etus boilerplate')
-    .version('0.1.0')
+    .version('0.1.2')
     .argument('<project-name>', 'Name of the project')
     .option('-d, --domain <domain>', 'Production domain')
     .option('-m, --modules <modules>', 'Comma-separated modules to include')

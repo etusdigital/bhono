@@ -80,10 +80,19 @@ async function copyTemplateDir(
   }
 
   const files = await fs.readdir(templateDir, { recursive: true })
+  const pathMap: Record<string, string> = {
+    _gitignore: '.gitignore',
+    _auth: '.auth',
+  }
 
   for (const file of files) {
-    const srcPath = path.join(templateDir, file.toString())
-    const destPath = path.join(targetDir, file.toString())
+    const relativePath = file.toString()
+    const mappedRelativePath = relativePath
+      .split(path.sep)
+      .map((segment) => pathMap[segment] ?? segment)
+      .join(path.sep)
+    const srcPath = path.join(templateDir, relativePath)
+    const destPath = path.join(targetDir, mappedRelativePath)
 
     const stat = await fs.stat(srcPath)
     if (stat.isDirectory()) {
