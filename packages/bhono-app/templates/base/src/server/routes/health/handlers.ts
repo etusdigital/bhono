@@ -1,16 +1,16 @@
 import type { Context } from 'hono'
 import type { HonoEnv } from '../../types'
-import { sql } from 'drizzle-orm'
+import { queryOne } from '../../db/sql'
 
 async function checkDatabase(c: Context<HonoEnv>): Promise<'up' | 'down'> {
   try {
-    const db = c.var.db
+    const db = c.env.DB
     if (!db) {
       return 'down'
     }
 
-    // Simple connectivity check using run() for D1
-    await db.run(sql`SELECT 1`)
+    // Simple connectivity check using D1
+    await queryOne(db, 'SELECT 1 AS ok')
     return 'up'
   } catch {
     return 'down'

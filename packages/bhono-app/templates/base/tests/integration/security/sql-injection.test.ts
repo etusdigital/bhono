@@ -2,18 +2,18 @@
  * SQL Injection Prevention Integration Tests
  *
  * Tests that the API properly prevents SQL injection attacks through:
- * - Parameterized queries via Drizzle ORM
+ * - Parameterized queries via SQL helpers
  * - Zod UUID validation for ID parameters
  * - Safe handling of user input in search queries
  *
- * Since the codebase uses Drizzle ORM with parameterized queries,
- * these tests should PASS - demonstrating that SQL injection protection
- * is already in place by default.
+ * Since the codebase uses parameterized SQL queries,
+ * these tests should PASS - demonstrating SQL injection protection
+ * is in place by default.
  */
 
 import { describe, it, expect, beforeAll } from 'vitest'
 import { Hono } from 'hono'
-import { getEnv, getSqlite, type TestEnv } from '../setup'
+import { getEnv, getDb, getSqlite, type TestEnv } from '../setup'
 import { createTestScenario } from '../fixtures'
 import type { HonoEnv } from '../../../src/server/types'
 import { api } from '../../../src/server/routes'
@@ -21,21 +21,10 @@ import { errorHandler } from '../../../src/server/middleware/error-handler'
 import { sessionMiddleware } from '../../../src/server/lib/session'
 
 /**
- * Creates a database wrapper that adds the `execute` method
- * The better-sqlite3 drizzle doesn't have execute, but D1 does
+ * Creates a D1-compatible database instance for tests
  */
 function createTestDb() {
-  const sqlite = getSqlite()
-  const { drizzle } = require('drizzle-orm/better-sqlite3')
-  const db = drizzle(sqlite)
-  return new Proxy(db, {
-    get(target, prop) {
-      if (prop === 'execute') {
-        return target.run.bind(target)
-      }
-      return (target as any)[prop]
-    },
-  })
+  return getDb()
 }
 
 describe('SQL Injection Prevention', () => {

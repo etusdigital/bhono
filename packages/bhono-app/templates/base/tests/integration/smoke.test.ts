@@ -55,10 +55,11 @@ describe('Integration Test Infrastructure', () => {
     })
   })
 
-  describe('Drizzle ORM', () => {
-    it('should have initialized Drizzle database instance', () => {
+  describe('D1 Database', () => {
+    it('should have initialized D1 database instance', () => {
       const db = getDb()
       expect(db).toBeDefined()
+      expect(typeof db.prepare).toBe('function')
     })
   })
 

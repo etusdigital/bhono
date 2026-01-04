@@ -4,7 +4,7 @@
 // Run with: npm run db:seed
 //
 // The generated SQL can be executed via wrangler:
-// npx wrangler d1 execute DB --local --file=seed.sql
+// pnpm db:seed:local
 
 import { generateStrongPassword } from '../lib/password'
 
@@ -243,7 +243,8 @@ function printSummary(): void {
   console.log('\n🔐 Sample Strong Password:', generateStrongPassword())
 
   console.log('\n✅ Run the following command to seed the local database:')
-  console.log('   npx wrangler d1 execute boilerplate-db --local --file=seed.sql\n')
+  console.log('   pnpm db:seed:local')
+  console.log('   # or: wrangler --config config/wrangler.json d1 execute <db-name> --local --file=seed.sql\n')
 }
 
 // ============================================================================

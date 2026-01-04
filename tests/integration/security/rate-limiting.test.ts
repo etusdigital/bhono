@@ -31,15 +31,7 @@ import {
  * Creates a database wrapper that adds the `execute` method
  */
 function createTestDb() {
-  const db = getDb()
-  return new Proxy(db, {
-    get(target, prop) {
-      if (prop === 'execute') {
-        return target.run.bind(target)
-      }
-      return (target as any)[prop]
-    },
-  })
+  return getDb()
 }
 
 describe('Rate Limiting', () => {

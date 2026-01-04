@@ -1,12 +1,10 @@
 // src/server/db/client.ts
-import { drizzle } from 'drizzle-orm/d1'
-import * as schema from './schema'
 
 export function createDb(d1: D1Database) {
-  return drizzle(d1, { schema })
+  return d1
 }
 
-export type Database = ReturnType<typeof createDb>
+export type Database = D1Database
 
 // For use in middleware - db instance per request
-export type DbInstance = Database
+export type DbInstance = D1Database

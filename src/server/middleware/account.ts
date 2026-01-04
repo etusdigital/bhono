@@ -1,10 +1,9 @@
 // src/middleware/account.ts
 import { createMiddleware } from 'hono/factory'
 import { HTTPException } from 'hono/http-exception'
-import { userAccounts } from '../db/schema'
-import { eq, and } from 'drizzle-orm'
 import type { HonoEnv } from '../types'
 import type { Role } from '../auth/roles'
+import { queryOne } from '../db/sql'
 
 export const accountMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
   // Check account-id header (required)
@@ -36,21 +35,15 @@ export const accountMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
 
   // Check user-account membership in database
   const db = c.get('db')
-  if (!db) {
+  const accountDb = c.env?.DB ?? db
+  if (!accountDb) {
     throw new HTTPException(500, { message: 'Database not initialized' })
   }
-  const membershipResults = await db
-    .select()
-    .from(userAccounts)
-    .where(
-      and(
-        eq(userAccounts.userId, user.id),
-        eq(userAccounts.accountId, accountId)
-      )
-    )
-    .limit(1)
-
-  const membership = membershipResults.at(0)
+  const membership = await queryOne<{ role: Role }>(
+    accountDb,
+    `SELECT role FROM user_accounts WHERE user_id = ? AND account_id = ? LIMIT 1`,
+    [user.id, accountId]
+  )
   if (!membership) {
     throw new HTTPException(403, {
       message: 'Forbidden: User does not have access to this account',

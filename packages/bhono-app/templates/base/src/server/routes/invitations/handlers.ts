@@ -32,26 +32,28 @@ export const createInvitationHandler: RouteHandler<typeof createInvitationRoute,
   const body = c.req.valid('json')
   const db = c.get('db')
   const env = c.env
+  const invitationsDb = env.DB ?? db
   const ctx = getServiceContext(c)
 
   if (!db) {
     throw new HTTPException(500, { message: 'Database not initialized' })
   }
 
-  const result = await invitationsService.create(db, env, ctx, body)
+  const result = await invitationsService.create(invitationsDb, env, ctx, body)
 
   return c.json(result, 200)
 }
 
 export const listInvitationsHandler: RouteHandler<typeof listInvitationsRoute, HonoEnv> = async (c) => {
   const db = c.get('db')
+  const invitationsDb = c.env.DB ?? db
   const ctx = getServiceContext(c)
 
   if (!db) {
     throw new HTTPException(500, { message: 'Database not initialized' })
   }
 
-  const invitations = await invitationsService.list(db, ctx)
+  const invitations = await invitationsService.list(invitationsDb, ctx)
 
   return c.json({ data: invitations }, 200)
 }
@@ -59,13 +61,14 @@ export const listInvitationsHandler: RouteHandler<typeof listInvitationsRoute, H
 export const revokeInvitationHandler: RouteHandler<typeof revokeInvitationRoute, HonoEnv> = async (c) => {
   const { id } = c.req.valid('param')
   const db = c.get('db')
+  const invitationsDb = c.env.DB ?? db
   const ctx = getServiceContext(c)
 
   if (!db) {
     throw new HTTPException(500, { message: 'Database not initialized' })
   }
 
-  await invitationsService.revoke(db, ctx, id)
+  await invitationsService.revoke(invitationsDb, ctx, id)
 
   return c.body(null, 204)
 }

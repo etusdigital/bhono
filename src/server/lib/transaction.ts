@@ -1,24 +1,18 @@
-import type { Database } from '../db/client'
-
-type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0]
+// src/server/lib/transaction.ts
 
 /**
- * Execute a callback within a database transaction.
- * - Callback succeeds → automatic commit
- * - Callback throws → automatic rollback
+ * Execute a callback within a database unit of work.
  *
- * @example
- * const result = await withTransaction(db, async (tx) => {
- *   const [account] = await tx.insert(accounts).values({ name: 'Acme' }).returning()
- *   const [user] = await tx.insert(users).values({ email: 'admin@acme.com' }).returning()
- *   return { account, user }
- * })
+ * Cloudflare D1 does not expose full transaction callbacks in the Worker runtime.
+ * This helper forwards the D1 database instance to the callback.
+ * If you need transactional guarantees, use explicit SQL (BEGIN/COMMIT) or
+ * D1 batch operations in the calling code.
  */
 export async function withTransaction<T>(
-  db: Database,
-  callback: (tx: Transaction) => Promise<T>
+  db: D1Database,
+  callback: (tx: D1Database) => Promise<T>
 ): Promise<T> {
-  return db.transaction(callback)
+  return callback(db)
 }
 
-export type { Transaction }
+export type Transaction = D1Database

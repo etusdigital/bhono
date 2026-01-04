@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+# Validate commit message format (Conventional Commits)
+pnpm exec commitlint --edit $1

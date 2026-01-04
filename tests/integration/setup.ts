@@ -10,12 +10,13 @@
  */
 
 import Database from 'better-sqlite3'
-import { drizzle } from 'drizzle-orm/better-sqlite3'
+import { readFileSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { vi, beforeAll, afterAll, beforeEach, afterEach } from 'vitest'
 import { Hono } from 'hono'
 import type { Env } from '../../src/server/env'
 import type { SessionData, HonoEnv } from '../../src/server/types'
-import * as schema from '../../src/server/db/schema'
 
 // ============================================================================
 // TYPES
@@ -50,90 +51,15 @@ export interface MockR2Store {
 // DATABASE SCHEMA SQL
 // ============================================================================
 
-const SCHEMA_SQL = `
--- Users table
-CREATE TABLE IF NOT EXISTS users (
-  id TEXT PRIMARY KEY,
-  google_id TEXT NOT NULL UNIQUE,
-  email TEXT NOT NULL,
-  name TEXT NOT NULL,
-  avatar_url TEXT,
-  status TEXT DEFAULT 'active' NOT NULL CHECK (status IN ('active', 'inactive')),
-  provider_ids TEXT DEFAULT '[]',
-  is_super_admin INTEGER DEFAULT 0 NOT NULL,
-  created_at TEXT DEFAULT (datetime('now')) NOT NULL,
-  updated_at TEXT DEFAULT (datetime('now')) NOT NULL,
-  deleted_at TEXT,
-  created_by_id TEXT REFERENCES users(id),
-  updated_by_id TEXT REFERENCES users(id),
-  deleted_by_id TEXT REFERENCES users(id)
-);
-
--- Accounts table
-CREATE TABLE IF NOT EXISTS accounts (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  description TEXT,
-  domain TEXT UNIQUE,
-  created_at TEXT DEFAULT (datetime('now')) NOT NULL,
-  updated_at TEXT DEFAULT (datetime('now')) NOT NULL,
-  deleted_at TEXT
-);
-
--- User-Accounts junction table
-CREATE TABLE IF NOT EXISTS user_accounts (
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
-  role TEXT NOT NULL CHECK (role IN ('ADMIN', 'MANAGER', 'EDITOR', 'AUTHOR', 'VIEWER', 'BILLING', 'ANALYTICS')),
-  PRIMARY KEY (user_id, account_id)
-);
-
--- Refresh tokens table
-CREATE TABLE IF NOT EXISTS refresh_tokens (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  token_hash TEXT NOT NULL,
-  expires_at INTEGER NOT NULL,
-  created_at INTEGER DEFAULT (unixepoch()) NOT NULL,
-  revoked_at INTEGER
-);
-
--- Invitations table
-CREATE TABLE IF NOT EXISTS invitations (
-  id TEXT PRIMARY KEY,
-  account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
-  email TEXT NOT NULL,
-  role TEXT NOT NULL CHECK (role IN ('ADMIN', 'MANAGER', 'EDITOR', 'AUTHOR', 'VIEWER', 'BILLING', 'ANALYTICS')),
-  token TEXT NOT NULL UNIQUE,
-  invited_by_id TEXT NOT NULL REFERENCES users(id),
-  expires_at TEXT NOT NULL,
-  accepted_at TEXT,
-  created_at TEXT DEFAULT (datetime('now')) NOT NULL
-);
-CREATE UNIQUE INDEX IF NOT EXISTS account_email_idx ON invitations(account_id, email);
-
--- Audit logs table
-CREATE TABLE IF NOT EXISTS audit_logs (
-  id TEXT PRIMARY KEY,
-  transaction_id TEXT NOT NULL,
-  account_id TEXT REFERENCES accounts(id),
-  user_id TEXT REFERENCES users(id),
-  entity TEXT NOT NULL,
-  entity_id TEXT NOT NULL,
-  action TEXT NOT NULL CHECK (action IN ('INSERT', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'SIGNUP', 'TOKEN_REFRESH', 'LOGIN_FAILED')),
-  changes TEXT,
-  ip_address TEXT,
-  user_agent TEXT,
-  timestamp TEXT DEFAULT (datetime('now')) NOT NULL
-);
-`
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+const SCHEMA_SQL = readFileSync(resolve(__dirname, '..', '..', 'schema.sql'), 'utf8')
 
 // ============================================================================
 // GLOBAL STATE
 // ============================================================================
 
 let sqliteDb: Database.Database | null = null
-let drizzleDb: ReturnType<typeof drizzle> | null = null
 let mockKV: MockKVStore | null = null
 let mockR2: MockR2Store | null = null
 let testEnv: TestEnv | null = null
@@ -144,8 +70,8 @@ let testEnv: TestEnv | null = null
 
 /**
  * Creates a D1-compatible wrapper around better-sqlite3
- * This allows Drizzle ORM to work with our in-memory SQLite database
- * as if it were a Cloudflare D1 database.
+ * This allows our test helpers to use a Cloudflare D1-like API
+ * against an in-memory SQLite database.
  */
 function createD1CompatibleWrapper(db: Database.Database): D1Database {
   return {
@@ -582,13 +508,14 @@ export function getEnv(): TestEnv {
 }
 
 /**
- * Get the Drizzle database instance
+ * Get the D1-compatible database instance
  */
-export function getDb(): ReturnType<typeof drizzle> {
-  if (!drizzleDb) {
+export function getDb(): D1Database {
+  const env = getEnv()
+  if (!env.DB) {
     throw new Error('Database not initialized. Make sure beforeAll has run.')
   }
-  return drizzleDb
+  return env.DB
 }
 
 /**
@@ -764,9 +691,6 @@ beforeAll(() => {
   // Create D1-compatible wrapper
   const d1Wrapper = createD1CompatibleWrapper(sqliteDb)
 
-  // Create Drizzle instance
-  drizzleDb = drizzle(sqliteDb, { schema })
-
   // Create mock stores
   mockKV = createMockKV()
   mockR2 = createMockR2()
@@ -797,7 +721,6 @@ afterAll(() => {
     sqliteDb = null
   }
 
-  drizzleDb = null
   mockKV = null
   mockR2 = null
   testEnv = null

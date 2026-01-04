@@ -52,7 +52,7 @@ This boilerplate provides everything you need to build a modern, secure, and sca
 - Rate limiting middleware (in-memory with lazy cleanup)
 - CSRF protection via SameSite cookies
 - XSS prevention with secure headers
-- SQL injection protection via Drizzle ORM
+- SQL injection protection via parameterized queries
 
 ### Testing
 - Unit tests with Vitest (94%+ coverage)
@@ -73,7 +73,7 @@ This boilerplate provides everything you need to build a modern, secure, and sca
 | **Backend** | Hono.js 4.6 |
 | **Frontend** | React 19 + TanStack Router |
 | **Database** | Cloudflare D1 (SQLite) |
-| **ORM** | Drizzle ORM |
+| **Data Access** | SQL helpers (D1) |
 | **Sessions** | Cloudflare KV |
 | **Storage** | Cloudflare R2 |
 | **Styling** | Tailwind CSS 4.0 |
@@ -105,11 +105,11 @@ pnpm install
 # Copy environment variables
 cp .env.example .env
 
-# Apply database migrations
-pnpm db:migrate:local
+# Apply database schema
+pnpm db:schema:local
 
 # Seed test data (optional)
-pnpm db:seed
+pnpm db:seed:local
 
 # Start development server
 pnpm dev
@@ -152,7 +152,6 @@ LOG_LEVEL=info
 ├── config/                     # Configuration files
 │   ├── eslint.config.js        # ESLint configuration
 │   ├── wrangler.json           # Cloudflare Workers config
-│   ├── drizzle.config.ts       # Drizzle ORM config
 │   └── ...
 │
 ├── src/
@@ -166,8 +165,11 @@ LOG_LEVEL=info
 │   │   │   └── storage/        # File storage (R2)
 │   │   ├── services/           # Business logic
 │   │   ├── middleware/         # Request middleware
-│   │   ├── db/                 # Database (Drizzle ORM)
-│   │   │   └── schema/         # Table definitions
+│   │   ├── db/                 # Database (SQL helpers)
+│   │   │   ├── client.ts       # D1 client wrapper
+│   │   │   ├── records.ts      # Record typings (SQL results)
+│   │   │   ├── sql.ts          # Query helpers (queryOne/queryAll/execute)
+│   │   │   └── seed.ts         # Seed generator (seed.sql)
 │   │   ├── auth/               # Roles, permissions, guards
 │   │   └── lib/                # Utilities
 │   │
@@ -209,7 +211,8 @@ LOG_LEVEL=info
 ├── docs/                       # Documentation
 │   └── testing.md              # Testing guide
 │
-└── migrations/                 # D1 SQL migrations
+├── schema.sql                  # D1 schema (source of truth)
+└── seed.sql                    # Generated seed data
 ```
 
 ---
@@ -302,14 +305,20 @@ invitations (
 )
 ```
 
-### Migrations
+### Database Schema
 
 ```bash
-# Apply migrations locally
-pnpm db:migrate:local
+# Apply schema.sql locally
+pnpm db:schema:local
 
-# Apply migrations to production
-pnpm db:migrate:remote
+# Apply schema.sql to production (optional)
+pnpm db:schema:remote
+
+# Generate + seed locally
+pnpm db:seed:local
+
+# Full reset (schema + seed)
+pnpm db:reset:local
 
 # Generate Cloudflare types
 pnpm cf-typegen
@@ -558,7 +567,7 @@ Client (React SPA)
 │              │                    │
 │              ▼                    │
 │  ┌─────────────────────────────┐  │
-│  │      Drizzle ORM            │  │
+│  │      SQL Helpers            │  │
 │  └─────────────────────────────┘  │
 │              │                    │
 └──────────────┼────────────────────┘
@@ -588,9 +597,11 @@ import { createUser } from '@server/services/users'  // Server
 | `pnpm lint` | Run ESLint |
 | `pnpm typecheck` | Run TypeScript checks |
 | **Database** | |
-| `pnpm db:migrate:local` | Apply local migrations |
-| `pnpm db:migrate:remote` | Apply remote migrations |
-| `pnpm db:seed` | Seed database |
+| `pnpm db:schema:local` | Apply schema.sql locally |
+| `pnpm db:schema:remote` | Apply schema.sql remotely |
+| `pnpm db:seed` | Generate seed.sql |
+| `pnpm db:seed:local` | Generate + seed locally |
+| `pnpm db:reset:local` | Apply schema + seed locally |
 | `pnpm cf-typegen` | Generate Cloudflare types |
 | **API** | |
 | `pnpm api:spec` | Generate OpenAPI spec (docs/openapi.json) |
@@ -616,7 +627,7 @@ import { createUser } from '@server/services/users'  // Server
 - **CSRF**: SameSite cookies + CORS validation
 - **XSS**: Secure headers + React's built-in escaping
 - **Session Hijacking**: httpOnly cookies, secure flag in production
-- **SQL Injection**: Parameterized queries via Drizzle ORM
+- **SQL Injection**: Parameterized queries via SQL helpers
 - **Rate Limiting**: In-memory store with configurable limits per route
 - **Fingerprint Validation**: User-agent validation for sessions
 
@@ -665,7 +676,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 ## Acknowledgments
 
 - [Hono.js](https://hono.dev/) - Ultrafast web framework
-- [Drizzle ORM](https://orm.drizzle.team/) - TypeScript ORM
+- [Cloudflare D1](https://developers.cloudflare.com/d1/) - Serverless SQLite
 - [TanStack Router](https://tanstack.com/router) - Type-safe routing
 - [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS
 - [Cloudflare Workers](https://workers.cloudflare.com/) - Edge computing platform

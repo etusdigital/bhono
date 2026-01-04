@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+# Lint and format staged files only
+pnpm exec lint-staged

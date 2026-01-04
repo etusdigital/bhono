@@ -1,7 +1,7 @@
 # Data Requirements Document (DRD)
 
 ## 1. Objetivo e escopo
-Este documento define os requisitos de dados do projeto, cobrindo o modelo relacional (D1/SQLite), armazenamento de sessao (KV) e objetos (R2). Serve como referencia para manutencao, auditoria e eventual migracao para SQL puro.
+Este documento define os requisitos de dados do projeto, cobrindo o modelo relacional (D1/SQLite), armazenamento de sessao (KV) e objetos (R2). Serve como referencia para manutencao, auditoria e evolucao do SQL puro.
 
 ## 2. Componentes de armazenamento
 - D1 (SQLite): armazenamento relacional principal.
@@ -102,8 +102,9 @@ Principais entidades:
 - Requisito: manter procedimento de backup/restore do D1 (ex.: exportacao periodica) e verificar restauracao.
 - KV e R2 devem ter estrategia de recuperacao alinhada com RPO/RTO desejados.
 
-## 12. Consideracoes para migracao para SQL puro
+## 12. Consideracoes para SQL puro (sem migrations)
 - Todas as queries devem ser parametrizadas para evitar SQL injection.
 - Manter mapeadores de resultado (ex.: validacao via Zod) para preservar contratos tipados.
 - Centralizar SQL em um modulo `db` e reutilizar modelos do ERD.
-- Implementar migracoes em SQL (ou manter ferramenta atual apenas para migrar schema).
+- `schema.sql` e a fonte de verdade do schema e deve ser aplicado via `wrangler d1 execute`.
+- `seed.sql` e gerado a partir de `src/server/db/seed.ts` e aplicado apos o bootstrap quando necessario.

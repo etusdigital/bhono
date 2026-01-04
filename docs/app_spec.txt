@@ -42,12 +42,12 @@
 
     <backend>
       <framework>Hono.js 4.6</framework>
-      <orm>Drizzle ORM</orm>
+      <orm>SQL (D1/SQLite)</orm>
       <validation>Zod</validation>
       <documentation>OpenAPI 3.0 / Swagger UI</documentation>
       <description>
         Type-safe API development with automatic schema generation.
-        Drizzle provides compile-time SQL safety with SQLite dialect.
+        SQL-first access with Cloudflare D1 (SQLite under the hood).
         OpenAPI spec and TypeScript types can be generated locally (api:spec, api:types).
       </description>
     </backend>
@@ -120,7 +120,7 @@
         → Fetch API
         → Hono Routes
         → Services
-        → Drizzle ORM
+        → SQL (D1/SQLite)
         → D1 Database
     </data_flow>
   </architecture>
@@ -769,9 +769,11 @@
       npm run build            # Build for production
       npm run deploy           # Deploy to Cloudflare Workers
 
-      npm run db:migrate:local   # Apply migrations locally
-      npm run db:migrate:remote  # Apply migrations to production
-      npm run db:seed            # Seed test data
+      npm run db:schema:local    # Apply schema.sql locally
+      npm run db:schema:remote   # Apply schema.sql to production (optional)
+      npm run db:seed            # Generate seed.sql
+      npm run db:seed:local      # Generate + seed locally
+      npm run db:reset:local     # Apply schema.sql + seed (local)
 
       npm run test:unit:server   # Backend unit tests
       npm run test:unit:client   # Frontend tests
@@ -813,8 +815,8 @@
     │   ├── services/               # Business logic
     │   ├── middleware/             # Auth, CORS, logging
     │   ├── db/
-    │   │   ├── schema/             # Drizzle table definitions
-    │   │   └── migrations/         # SQL migrations
+    │   │   ├── records.ts          # DB record types for SQL mapping
+    │   │   └── seed.ts             # Seed generator (outputs seed.sql)
     │   ├── lib/                    # Utilities
     │   └── auth/                   # RBAC guards
     │
@@ -836,11 +838,12 @@
   <key_files>
     src/server/index.ts              # Hono app entry
     src/server/routes/index.ts       # API router
-    src/server/db/schema/            # Database schema
+    src/server/db/records.ts         # Database record types
     src/client/routes/__root.tsx     # React app root
     src/client/routes/_authenticated.tsx  # Auth layout
     wrangler.json                    # Cloudflare config
-    drizzle.config.ts                # Drizzle ORM config
+    schema.sql                        # SQL schema (source of truth)
+    seed.sql                          # Generated seed data (output)
     playwright.config.ts             # E2E test config
     vitest.config.ts                 # Unit test config
   </key_files>

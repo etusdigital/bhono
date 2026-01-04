@@ -5,7 +5,7 @@ Production-ready multi-tenant SaaS boilerplate with Hono.js backend and React fr
 ## Tech Stack
 
 - **Runtime**: Cloudflare Workers (D1 database, KV sessions, R2 storage)
-- **Backend**: Hono.js 4.6 + Drizzle ORM + Zod validation
+- **Backend**: Hono.js 4.6 + SQL (D1) + Zod validation
 - **Frontend**: React 19 + TanStack Router + Tailwind CSS 4.0
 - **Testing**: Vitest (unit/integration) + Playwright (E2E)
 - **Auth**: Google OAuth 2.0 with session-based cookies
@@ -33,7 +33,7 @@ Production-ready multi-tenant SaaS boilerplate with Hono.js backend and React fr
 │   │   │   └── health/         # Health check
 │   │   ├── services/           # Business logic layer
 │   │   ├── middleware/         # Auth, CORS, logging, rate-limit
-│   │   ├── db/schema/          # Drizzle table definitions
+│   │   ├── db/records.ts       # DB record types for SQL mapping
 │   │   ├── lib/                # Utilities (oauth, session, tokens)
 │   │   └── auth/               # Roles, permissions, guards
 │   │
@@ -213,6 +213,6 @@ Defined in `config/wrangler.json`:
 
 ### Database Changes
 
-1. Modify schema in `src/server/db/schema/`
-2. Run `pnpm drizzle-kit generate` to create migration
-3. Apply with `pnpm db:migrate:local`
+1. Update `schema.sql`
+2. Apply with `pnpm db:schema:local`
+3. (Optional) Seed with `pnpm db:seed:local`
