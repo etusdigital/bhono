@@ -24,11 +24,12 @@
           "map dependencies",
           "generate diagram",
           "system diagram",
+          "system design",
           "component diagram",
           "architecture documentation"
         ],
         "intentPatterns": [
-          "(analyze|review|assess).*?architecture",
+          "(analyze|review|assess).*?(architecture|system design)",
           "(generate|create|build).*?(C4|ERD|diagram|documentation)",
           "(map|visualize).*?dependenc",
           "(document|analyze).*?codebase",
@@ -90,13 +91,15 @@
           "issue label",
           "create issue",
           "list issues",
+          "filter issues",
           "linear workflow"
         ],
         "intentPatterns": [
-          "(list|filter|get).*?linear.*?(issue|team|project)",
+          "(list|filter|get).*?(linear.*?)?(issue|team|project)",
           "(create|update|archive).*?issue",
           "(manage|change).*?(status|priority|label|assignment)",
-          "(add|view).*?comment"
+          "(add|view).*?comment",
+          "filter.*?(issue|by label)"
         ]
       }
     },
@@ -119,14 +122,17 @@
           "playwright selector",
           "getByRole",
           "getByText",
-          "toBeVisible"
+          "toBeVisible",
+          "test:e2e",
+          "e2e test"
         ],
         "intentPatterns": [
           "(write|create|add).*?playwright.*?test",
           "(debug|fix).*?playwright",
           "playwright.*(oauth|authentication|login)",
           "playwright.*(api|visual|snapshot)",
-          "(optimize|improve).*?playwright"
+          "(optimize|improve).*?playwright",
+          "(run|execute).*?(e2e|playwright)"
         ]
       },
       "toolGuards": [
@@ -197,11 +203,16 @@
           "check if it works",
           "make sure it works",
           "test it",
-          "run tests"
+          "run tests",
+          "doesn't break",
+          "before pushing",
+          "before creating PR"
         ],
         "intentPatterns": [
-          "(verify|confirm|check).*?(work|pass|succeed)",
-          "(make sure|ensure).*?(work|pass|build)"
+          "(verify|confirm|check).*?(work|pass|succeed|build)",
+          "(make sure|ensure).*?(work|pass|build|doesn't break)",
+          "(check|verify).*?(that|if).*?(build|test|lint)",
+          "before.*(push|commit|PR|pull request)"
         ]
       },
       "toolGuards": [
@@ -223,11 +234,17 @@
           "design",
           "plan feature",
           "new feature",
-          "build feature"
+          "build feature",
+          "implement feature",
+          "implementar",
+          "implemente",
+          "architect"
         ],
         "intentPatterns": [
-          "(create|build|implement|add).*?(feature|component|module|service)",
-          "(design|plan|architect).*?(system|feature|solution)"
+          "(create|build|implement|add).*?(feature|component|module|service|support|page)",
+          "(design|plan|architect).*?(system|feature|solution|microservice)",
+          "implement.*?(with|the|a|user|oauth|authentication)",
+          "add.*?(multi-tenant|support|feature)"
         ]
       },
       "toolGuards": [
@@ -250,12 +267,17 @@
           "not working",
           "broken",
           "error",
-          "failing"
+          "failing",
+          "investigate",
+          "crash",
+          "review gap",
+          "review-gap"
         ],
         "intentPatterns": [
           "(fix|debug|solve).*?(bug|error|issue|problem)",
           "(why|what).*?(not working|broken|failing|error)",
-          "(investigate|diagnose).*?(issue|problem|error)"
+          "(investigate|diagnose).*?(issue|problem|error|crash)",
+          "investigate.*?(the|this|a)"
         ]
       }
     },
