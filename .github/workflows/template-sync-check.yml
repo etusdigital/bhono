@@ -1,0 +1,38 @@
+name: Template Sync Check
+
+on:
+  pull_request:
+    branches: [master, main, develop]
+  push:
+    branches: [master, main, develop]
+
+jobs:
+  check-sync:
+    name: Verify Template is Synced
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run sync script
+        run: ./scripts/sync-template.sh
+
+      - name: Check for differences
+        run: |
+          if [ -n "$(git status --porcelain packages/bhono-app/templates/)" ]; then
+            echo "::error::Template is out of sync with boilerplate!"
+            echo ""
+            echo "The following files differ:"
+            git status --porcelain packages/bhono-app/templates/
+            echo ""
+            echo "Run 'pnpm sync:template' locally and commit the changes."
+            exit 1
+          else
+            echo "Template is in sync with boilerplate."
+          fi

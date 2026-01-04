@@ -167,6 +167,20 @@ describe('Auth Routes', () => {
       expect(body).toContain('Invalid state parameter')
     })
 
+    it('returns 400 when oauth_state cookie is invalid JSON', async () => {
+      const app = createApp()
+      const res = await app.request('/auth/callback?code=test-code&state=test-state', {
+        method: 'GET',
+        headers: {
+          Cookie: 'oauth_state=invalid-json-string',
+        },
+      })
+
+      expect(res.status).toBe(400)
+      const body = await res.text()
+      expect(body).toContain('Invalid OAuth state cookie')
+    })
+
     it('creates session on successful callback', async () => {
       const testUser = createUserFixture({ id: 'user-123', email: 'test@example.com' })
 
@@ -206,6 +220,103 @@ describe('Auth Routes', () => {
 
       expect(res.status).toBe(302)
       expect(res.headers.get('Location')).toContain('/dashboard')
+    })
+
+    it('accepts pending invitation during callback', async () => {
+      const testUser = createUserFixture({ id: 'user-123', email: 'test@example.com' })
+
+      vi.mocked(exchangeCodeForTokens).mockResolvedValue({
+        access_token: 'test-access-token',
+        id_token: 'test-id-token',
+        refresh_token: 'test-refresh-token',
+        expires_in: 3600,
+        token_type: 'Bearer',
+      })
+
+      vi.mocked(decodeIdToken).mockReturnValue({
+        sub: 'google-123',
+        email: 'test@example.com',
+        name: 'Test User',
+        picture: 'https://example.com/avatar.jpg',
+        email_verified: true,
+      })
+
+      vi.mocked(authService.findOrCreateUser).mockResolvedValue({
+        user: testUser,
+        isNew: false,
+      })
+
+      vi.mocked(invitationsService.getByToken).mockResolvedValue({
+        id: 'invite-123',
+        token: 'valid-invite-token',
+        email: 'test@example.com',
+        role: 'VIEWER',
+        accountId: 'account-1',
+        status: 'pending',
+        expiresAt: new Date(Date.now() + 86400000).toISOString(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+
+      vi.mocked(invitationsService.accept).mockResolvedValue()
+
+      const app = createApp()
+      const res = await app.request('/auth/callback?code=test-code&state=test-state', {
+        method: 'GET',
+        headers: {
+          Cookie: 'oauth_state=' + encodeURIComponent(JSON.stringify({
+            codeVerifier: 'test-verifier',
+            state: 'test-state',
+            redirect: null,
+          })) + '; pending_invitation=valid-invite-token',
+        },
+        redirect: 'manual',
+      })
+
+      expect(res.status).toBe(302)
+      expect(invitationsService.getByToken).toHaveBeenCalledWith(expect.anything(), 'valid-invite-token')
+      expect(invitationsService.accept).toHaveBeenCalled()
+    })
+
+    it('uses custom redirect from oauth state', async () => {
+      const testUser = createUserFixture({ id: 'user-123', email: 'test@example.com' })
+
+      vi.mocked(exchangeCodeForTokens).mockResolvedValue({
+        access_token: 'test-access-token',
+        id_token: 'test-id-token',
+        refresh_token: 'test-refresh-token',
+        expires_in: 3600,
+        token_type: 'Bearer',
+      })
+
+      vi.mocked(decodeIdToken).mockReturnValue({
+        sub: 'google-123',
+        email: 'test@example.com',
+        name: 'Test User',
+        picture: 'https://example.com/avatar.jpg',
+        email_verified: true,
+      })
+
+      vi.mocked(authService.findOrCreateUser).mockResolvedValue({
+        user: testUser,
+        isNew: false,
+      })
+
+      const app = createApp()
+      const res = await app.request('/auth/callback?code=test-code&state=test-state', {
+        method: 'GET',
+        headers: {
+          Cookie: 'oauth_state=' + encodeURIComponent(JSON.stringify({
+            codeVerifier: 'test-verifier',
+            state: 'test-state',
+            redirect: '/settings',
+          })),
+        },
+        redirect: 'manual',
+      })
+
+      expect(res.status).toBe(302)
+      expect(res.headers.get('Location')).toContain('/settings')
     })
   })
 

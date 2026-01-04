@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { Hono } from 'hono'
-import { requireRole, requirePermission } from '@server/guards'
+import { requireRole, requirePermission } from '@server/auth/guards'
 import type { HonoEnv } from '@server/types'
 
 describe('guards', () => {

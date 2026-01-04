@@ -4,7 +4,7 @@ import { auditedInsert, auditedUpdate, auditedDelete } from '../lib/audited-db'
 import { createPaginationMeta, calculateOffset } from '../lib/pagination'
 import { NotFoundError, ConflictError, ForbiddenError } from '../lib/errors'
 import type { ServiceContext, PaginationQuery, PaginatedResponse, Account } from '../types'
-import { queryAll, queryOne, type SqlRow } from '../db/sql'
+import { queryAll, queryOne, toStringValue, toNullableString, type SqlRow, type SqlParams } from '../db/sql'
 
 interface CreateAccountInput {
   name: string
@@ -36,13 +36,13 @@ function mapAccountRow(row: SqlRow): AccountRecord {
   const deletedAt = row.deletedAt ?? row.deleted_at
 
   return {
-    id: String(row.id ?? ''),
-    name: String(row.name ?? ''),
-    description: row.description ? String(row.description) : null,
-    domain: row.domain ? String(row.domain) : null,
-    createdAt: String(createdAt ?? ''),
-    updatedAt: String(updatedAt ?? ''),
-    deletedAt: deletedAt ? String(deletedAt) : null,
+    id: toStringValue(row.id),
+    name: toStringValue(row.name),
+    description: toNullableString(row.description),
+    domain: toNullableString(row.domain),
+    createdAt: toStringValue(createdAt),
+    updatedAt: toStringValue(updatedAt),
+    deletedAt: toNullableString(deletedAt),
   }
 }
 
@@ -65,7 +65,7 @@ async function findAllSql(
 ): Promise<PaginatedResponse<Account>> {
   const offset = calculateOffset(pagination.page, pagination.limit)
   const whereClauses: string[] = ['a.deleted_at IS NULL']
-  const params: unknown[] = []
+  const params: SqlParams = []
 
   if (!ctx.user.isSuperAdmin) {
     whereClauses.push('a.id IN (SELECT account_id FROM user_accounts WHERE user_id = ?)')

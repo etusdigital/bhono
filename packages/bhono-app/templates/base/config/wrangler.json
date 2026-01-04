@@ -1,31 +1,30 @@
 {
   "$schema": "../node_modules/wrangler/config-schema.json",
-  "name": "{{projectName}}",
+  "name": "hono-boilerplate",
+  "account_id": "10ca68c044521baa536840a17160933b",
   "main": "../src/server/index.ts",
   "compatibility_date": "2025-01-01",
-  "compatibility_flags": [
-    "nodejs_compat"
-  ],
+  "compatibility_flags": ["nodejs_compat"],
   "dev": {
     "port": 3000
   },
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "{{projectName}}-db",
-      "database_id": "TO_BE_PROVISIONED"
+      "database_name": "boilerplate-db",
+      "database_id": "a9de77f8-3189-41d9-84dd-a38d3c9c27bd"
     }
   ],
   "r2_buckets": [
     {
       "binding": "R2_BUCKET",
-      "bucket_name": "{{projectName}}-storage"
+      "bucket_name": "boilerplate-storage"
     }
   ],
   "kv_namespaces": [
     {
       "binding": "SESSIONS",
-      "id": "TO_BE_PROVISIONED"
+      "id": "3dea2b79495f490ca088a18c6bab6b38"
     }
   ],
   "assets": {
@@ -39,36 +38,36 @@
   },
   "vars": {
     "ENVIRONMENT": "production",
-    "APP_URL": "https://{{projectName}}.a3s.workers.dev",
-    "GOOGLE_REDIRECT_URI": "https://{{projectName}}.a3s.workers.dev/auth/callback",
+    "APP_URL": "https://hono-boilerplate.a3s.workers.dev",
+    "GOOGLE_REDIRECT_URI": "https://hono-boilerplate.a3s.workers.dev/auth/callback",
     "R2_PUBLIC_URL": "https://pub-your-bucket-id.r2.dev"
   },
   "env": {
     "staging": {
-      "name": "{{projectName}}-staging",
+      "name": "hono-boilerplate-staging",
       "d1_databases": [
         {
           "binding": "DB",
-          "database_name": "{{projectName}}-db-staging",
-          "database_id": "TO_BE_PROVISIONED"
+          "database_name": "boilerplate-db-staging",
+          "database_id": "2fe5e1b5-8168-4024-9060-be7972380228"
         }
       ],
       "kv_namespaces": [
         {
           "binding": "SESSIONS",
-          "id": "TO_BE_PROVISIONED"
+          "id": "c341542f0efd466a93b65e6cadf1f9ba"
         }
       ],
       "r2_buckets": [
         {
           "binding": "R2_BUCKET",
-          "bucket_name": "{{projectName}}-storage-staging"
+          "bucket_name": "boilerplate-storage-staging"
         }
       ],
       "vars": {
         "ENVIRONMENT": "staging",
-        "APP_URL": "https://{{projectName}}-staging.a3s.workers.dev",
-        "GOOGLE_REDIRECT_URI": "https://{{projectName}}-staging.a3s.workers.dev/auth/callback",
+        "APP_URL": "https://hono-boilerplate-staging.a3s.workers.dev",
+        "GOOGLE_REDIRECT_URI": "https://hono-boilerplate-staging.a3s.workers.dev/auth/callback",
         "R2_PUBLIC_URL": "https://pub-your-bucket-id.r2.dev"
       }
     }

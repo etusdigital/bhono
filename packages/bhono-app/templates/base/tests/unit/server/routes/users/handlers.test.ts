@@ -7,9 +7,9 @@ import { createMockEnv } from '@tests/helpers/server'
 import {
   createUserFixture,
   createAccountFixture,
-  createDeletedUserFixture,
 } from '@tests/fixtures/server'
 import { NotFoundError } from '@server/lib/errors'
+import type { Role } from '@server/auth/roles'
 
 // Test UUIDs
 const TEST_USER_ID = '550e8400-e29b-41d4-a716-446655440001'
@@ -33,7 +33,6 @@ vi.mock('@server/services', () => ({
 import { usersService } from '@server/services'
 
 describe('Users Routes', () => {
-  let app: Hono<HonoEnv>
   let mockEnv: ReturnType<typeof createMockEnv>
   let mockDb: any
   let testUser: ReturnType<typeof createUserFixture>
@@ -60,12 +59,10 @@ describe('Users Routes', () => {
       delete: vi.fn().mockReturnThis(),
       execute: vi.fn().mockResolvedValue({ rows: [] }),
     }
-
-    app = new Hono<HonoEnv>()
   })
 
   // Helper to setup authenticated app with specific role
-  function setupAuthenticatedApp(userRole = 'VIEWER', isSuperAdmin = false) {
+  function setupAuthenticatedApp(userRole: Role = 'VIEWER', isSuperAdmin = false) {
     const authenticatedApp = new Hono<HonoEnv>()
 
     authenticatedApp.use('*', async (c, next) => {
@@ -523,4 +520,71 @@ describe('Users Routes', () => {
   // with body may not work correctly in the Hono test environment.
   // This endpoint is tested via E2E tests instead.
   // Role-based access control is tested via the requireRole middleware.
+
+  describe('Missing context error handling', () => {
+    it('GET /users/:id throws when context is missing', async () => {
+      const unauthApp = setupUnauthenticatedApp()
+
+      const res = await unauthApp.request(`/users/${TEST_USER_ID}`, {
+        method: 'GET',
+      })
+
+      expect(res.status).toBe(500)
+      expect(usersService.findById).not.toHaveBeenCalled()
+    })
+
+    it('PATCH /users/:id returns 401 when not authenticated', async () => {
+      const unauthApp = setupUnauthenticatedApp()
+
+      const res = await unauthApp.request(`/users/${TEST_USER_ID}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: 'Updated' }),
+      })
+
+      expect(res.status).toBe(401)
+      expect(usersService.update).not.toHaveBeenCalled()
+    })
+
+    it('DELETE /users/:id returns 401 when not authenticated', async () => {
+      const unauthApp = setupUnauthenticatedApp()
+
+      const res = await unauthApp.request(`/users/${TEST_USER_ID}`, {
+        method: 'DELETE',
+      })
+
+      expect(res.status).toBe(401)
+      expect(usersService.delete).not.toHaveBeenCalled()
+    })
+
+    it('POST /users/:id/restore returns 401 when not authenticated', async () => {
+      const unauthApp = setupUnauthenticatedApp()
+
+      const res = await unauthApp.request(`/users/${TEST_USER_ID}/restore`, {
+        method: 'POST',
+      })
+
+      expect(res.status).toBe(401)
+      expect(usersService.restore).not.toHaveBeenCalled()
+    })
+
+    it('POST /users/accounts returns 401 when not authenticated', async () => {
+      const unauthApp = setupUnauthenticatedApp()
+
+      const res = await unauthApp.request('/users/accounts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify([
+          { userId: TEST_USER_ID, accountId: TEST_ACCOUNT_ID, role: 'VIEWER' },
+        ]),
+      })
+
+      expect(res.status).toBe(401)
+      expect(usersService.createUserAccounts).not.toHaveBeenCalled()
+    })
+  })
 })

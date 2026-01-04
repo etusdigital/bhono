@@ -32,10 +32,10 @@ export const createInvitationHandler: RouteHandler<typeof createInvitationRoute,
   const body = c.req.valid('json')
   const db = c.get('db')
   const env = c.env
-  const invitationsDb = env.DB ?? db
   const ctx = getServiceContext(c)
 
-  if (!db) {
+  const invitationsDb = env.DB ?? db
+  if (!invitationsDb) {
     throw new HTTPException(500, { message: 'Database not initialized' })
   }
 
@@ -46,10 +46,10 @@ export const createInvitationHandler: RouteHandler<typeof createInvitationRoute,
 
 export const listInvitationsHandler: RouteHandler<typeof listInvitationsRoute, HonoEnv> = async (c) => {
   const db = c.get('db')
-  const invitationsDb = c.env.DB ?? db
   const ctx = getServiceContext(c)
 
-  if (!db) {
+  const invitationsDb = c.env.DB ?? db
+  if (!invitationsDb) {
     throw new HTTPException(500, { message: 'Database not initialized' })
   }
 
@@ -61,10 +61,10 @@ export const listInvitationsHandler: RouteHandler<typeof listInvitationsRoute, H
 export const revokeInvitationHandler: RouteHandler<typeof revokeInvitationRoute, HonoEnv> = async (c) => {
   const { id } = c.req.valid('param')
   const db = c.get('db')
-  const invitationsDb = c.env.DB ?? db
   const ctx = getServiceContext(c)
 
-  if (!db) {
+  const invitationsDb = c.env.DB ?? db
+  if (!invitationsDb) {
     throw new HTTPException(500, { message: 'Database not initialized' })
   }
 

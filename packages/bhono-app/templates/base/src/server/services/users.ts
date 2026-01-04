@@ -6,7 +6,7 @@ import { createPaginationMeta, calculateOffset } from '../lib/pagination'
 import { NotFoundError } from '../lib/errors'
 import type { ServiceContext, PaginationQuery, PaginatedResponse, User } from '../types'
 import type { Role } from '../auth/roles'
-import { execute, queryAll, queryOne, type SqlRow } from '../db/sql'
+import { execute, queryAll, queryOne, toStringValue, toNullableString, type SqlRow, type SqlParams } from '../db/sql'
 
 // NOTE: CreateUserInput is commented out since user creation is disabled
 // (users should only be created through Google OAuth)
@@ -65,17 +65,17 @@ function mapUserRow(row: SqlRow): UserRecord {
   const deletedAt = row.deletedAt ?? row.deleted_at
 
   return {
-    id: String(row.id ?? ''),
-    googleId: String(googleId ?? ''),
-    email: String(row.email ?? ''),
-    name: String(row.name ?? ''),
-    avatarUrl: avatarUrl ? String(avatarUrl) : null,
+    id: toStringValue(row.id),
+    googleId: toStringValue(googleId),
+    email: toStringValue(row.email),
+    name: toStringValue(row.name),
+    avatarUrl: toNullableString(avatarUrl),
     status: row.status === 'inactive' ? 'inactive' : 'active',
     providerIds: parseProviderIds(providerIds),
     isSuperAdmin: toBoolean(isSuperAdmin),
-    createdAt: String(createdAt ?? ''),
-    updatedAt: String(updatedAt ?? ''),
-    deletedAt: deletedAt ? String(deletedAt) : null,
+    createdAt: toStringValue(createdAt),
+    updatedAt: toStringValue(updatedAt),
+    deletedAt: toNullableString(deletedAt),
   }
 }
 
@@ -85,7 +85,7 @@ function toUser(record: UserRecord): User {
     email: record.email,
     name: record.name,
     status: record.status,
-    providerIds: record.providerIds ?? [],
+    providerIds: record.providerIds,
     isSuperAdmin: record.isSuperAdmin,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
@@ -100,7 +100,7 @@ async function findAllSql(
 ): Promise<PaginatedResponse<User>> {
   const offset = calculateOffset(pagination.page, pagination.limit)
   const whereClauses: string[] = ['u.deleted_at IS NULL']
-  const params: unknown[] = []
+  const params: SqlParams = []
 
   if (!ctx.user.isSuperAdmin) {
     whereClauses.push('u.id IN (SELECT user_id FROM user_accounts WHERE account_id = ?)')
@@ -252,8 +252,8 @@ async function listRolesSql(
   )
 
   return rows.map((row) => ({
-    accountId: String(row.accountId ?? row.account_id ?? ''),
-    role: String(row.role ?? '') as Role,
+    accountId: toStringValue(row.accountId ?? row.account_id),
+    role: toStringValue(row.role) as Role,
   }))
 }
 

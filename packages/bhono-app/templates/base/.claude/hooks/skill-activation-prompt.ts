@@ -42,12 +42,6 @@ async function main() {
         // Read input from stdin
         const input = readFileSync(0, 'utf-8');
         const data: HookInput = JSON.parse(input);
-
-        // Handle missing or empty prompt
-        if (!data.prompt) {
-            process.exit(0);
-        }
-
         const prompt = data.prompt.toLowerCase();
 
         // Load skill rules
