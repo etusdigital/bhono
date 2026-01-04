@@ -20,6 +20,9 @@ UPDATE_PACKAGES=0
 SKIP_DEV=0
 SKIP_PROVISION=0
 SKIP_SEED=0
+DEV_PORT=""
+GOOGLE_CLIENT_ID_ARG=""
+GOOGLE_CLIENT_SECRET_ARG=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -35,12 +38,60 @@ while [[ $# -gt 0 ]]; do
     --skip-seed)
       SKIP_SEED=1
       ;;
+    --port)
+      DEV_PORT="$2"
+      shift
+      ;;
+    --port=*)
+      DEV_PORT="${1#*=}"
+      ;;
+    --google-id)
+      GOOGLE_CLIENT_ID_ARG="$2"
+      shift
+      ;;
+    --google-id=*)
+      GOOGLE_CLIENT_ID_ARG="${1#*=}"
+      ;;
+    --google-secret)
+      GOOGLE_CLIENT_SECRET_ARG="$2"
+      shift
+      ;;
+    --google-secret=*)
+      GOOGLE_CLIENT_SECRET_ARG="${1#*=}"
+      ;;
+    --help|-h)
+      echo ""
+      echo "BHono - Development Environment Setup"
+      echo ""
+      echo "Usage: ./scripts/init.sh [OPTIONS]"
+      echo ""
+      echo "Options:"
+      echo "  --port PORT           Set dev server port (default: 8787)"
+      echo "  --google-id ID        Set Google OAuth Client ID"
+      echo "  --google-secret SEC   Set Google OAuth Client Secret"
+      echo "  --no-provision        Skip Cloudflare resource provisioning"
+      echo "  --skip-dev            Don't start dev server after setup"
+      echo "  --skip-seed           Skip database seeding"
+      echo "  --update              Update dependencies"
+      echo "  --help, -h            Show this help message"
+      echo ""
+      echo "Examples:"
+      echo "  ./scripts/init.sh"
+      echo "  ./scripts/init.sh --port 3000"
+      echo "  ./scripts/init.sh --port 8787 --google-id 'xxx.apps.googleusercontent.com' --google-secret 'GOCSPX-xxx'"
+      echo "  CLOUDFLARE_ACCOUNT_ID=xxx ./scripts/init.sh"
+      echo ""
+      exit 0
+      ;;
     *)
       echo -e "${YELLOW}Ignoring unknown argument: $1${NC}"
       ;;
   esac
   shift
  done
+
+# Set default port if not specified
+DEV_PORT="${DEV_PORT:-8787}"
 
 log_info() { echo -e "${BLUE}$*${NC}"; }
 log_ok() { echo -e "${GREEN}$*${NC}"; }
@@ -114,6 +165,38 @@ fi
 
 log_ok "Project name: $PROJECT_NAME"
 
+# ============================================================================
+# FIX PROJECT NAME IN ALL CONFIG FILES (handles "." issue from bhono-app)
+# ============================================================================
+log_info "Fixing project name in config files..."
+
+# Fix package.json if name is "." or empty
+if [[ -f package.json ]]; then
+  PROJECT_NAME="$PROJECT_NAME" node -e "
+    const fs = require('fs');
+    const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+    if (pkg.name === '.' || pkg.name === '' || !pkg.name) {
+      pkg.name = process.env.PROJECT_NAME;
+      fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
+      console.log('  Fixed package.json name');
+    }
+  " 2>/dev/null || true
+fi
+
+# Fix etus.config.json if name is "." or empty
+if [[ -f etus.config.json ]]; then
+  PROJECT_NAME="$PROJECT_NAME" node -e "
+    const fs = require('fs');
+    const data = JSON.parse(fs.readFileSync('etus.config.json', 'utf8'));
+    if (data.name === '.' || data.name === '' || !data.name) {
+      data.name = process.env.PROJECT_NAME;
+      data.domain = process.env.PROJECT_NAME + '.com';
+      fs.writeFileSync('etus.config.json', JSON.stringify(data, null, 2));
+      console.log('  Fixed etus.config.json name');
+    }
+  " 2>/dev/null || true
+fi
+
 # Ensure wrangler.json exists
 if [[ ! -f config/wrangler.json ]]; then
   log_err "Missing config/wrangler.json"
@@ -150,6 +233,114 @@ if (!data.name || data.name.includes('{{projectName}}')) {
 
 fs.writeFileSync(path, JSON.stringify(data, null, 2));
 NODE
+
+# ============================================================================
+# FIX VITE.CONFIG.TS (configPath + server port)
+# ============================================================================
+log_info "Checking vite.config.ts..."
+
+if [[ -f vite.config.ts ]]; then
+  VITE_UPDATED=0
+
+  # Add configPath to cloudflare plugin if not present
+  if ! grep -q "configPath:" vite.config.ts; then
+    sed -i.bak 's/cloudflare()/cloudflare({\n      configPath: ".\\/config\\/wrangler.json",\n    })/g' vite.config.ts
+    rm -f vite.config.ts.bak
+    VITE_UPDATED=1
+    log_ok "  Added configPath to cloudflare plugin"
+  fi
+
+  # Add server port if not present
+  if ! grep -q "server:" vite.config.ts; then
+    sed -i.bak "s/export default defineConfig({/export default defineConfig({\n  server: {\n    port: $DEV_PORT,\n  },/g" vite.config.ts
+    rm -f vite.config.ts.bak
+    VITE_UPDATED=1
+    log_ok "  Added server port $DEV_PORT"
+  fi
+
+  [[ "$VITE_UPDATED" -eq 0 ]] && log_ok "  vite.config.ts already configured"
+fi
+
+# ============================================================================
+# CREATE/UPDATE CONFIG/.DEV.VARS
+# ============================================================================
+log_info "Checking config/.dev.vars..."
+
+# Determine Google OAuth credentials
+GOOGLE_ID="${GOOGLE_CLIENT_ID_ARG:-seu-google-client-id}"
+GOOGLE_SECRET="${GOOGLE_CLIENT_SECRET_ARG:-seu-google-client-secret}"
+
+if [[ ! -f config/.dev.vars ]]; then
+  # Generate a random JWT secret
+  JWT_RAND=$(openssl rand -hex 16 2>/dev/null || node -e "console.log(require('crypto').randomBytes(16).toString('hex'))")
+
+  cat > config/.dev.vars << EOF
+# Environment
+ENVIRONMENT=development
+APP_URL=http://localhost:$DEV_PORT
+
+# JWT Configuration (IMPORTANTE: mínimo 32 caracteres)
+JWT_SECRET=super-secret-jwt-key-with-at-least-32-chars-${JWT_RAND}
+JWT_EXPIRY_MINUTES=15
+
+# Google OAuth
+GOOGLE_CLIENT_ID=$GOOGLE_ID
+GOOGLE_CLIENT_SECRET=$GOOGLE_SECRET
+GOOGLE_REDIRECT_URI=http://localhost:$DEV_PORT/auth/callback
+
+# Refresh Token
+REFRESH_TOKEN_EXPIRY_DAYS=30
+
+# SendGrid (opcional para desenvolvimento)
+SENDGRID_API_KEY=your-sendgrid-api-key
+SENDGRID_FROM_EMAIL=noreply@example.com
+EOF
+  log_ok "  config/.dev.vars created"
+
+  if [[ "$GOOGLE_ID" == "seu-google-client-id" ]]; then
+    log_warn "  IMPORTANTE: Edite config/.dev.vars com suas credenciais Google OAuth!"
+  else
+    log_ok "  Google OAuth credentials configured"
+  fi
+else
+  # Update Google credentials if provided via arguments
+  if [[ -n "$GOOGLE_CLIENT_ID_ARG" ]]; then
+    sed -i.bak "s|GOOGLE_CLIENT_ID=.*|GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID_ARG|g" config/.dev.vars
+    rm -f config/.dev.vars.bak
+    log_ok "  Updated GOOGLE_CLIENT_ID"
+  fi
+  if [[ -n "$GOOGLE_CLIENT_SECRET_ARG" ]]; then
+    sed -i.bak "s|GOOGLE_CLIENT_SECRET=.*|GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET_ARG|g" config/.dev.vars
+    rm -f config/.dev.vars.bak
+    log_ok "  Updated GOOGLE_CLIENT_SECRET"
+  fi
+
+  # Ensure APP_URL is set for local development
+  if ! grep -q "APP_URL=http://localhost" config/.dev.vars; then
+    echo "" >> config/.dev.vars
+    echo "# Added by init.sh" >> config/.dev.vars
+    echo "APP_URL=http://localhost:$DEV_PORT" >> config/.dev.vars
+    log_ok "  Added APP_URL to config/.dev.vars"
+  fi
+
+  # Update redirect URI if port changed
+  if ! grep -q "GOOGLE_REDIRECT_URI=http://localhost:$DEV_PORT" config/.dev.vars; then
+    sed -i.bak "s|GOOGLE_REDIRECT_URI=http://localhost:[0-9]*|GOOGLE_REDIRECT_URI=http://localhost:$DEV_PORT|g" config/.dev.vars
+    rm -f config/.dev.vars.bak
+  fi
+fi
+
+# ============================================================================
+# UPDATE .GITIGNORE FOR SECURITY
+# ============================================================================
+log_info "Checking .gitignore..."
+
+if [[ -f .gitignore ]]; then
+  if ! grep -q "config/.dev.vars" .gitignore; then
+    echo "config/.dev.vars" >> .gitignore
+    log_ok "  Added config/.dev.vars to .gitignore"
+  fi
+fi
 
 WRANGLER="pnpm exec wrangler"
 WRANGLER_CONFIG="$WRANGLER --config config/wrangler.json"
@@ -287,6 +478,38 @@ else
 fi
 
 rm -f /tmp/bhono-db-schema.log /tmp/bhono-seed.log >/dev/null 2>&1 || true
+
+# ============================================================================
+# SYNC DATABASES (handle plugin hash mismatch)
+# ============================================================================
+# The Cloudflare Vite plugin creates SQLite with a hash based on config,
+# not the database_id. We need to sync all databases after seeding.
+log_info "Synchronizing database files..."
+
+SQLITE_DIR=".wrangler/state/v3/d1/miniflare-D1DatabaseObject"
+if [[ -d "$SQLITE_DIR" ]]; then
+  SQLITE_FILES=$(find "$SQLITE_DIR" -name "*.sqlite" -not -name "*-shm" -not -name "*-wal" 2>/dev/null || true)
+  if [[ -n "$SQLITE_FILES" ]]; then
+    # Find the database with actual tables (largest file usually has data)
+    MAIN_DB=$(ls -S $SQLITE_FILES 2>/dev/null | head -1)
+
+    if [[ -n "$MAIN_DB" ]]; then
+      # Check if main DB has tables
+      HAS_TABLES=$(sqlite3 "$MAIN_DB" ".tables" 2>/dev/null | wc -w || echo "0")
+
+      if [[ "$HAS_TABLES" -gt 0 ]]; then
+        for DB in $SQLITE_FILES; do
+          if [[ "$DB" != "$MAIN_DB" ]]; then
+            cp "$MAIN_DB" "$DB" 2>/dev/null || true
+          fi
+        done
+        log_ok "  Synced $(echo "$SQLITE_FILES" | wc -l | tr -d ' ') database files"
+      else
+        log_warn "  Main database has no tables. Skipping sync."
+      fi
+    fi
+  fi
+fi
 
 if [[ "$DB_BOOTSTRAP_OK" -eq 1 && ( "$SEED_OK" -eq 1 || "$SKIP_SEED" -eq 1 ) ]]; then
   log_ok "Local D1 ready with schema${SKIP_SEED:+ (seed skipped)}."
