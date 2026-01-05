@@ -217,6 +217,84 @@
           "patterns": ["git commit", "git push"]
         }
       ]
+    },
+
+    "backend-dev-guidelines": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Backend development patterns for Hono.js on Cloudflare Workers - routes, handlers, services, D1 database, guards, middleware, validation, multi-tenancy",
+      "promptTriggers": {
+        "keywords": [
+          "hono",
+          "hono route",
+          "hono handler",
+          "hono middleware",
+          "openapi route",
+          "createRoute",
+          "RouteHandler",
+          "d1 database",
+          "d1 query",
+          "service layer",
+          "serviceontext",
+          "rbac",
+          "requireRole",
+          "requirePermission",
+          "guard",
+          "multi-tenant",
+          "account-id",
+          "session auth",
+          "sessionAuth",
+          "audit log",
+          "auditedUpdate",
+          "auditedDelete",
+          "error handler",
+          "HTTPException",
+          "NotFoundError",
+          "ValidationError",
+          "zod openapi",
+          "zod schema",
+          "queryAll",
+          "queryOne",
+          "execute",
+          "SqlRow",
+          "row mapper",
+          "pagination",
+          "createPaginatedSchema"
+        ],
+        "intentPatterns": [
+          "(create|add|implement).*?(route|endpoint|api)",
+          "(create|add|implement).*?(handler|controller)",
+          "(create|add|implement).*?(service|business logic)",
+          "(add|implement).*?(guard|rbac|permission|role)",
+          "(add|implement).*?(middleware)",
+          "(query|fetch|insert|update|delete).*?(database|d1|sql)",
+          "(validate|schema).*?(input|request|body)",
+          "(handle|throw).*?(error|exception)",
+          "(implement|add).*?(pagination|paginated)",
+          "(build|create).*?(crud|feature|resource)",
+          "multi.?tenant.*?(filter|access|check)",
+          "audit.*?(log|track|record)"
+        ]
+      },
+      "toolGuards": [
+        {
+          "tool": "Edit",
+          "patterns": [
+            "src/server/routes/.*\\.ts$",
+            "src/server/services/.*\\.ts$",
+            "src/server/middleware/.*\\.ts$",
+            "src/server/auth/.*\\.ts$"
+          ]
+        },
+        {
+          "tool": "Write",
+          "patterns": [
+            "src/server/routes/.*\\.ts$",
+            "src/server/services/.*\\.ts$"
+          ]
+        }
+      ]
     }
   },
   "notes": {
