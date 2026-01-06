@@ -52,7 +52,7 @@ describe('Storage Routes', () => {
   })
 
   // Helper to setup authenticated app with specific role
-  function setupAuthenticatedApp(userRole = 'AUTHOR', isSuperAdmin = false) {
+  function setupAuthenticatedApp(userRole = 'user', isSuperAdmin = false) {
     const app = new Hono<HonoEnv>()
 
     app.use('*', async (c, next) => {
@@ -73,7 +73,7 @@ describe('Storage Routes', () => {
   }
 
   // Helper to setup app without R2 configured
-  function setupAppWithoutR2(userRole = 'AUTHOR') {
+  function setupAppWithoutR2(userRole = 'user') {
     const app = new Hono<HonoEnv>()
     const envWithoutR2 = { ...mockEnv, R2_BUCKET: undefined }
 
@@ -94,17 +94,82 @@ describe('Storage Routes', () => {
     return app
   }
 
+  // Helper to setup app without R2_PUBLIC_URL configured
+  function setupAppWithoutPublicUrl(userRole = 'user') {
+    const app = new Hono<HonoEnv>()
+    const envWithoutPublicUrl = { ...mockEnv, R2_PUBLIC_URL: undefined }
+
+    app.use('*', async (c, next) => {
+      ;(c as any).env = envWithoutPublicUrl
+      c.set('db', mockDb)
+      c.set('transactionId', 'test-transaction-id')
+      c.set('ip', '127.0.0.1')
+      c.set('userAgent', 'TestAgent/1.0')
+      c.set('user', testUser)
+      c.set('accountId', testAccount.id)
+      c.set('userRole', userRole)
+      c.set('isSystemAdminAccess', false)
+      await next()
+    })
+
+    app.route('/storage', storage)
+    return app
+  }
+
+  // Helper to setup app without accountId in context
+  function setupAppWithoutAccountId(userRole = 'user') {
+    const app = new Hono<HonoEnv>()
+
+    app.use('*', async (c, next) => {
+      ;(c as any).env = mockEnv
+      c.set('db', mockDb)
+      c.set('transactionId', 'test-transaction-id')
+      c.set('ip', '127.0.0.1')
+      c.set('userAgent', 'TestAgent/1.0')
+      c.set('user', testUser)
+      // Note: accountId is NOT set
+      c.set('userRole', userRole)
+      c.set('isSystemAdminAccess', false)
+      await next()
+    })
+
+    app.route('/storage', storage)
+    return app
+  }
+
+  // Helper to setup app with trailing slash in R2_PUBLIC_URL
+  function setupAppWithTrailingSlashUrl(userRole = 'user') {
+    const app = new Hono<HonoEnv>()
+    const envWithTrailingSlash = { ...mockEnv, R2_PUBLIC_URL: 'https://r2-test.example.com/' }
+
+    app.use('*', async (c, next) => {
+      ;(c as any).env = envWithTrailingSlash
+      c.set('db', mockDb)
+      c.set('transactionId', 'test-transaction-id')
+      c.set('ip', '127.0.0.1')
+      c.set('userAgent', 'TestAgent/1.0')
+      c.set('user', testUser)
+      c.set('accountId', testAccount.id)
+      c.set('userRole', userRole)
+      c.set('isSystemAdminAccess', false)
+      await next()
+    })
+
+    app.route('/storage', storage)
+    return app
+  }
+
   describe('POST /storage/upload-url (generateUploadUrlHandler)', () => {
-    it('should return upload URL', async () => {
+    it('should return upload URL with account prefix', async () => {
       const mockResult = {
-        url: '/api/storage/upload/images%2F1703123456789-test.jpg',
-        name: 'images/1703123456789-test.jpg',
-        publicUrl: 'https://r2-test.example.com/images/1703123456789-test.jpg',
+        url: `/api/storage/upload/${encodeURIComponent(`${TEST_ACCOUNT_ID}/images/1703123456789-test.jpg`)}`,
+        name: `${TEST_ACCOUNT_ID}/images/1703123456789-test.jpg`,
+        publicUrl: `https://r2-test.example.com/${TEST_ACCOUNT_ID}/images/1703123456789-test.jpg`,
       }
 
       vi.mocked(generateUploadUrl).mockReturnValue(mockResult)
 
-      const app = setupAuthenticatedApp('AUTHOR')
+      const app = setupAuthenticatedApp('user')
 
       const res = await app.request('/storage/upload-url', {
         method: 'POST',
@@ -122,16 +187,18 @@ describe('Storage Routes', () => {
       expect(body.url).toBe(mockResult.url)
       expect(body.name).toBe(mockResult.name)
       expect(body.publicUrl).toBe(mockResult.publicUrl)
+      // ADR-001 Invariante 8: Verify accountId is passed to generateUploadUrl
       expect(generateUploadUrl).toHaveBeenCalledWith(
         mockEnv.R2_BUCKET,
         mockEnv.R2_PUBLIC_URL,
         'images/test.jpg',
-        'image/jpeg'
+        'image/jpeg',
+        TEST_ACCOUNT_ID
       )
     })
 
     it('should throw ValidationError when R2 not configured', async () => {
-      const app = setupAppWithoutR2('AUTHOR')
+      const app = setupAppWithoutR2('user')
 
       const res = await app.request('/storage/upload-url', {
         method: 'POST',
@@ -149,8 +216,46 @@ describe('Storage Routes', () => {
       expect(body).toContain('R2 storage is not configured')
     })
 
+    it('should throw ValidationError when R2_PUBLIC_URL not configured', async () => {
+      const app = setupAppWithoutPublicUrl('user')
+
+      const res = await app.request('/storage/upload-url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          filename: 'test.jpg',
+          contentType: 'image/jpeg',
+        }),
+      })
+
+      expect(res.status).toBe(400)
+      const body = await res.text()
+      expect(body).toContain('R2 public URL is not configured')
+    })
+
+    it('should throw ValidationError when accountId not in context', async () => {
+      const app = setupAppWithoutAccountId('user')
+
+      const res = await app.request('/storage/upload-url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          filename: 'test.jpg',
+          contentType: 'image/jpeg',
+        }),
+      })
+
+      expect(res.status).toBe(400)
+      const body = await res.text()
+      expect(body).toContain('Account context is required for storage operations')
+    })
+
     it('should require AUTHOR role or higher', async () => {
-      const app = setupAuthenticatedApp('VIEWER')
+      const app = setupAuthenticatedApp('viewer')
 
       const res = await app.request('/storage/upload-url', {
         method: 'POST',
@@ -168,14 +273,14 @@ describe('Storage Routes', () => {
 
     it('should allow EDITOR role', async () => {
       const mockResult = {
-        url: '/api/storage/upload/test.jpg',
-        name: 'test.jpg',
-        publicUrl: 'https://r2-test.example.com/test.jpg',
+        url: `/api/storage/upload/${encodeURIComponent(`${TEST_ACCOUNT_ID}/test.jpg`)}`,
+        name: `${TEST_ACCOUNT_ID}/test.jpg`,
+        publicUrl: `https://r2-test.example.com/${TEST_ACCOUNT_ID}/test.jpg`,
       }
 
       vi.mocked(generateUploadUrl).mockReturnValue(mockResult)
 
-      const app = setupAuthenticatedApp('EDITOR')
+      const app = setupAuthenticatedApp('user')
 
       const res = await app.request('/storage/upload-url', {
         method: 'POST',
@@ -193,9 +298,10 @@ describe('Storage Routes', () => {
   })
 
   describe('PUT /storage/upload/{key} (uploadFileHandler)', () => {
-    it('should upload file successfully', async () => {
+    it('should upload file successfully with account-scoped key', async () => {
+      const accountScopedKey = `${TEST_ACCOUNT_ID}/images/test.jpg`
       const mockR2Object = {
-        key: 'images/test.jpg',
+        key: accountScopedKey,
         size: 100,
         httpEtag: '"abc123"',
         uploaded: new Date(),
@@ -203,10 +309,10 @@ describe('Storage Routes', () => {
 
       vi.mocked(uploadFile).mockResolvedValue(mockR2Object as any)
 
-      const app = setupAuthenticatedApp('AUTHOR')
+      const app = setupAuthenticatedApp('user')
 
       const fileContent = new Uint8Array([0x89, 0x50, 0x4e, 0x47]) // PNG magic bytes
-      const res = await app.request('/storage/upload/images%2Ftest.jpg', {
+      const res = await app.request(`/storage/upload/${encodeURIComponent(accountScopedKey)}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'image/png',
@@ -217,20 +323,39 @@ describe('Storage Routes', () => {
       expect(res.status).toBe(200)
       const body = await res.json()
       expect(body.success).toBe(true)
-      expect(body.key).toBe('images/test.jpg')
-      expect(body.publicUrl).toContain('images/test.jpg')
+      expect(body.key).toBe(accountScopedKey)
+      expect(body.publicUrl).toContain(accountScopedKey)
       expect(uploadFile).toHaveBeenCalledWith(
         mockEnv.R2_BUCKET,
-        'images/test.jpg',
+        accountScopedKey,
         expect.any(ArrayBuffer),
         'image/png'
       )
     })
 
-    it('should throw ValidationError for empty body', async () => {
-      const app = setupAuthenticatedApp('AUTHOR')
+    it('should reject upload to key not scoped to current account (ADR-001 Invariante 8)', async () => {
+      const app = setupAuthenticatedApp('user')
 
-      const res = await app.request('/storage/upload/test.jpg', {
+      const fileContent = new Uint8Array([0x89, 0x50, 0x4e, 0x47])
+      // Try to upload to a different account's path
+      const res = await app.request('/storage/upload/other-account-id%2Ftest.jpg', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'image/png',
+        },
+        body: fileContent,
+      })
+
+      expect(res.status).toBe(403)
+      const body = await res.text()
+      expect(body).toContain('Access denied')
+    })
+
+    it('should throw ValidationError for empty body', async () => {
+      const app = setupAuthenticatedApp('user')
+      const accountScopedKey = `${TEST_ACCOUNT_ID}/test.jpg`
+
+      const res = await app.request(`/storage/upload/${encodeURIComponent(accountScopedKey)}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'image/jpeg',
@@ -244,10 +369,11 @@ describe('Storage Routes', () => {
     })
 
     it('should throw ValidationError when R2 not configured', async () => {
-      const app = setupAppWithoutR2('AUTHOR')
+      const app = setupAppWithoutR2('user')
+      const accountScopedKey = `${TEST_ACCOUNT_ID}/test.jpg`
 
       const fileContent = new Uint8Array([0x89, 0x50, 0x4e, 0x47])
-      const res = await app.request('/storage/upload/test.jpg', {
+      const res = await app.request(`/storage/upload/${encodeURIComponent(accountScopedKey)}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'image/png',
@@ -260,9 +386,46 @@ describe('Storage Routes', () => {
       expect(body).toContain('R2 storage is not configured')
     })
 
-    it('should decode URL-encoded keys', async () => {
+    it('should throw ValidationError when R2_PUBLIC_URL not configured', async () => {
+      const app = setupAppWithoutPublicUrl('user')
+      const accountScopedKey = `${TEST_ACCOUNT_ID}/test.jpg`
+
+      const fileContent = new Uint8Array([0x89, 0x50, 0x4e, 0x47])
+      const res = await app.request(`/storage/upload/${encodeURIComponent(accountScopedKey)}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'image/png',
+        },
+        body: fileContent,
+      })
+
+      expect(res.status).toBe(400)
+      const body = await res.text()
+      expect(body).toContain('R2 public URL is not configured')
+    })
+
+    it('should throw ValidationError when accountId not in context', async () => {
+      const app = setupAppWithoutAccountId('user')
+      const accountScopedKey = `${TEST_ACCOUNT_ID}/test.jpg`
+
+      const fileContent = new Uint8Array([0x89, 0x50, 0x4e, 0x47])
+      const res = await app.request(`/storage/upload/${encodeURIComponent(accountScopedKey)}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'image/png',
+        },
+        body: fileContent,
+      })
+
+      expect(res.status).toBe(400)
+      const body = await res.text()
+      expect(body).toContain('Account context is required for storage operations')
+    })
+
+    it('should decode URL-encoded keys with account prefix', async () => {
+      const accountScopedKey = `${TEST_ACCOUNT_ID}/path/with spaces/file.jpg`
       const mockR2Object = {
-        key: 'path/with spaces/file.jpg',
+        key: accountScopedKey,
         size: 100,
         httpEtag: '"abc123"',
         uploaded: new Date(),
@@ -270,10 +433,10 @@ describe('Storage Routes', () => {
 
       vi.mocked(uploadFile).mockResolvedValue(mockR2Object as any)
 
-      const app = setupAuthenticatedApp('AUTHOR')
+      const app = setupAuthenticatedApp('user')
 
       const fileContent = new Uint8Array([0x89, 0x50, 0x4e, 0x47])
-      const res = await app.request('/storage/upload/path%2Fwith%20spaces%2Ffile.jpg', {
+      const res = await app.request(`/storage/upload/${encodeURIComponent(accountScopedKey)}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'image/jpeg',
@@ -284,17 +447,77 @@ describe('Storage Routes', () => {
       expect(res.status).toBe(200)
       expect(uploadFile).toHaveBeenCalledWith(
         mockEnv.R2_BUCKET,
-        'path/with spaces/file.jpg',
+        accountScopedKey,
         expect.any(ArrayBuffer),
         'image/jpeg'
       )
     })
+
+    it('should use default content-type when header is not provided', async () => {
+      const accountScopedKey = `${TEST_ACCOUNT_ID}/data/file.bin`
+      const mockR2Object = {
+        key: accountScopedKey,
+        size: 100,
+        httpEtag: '"abc123"',
+        uploaded: new Date(),
+      }
+
+      vi.mocked(uploadFile).mockResolvedValue(mockR2Object as any)
+
+      const app = setupAuthenticatedApp('user')
+
+      const fileContent = new Uint8Array([0x00, 0x01, 0x02, 0x03])
+      const res = await app.request(`/storage/upload/${encodeURIComponent(accountScopedKey)}`, {
+        method: 'PUT',
+        // Note: No Content-Type header provided
+        body: fileContent,
+      })
+
+      expect(res.status).toBe(200)
+      // Should fall back to application/octet-stream
+      expect(uploadFile).toHaveBeenCalledWith(
+        mockEnv.R2_BUCKET,
+        accountScopedKey,
+        expect.any(ArrayBuffer),
+        'application/octet-stream'
+      )
+    })
+
+    it('should handle publicUrl with trailing slash correctly', async () => {
+      const accountScopedKey = `${TEST_ACCOUNT_ID}/images/test.jpg`
+      const mockR2Object = {
+        key: accountScopedKey,
+        size: 100,
+        httpEtag: '"abc123"',
+        uploaded: new Date(),
+      }
+
+      vi.mocked(uploadFile).mockResolvedValue(mockR2Object as any)
+
+      const app = setupAppWithTrailingSlashUrl('user')
+
+      const fileContent = new Uint8Array([0x89, 0x50, 0x4e, 0x47])
+      const res = await app.request(`/storage/upload/${encodeURIComponent(accountScopedKey)}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'image/png',
+        },
+        body: fileContent,
+      })
+
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.success).toBe(true)
+      // With trailing slash, publicUrl should not add extra slash
+      expect(body.publicUrl).toBe(`https://r2-test.example.com/${accountScopedKey}`)
+    })
   })
 
   describe('DELETE /storage/{key} (deleteFileHandler)', () => {
-    it('should delete file', async () => {
+    it('should delete file with account-scoped key', async () => {
+      const accountScopedKey = `${TEST_ACCOUNT_ID}/test.jpg`
       const mockMetadata = {
-        key: 'test.jpg',
+        key: accountScopedKey,
         size: 100,
         httpEtag: '"abc123"',
         uploaded: new Date(),
@@ -303,23 +526,37 @@ describe('Storage Routes', () => {
       vi.mocked(getFileMetadata).mockResolvedValue(mockMetadata as any)
       vi.mocked(deleteFile).mockResolvedValue()
 
-      const app = setupAuthenticatedApp('EDITOR')
+      const app = setupAuthenticatedApp('user')
 
-      const res = await app.request('/storage/test.jpg', {
+      const res = await app.request(`/storage/${encodeURIComponent(accountScopedKey)}`, {
         method: 'DELETE',
       })
 
       expect(res.status).toBe(204)
-      expect(getFileMetadata).toHaveBeenCalledWith(mockEnv.R2_BUCKET, 'test.jpg')
-      expect(deleteFile).toHaveBeenCalledWith(mockEnv.R2_BUCKET, 'test.jpg')
+      expect(getFileMetadata).toHaveBeenCalledWith(mockEnv.R2_BUCKET, accountScopedKey)
+      expect(deleteFile).toHaveBeenCalledWith(mockEnv.R2_BUCKET, accountScopedKey)
+    })
+
+    it('should reject deletion of key not scoped to current account (ADR-001 Invariante 8)', async () => {
+      const app = setupAuthenticatedApp('user')
+
+      // Try to delete from a different account's path
+      const res = await app.request('/storage/other-account-id%2Ftest.jpg', {
+        method: 'DELETE',
+      })
+
+      expect(res.status).toBe(403)
+      const body = await res.text()
+      expect(body).toContain('Access denied')
     })
 
     it('should throw NotFoundError for non-existent file', async () => {
+      const accountScopedKey = `${TEST_ACCOUNT_ID}/non-existent.jpg`
       vi.mocked(getFileMetadata).mockResolvedValue(null)
 
-      const app = setupAuthenticatedApp('EDITOR')
+      const app = setupAuthenticatedApp('user')
 
-      const res = await app.request('/storage/non-existent.jpg', {
+      const res = await app.request(`/storage/${encodeURIComponent(accountScopedKey)}`, {
         method: 'DELETE',
       })
 
@@ -329,9 +566,10 @@ describe('Storage Routes', () => {
     })
 
     it('should throw ValidationError when R2 not configured', async () => {
-      const app = setupAppWithoutR2('EDITOR')
+      const app = setupAppWithoutR2('user')
+      const accountScopedKey = `${TEST_ACCOUNT_ID}/test.jpg`
 
-      const res = await app.request('/storage/test.jpg', {
+      const res = await app.request(`/storage/${encodeURIComponent(accountScopedKey)}`, {
         method: 'DELETE',
       })
 
@@ -340,12 +578,26 @@ describe('Storage Routes', () => {
       expect(body).toContain('R2 storage is not configured')
     })
 
+    it('should throw ValidationError when accountId not in context', async () => {
+      const app = setupAppWithoutAccountId('user')
+      const accountScopedKey = `${TEST_ACCOUNT_ID}/test.jpg`
+
+      const res = await app.request(`/storage/${encodeURIComponent(accountScopedKey)}`, {
+        method: 'DELETE',
+      })
+
+      expect(res.status).toBe(400)
+      const body = await res.text()
+      expect(body).toContain('Account context is required for storage operations')
+    })
+
     // Note: Role-based access control (AUTHOR/VIEWER denied) is tested via
     // the requireRole middleware which is tested separately in middleware/auth.test.ts
 
     it('should allow super admin to delete files', async () => {
+      const accountScopedKey = `${TEST_ACCOUNT_ID}/test.jpg`
       const mockMetadata = {
-        key: 'test.jpg',
+        key: accountScopedKey,
         size: 100,
         httpEtag: '"abc123"',
         uploaded: new Date(),
@@ -354,9 +606,9 @@ describe('Storage Routes', () => {
       vi.mocked(getFileMetadata).mockResolvedValue(mockMetadata as any)
       vi.mocked(deleteFile).mockResolvedValue()
 
-      const app = setupAuthenticatedApp('VIEWER', true)
+      const app = setupAuthenticatedApp('viewer', true)
 
-      const res = await app.request('/storage/test.jpg', {
+      const res = await app.request(`/storage/${encodeURIComponent(accountScopedKey)}`, {
         method: 'DELETE',
       })
 
@@ -364,8 +616,9 @@ describe('Storage Routes', () => {
     })
 
     it('should allow ADMIN role', async () => {
+      const accountScopedKey = `${TEST_ACCOUNT_ID}/test.jpg`
       const mockMetadata = {
-        key: 'test.jpg',
+        key: accountScopedKey,
         size: 100,
         httpEtag: '"abc123"',
         uploaded: new Date(),
@@ -374,18 +627,19 @@ describe('Storage Routes', () => {
       vi.mocked(getFileMetadata).mockResolvedValue(mockMetadata as any)
       vi.mocked(deleteFile).mockResolvedValue()
 
-      const app = setupAuthenticatedApp('ADMIN')
+      const app = setupAuthenticatedApp('admin')
 
-      const res = await app.request('/storage/test.jpg', {
+      const res = await app.request(`/storage/${encodeURIComponent(accountScopedKey)}`, {
         method: 'DELETE',
       })
 
       expect(res.status).toBe(204)
     })
 
-    it('should decode URL-encoded keys for deletion', async () => {
+    it('should decode URL-encoded keys for deletion with account prefix', async () => {
+      const accountScopedKey = `${TEST_ACCOUNT_ID}/folder/sub folder/file.jpg`
       const mockMetadata = {
-        key: 'folder/sub folder/file.jpg',
+        key: accountScopedKey,
         size: 100,
         httpEtag: '"abc123"',
         uploaded: new Date(),
@@ -394,15 +648,15 @@ describe('Storage Routes', () => {
       vi.mocked(getFileMetadata).mockResolvedValue(mockMetadata as any)
       vi.mocked(deleteFile).mockResolvedValue()
 
-      const app = setupAuthenticatedApp('EDITOR')
+      const app = setupAuthenticatedApp('user')
 
-      const res = await app.request('/storage/folder%2Fsub%20folder%2Ffile.jpg', {
+      const res = await app.request(`/storage/${encodeURIComponent(accountScopedKey)}`, {
         method: 'DELETE',
       })
 
       expect(res.status).toBe(204)
-      expect(getFileMetadata).toHaveBeenCalledWith(mockEnv.R2_BUCKET, 'folder/sub folder/file.jpg')
-      expect(deleteFile).toHaveBeenCalledWith(mockEnv.R2_BUCKET, 'folder/sub folder/file.jpg')
+      expect(getFileMetadata).toHaveBeenCalledWith(mockEnv.R2_BUCKET, accountScopedKey)
+      expect(deleteFile).toHaveBeenCalledWith(mockEnv.R2_BUCKET, accountScopedKey)
     })
   })
 })

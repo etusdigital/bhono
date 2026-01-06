@@ -110,7 +110,7 @@ describe('Accounts CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'List Accounts User',
           userEmail: 'listaccounts@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
         })
 
         const res = await app.request('/api/accounts', {
@@ -173,7 +173,7 @@ describe('Accounts CRUD Integration', () => {
         // Super admin still needs an account context for the middleware
         // Create a separate account for the super admin
         const adminAccount = await createAccount({ name: 'Admin Context Account' })
-        await addUserToAccount(superAdmin.id, adminAccount.id, 'ADMIN')
+        await addUserToAccount(superAdmin.id, adminAccount.id, 'admin')
 
         const { headers } = await createUserSession(superAdmin.id, {
           email: superAdmin.email,
@@ -205,7 +205,7 @@ describe('Accounts CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Pagination Test User',
           userEmail: 'paginationtest@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
         })
 
         const res = await app.request('/api/accounts', {
@@ -253,7 +253,7 @@ describe('Accounts CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Get Account User',
           userEmail: 'getaccount@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
         })
 
         const nonExistentId = crypto.randomUUID()
@@ -298,7 +298,7 @@ describe('Accounts CRUD Integration', () => {
           userName: 'Get Account Detail User',
           userEmail: 'getaccountdetail@example.com',
           accountName: 'Test Account Details',
-          role: 'VIEWER',
+          role: 'viewer',
         })
 
         const res = await app.request(`/api/accounts/${scenario.account.id}`, {
@@ -329,7 +329,7 @@ describe('Accounts CRUD Integration', () => {
           email: 'fullfields@example.com',
           name: 'Full Fields User',
         })
-        await addUserToAccount(user.id, account.id, 'VIEWER')
+        await addUserToAccount(user.id, account.id, 'viewer')
 
         const { headers } = await createUserSession(user.id, {
           email: user.email,
@@ -366,7 +366,7 @@ describe('Accounts CRUD Integration', () => {
           name: 'Super Admin Getter',
         })
         const adminAccount = await createAccount({ name: 'Admin Get Context' })
-        await addUserToAccount(superAdmin.id, adminAccount.id, 'ADMIN')
+        await addUserToAccount(superAdmin.id, adminAccount.id, 'admin')
 
         const { headers } = await createUserSession(superAdmin.id, {
           email: superAdmin.email,
@@ -418,7 +418,7 @@ describe('Accounts CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Viewer Create Account',
           userEmail: 'viewercreate@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
         })
 
         const res = await app.request('/api/accounts', {
@@ -439,7 +439,7 @@ describe('Accounts CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Admin Not Super',
           userEmail: 'adminnotsuper@example.com',
-          role: 'ADMIN',
+          role: 'admin',
           isSuperAdmin: false,
         })
 
@@ -468,7 +468,7 @@ describe('Accounts CRUD Integration', () => {
           name: 'Super Validation',
         })
         const account = await createAccount({ name: 'Super Context' })
-        await addUserToAccount(superAdmin.id, account.id, 'ADMIN')
+        await addUserToAccount(superAdmin.id, account.id, 'admin')
 
         const { headers } = await createUserSession(superAdmin.id, {
           email: superAdmin.email,
@@ -496,7 +496,7 @@ describe('Accounts CRUD Integration', () => {
           name: 'Super Empty Name',
         })
         const account = await createAccount({ name: 'Super Context Empty' })
-        await addUserToAccount(superAdmin.id, account.id, 'ADMIN')
+        await addUserToAccount(superAdmin.id, account.id, 'admin')
 
         const { headers } = await createUserSession(superAdmin.id, {
           email: superAdmin.email,
@@ -532,7 +532,7 @@ describe('Accounts CRUD Integration', () => {
           name: 'Super Domain',
         })
         const adminAccount = await createAccount({ name: 'Super Context Domain' })
-        await addUserToAccount(superAdmin.id, adminAccount.id, 'ADMIN')
+        await addUserToAccount(superAdmin.id, adminAccount.id, 'admin')
 
         const { headers } = await createUserSession(superAdmin.id, {
           email: superAdmin.email,
@@ -568,7 +568,7 @@ describe('Accounts CRUD Integration', () => {
           name: 'Super Creator',
         })
         const adminAccount = await createAccount({ name: 'Super Context Create' })
-        await addUserToAccount(superAdmin.id, adminAccount.id, 'ADMIN')
+        await addUserToAccount(superAdmin.id, adminAccount.id, 'admin')
 
         const { headers } = await createUserSession(superAdmin.id, {
           email: superAdmin.email,
@@ -606,7 +606,7 @@ describe('Accounts CRUD Integration', () => {
           name: 'Super Verifier',
         })
         const adminAccount = await createAccount({ name: 'Super Context Verify' })
-        await addUserToAccount(superAdmin.id, adminAccount.id, 'ADMIN')
+        await addUserToAccount(superAdmin.id, adminAccount.id, 'admin')
 
         const { headers } = await createUserSession(superAdmin.id, {
           email: superAdmin.email,
@@ -644,7 +644,7 @@ describe('Accounts CRUD Integration', () => {
           name: 'Super Minimal',
         })
         const adminAccount = await createAccount({ name: 'Super Context Minimal' })
-        await addUserToAccount(superAdmin.id, adminAccount.id, 'ADMIN')
+        await addUserToAccount(superAdmin.id, adminAccount.id, 'admin')
 
         const { headers } = await createUserSession(superAdmin.id, {
           email: superAdmin.email,
@@ -703,7 +703,7 @@ describe('Accounts CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Update Not Found User',
           userEmail: 'updatenotfound@example.com',
-          role: 'MANAGER',
+          role: 'manager',
         })
 
         const nonExistentId = crypto.randomUUID()
@@ -728,7 +728,7 @@ describe('Accounts CRUD Integration', () => {
         const accountWithoutAccess = scenario.accounts.withoutAccess[0]
 
         // Need to use an account with MANAGER role for the account-id header
-        const accountWithManagerAccess = scenario.accounts.withAccess.find(a => a.role === 'MANAGER')!
+        const accountWithManagerAccess = scenario.accounts.withAccess.find(a => a.role === 'manager')!
 
         const res = await app.request(`/api/accounts/${accountWithoutAccess.id}`, {
           method: 'PATCH',
@@ -751,7 +751,7 @@ describe('Accounts CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Update Validation User',
           userEmail: 'updatevalidation@example.com',
-          role: 'MANAGER',
+          role: 'manager',
         })
 
         const res = await app.request(`/api/accounts/${scenario.account.id}`, {
@@ -780,7 +780,7 @@ describe('Accounts CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Update Domain Conflict',
           userEmail: 'updatedomainconflict@example.com',
-          role: 'MANAGER',
+          role: 'manager',
         })
 
         const res = await app.request(`/api/accounts/${scenario.account.id}`, {
@@ -807,7 +807,7 @@ describe('Accounts CRUD Integration', () => {
           userName: 'Update Name User',
           userEmail: 'updatename@example.com',
           accountName: 'Original Account Name',
-          role: 'MANAGER',
+          role: 'manager',
         })
 
         const res = await app.request(`/api/accounts/${scenario.account.id}`, {
@@ -831,7 +831,7 @@ describe('Accounts CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Update Description User',
           userEmail: 'updatedesc@example.com',
-          role: 'MANAGER',
+          role: 'manager',
         })
 
         const res = await app.request(`/api/accounts/${scenario.account.id}`, {
@@ -855,7 +855,7 @@ describe('Accounts CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Update Multiple User',
           userEmail: 'updatemultiple@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         const res = await app.request(`/api/accounts/${scenario.account.id}`, {
@@ -885,7 +885,7 @@ describe('Accounts CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Verify Update User',
           userEmail: 'verifyupdate@example.com',
-          role: 'MANAGER',
+          role: 'manager',
         })
 
         await app.request(`/api/accounts/${scenario.account.id}`, {
@@ -960,7 +960,7 @@ describe('Accounts CRUD Integration', () => {
           name: 'Super Delete Not Found',
         })
         const adminAccount = await createAccount({ name: 'Super Delete Context' })
-        await addUserToAccount(superAdmin.id, adminAccount.id, 'ADMIN')
+        await addUserToAccount(superAdmin.id, adminAccount.id, 'admin')
 
         const { headers } = await createUserSession(superAdmin.id, {
           email: superAdmin.email,
@@ -987,7 +987,7 @@ describe('Accounts CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Viewer Delete Account',
           userEmail: 'viewerdelete@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
         })
 
         const res = await app.request(`/api/accounts/${scenario.account.id}`, {
@@ -1006,13 +1006,13 @@ describe('Accounts CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Admin Not Super Delete',
           userEmail: 'adminnotsuperdelete@example.com',
-          role: 'ADMIN',
+          role: 'admin',
           isSuperAdmin: false,
         })
 
         // Create another account to delete
         const accountToDelete = await createAccount({ name: 'To Be Deleted' })
-        await addUserToAccount(scenario.user.id, accountToDelete.id, 'ADMIN')
+        await addUserToAccount(scenario.user.id, accountToDelete.id, 'admin')
 
         const res = await app.request(`/api/accounts/${accountToDelete.id}`, {
           method: 'DELETE',
@@ -1037,7 +1037,7 @@ describe('Accounts CRUD Integration', () => {
           name: 'Super Deleter',
         })
         const adminAccount = await createAccount({ name: 'Super Context Delete' })
-        await addUserToAccount(superAdmin.id, adminAccount.id, 'ADMIN')
+        await addUserToAccount(superAdmin.id, adminAccount.id, 'admin')
 
         // Create account to delete
         const accountToDelete = await createAccount({ name: 'Account To Delete' })
@@ -1066,7 +1066,7 @@ describe('Accounts CRUD Integration', () => {
           name: 'Super Verify Deleter',
         })
         const adminAccount = await createAccount({ name: 'Super Context Verify Delete' })
-        await addUserToAccount(superAdmin.id, adminAccount.id, 'ADMIN')
+        await addUserToAccount(superAdmin.id, adminAccount.id, 'admin')
 
         // Create account to delete
         const accountToDelete = await createAccount({ name: 'Soft Delete Verify' })
@@ -1098,7 +1098,7 @@ describe('Accounts CRUD Integration', () => {
           name: 'Super List Deleter',
         })
         const adminAccount = await createAccount({ name: 'Super Context List Delete' })
-        await addUserToAccount(superAdmin.id, adminAccount.id, 'ADMIN')
+        await addUserToAccount(superAdmin.id, adminAccount.id, 'admin')
 
         // Create account to delete
         const accountToDelete = await createAccount({ name: 'Will Not Appear In List' })
@@ -1164,7 +1164,7 @@ describe('Accounts CRUD Integration', () => {
           name: 'Super Restore Not Found',
         })
         const adminAccount = await createAccount({ name: 'Super Restore Context' })
-        await addUserToAccount(superAdmin.id, adminAccount.id, 'ADMIN')
+        await addUserToAccount(superAdmin.id, adminAccount.id, 'admin')
 
         const { headers } = await createUserSession(superAdmin.id, {
           email: superAdmin.email,
@@ -1191,7 +1191,7 @@ describe('Accounts CRUD Integration', () => {
           name: 'Super Restore Not Deleted',
         })
         const adminAccount = await createAccount({ name: 'Super Restore Not Deleted Context' })
-        await addUserToAccount(superAdmin.id, adminAccount.id, 'ADMIN')
+        await addUserToAccount(superAdmin.id, adminAccount.id, 'admin')
 
         // Create account that is NOT deleted
         const activeAccount = await createAccount({ name: 'Active Account' })
@@ -1225,7 +1225,7 @@ describe('Accounts CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Viewer Restore Account',
           userEmail: 'viewerrestore@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
         })
 
         const res = await app.request(`/api/accounts/${deletedAccount.id}/restore`, {
@@ -1246,7 +1246,7 @@ describe('Accounts CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Admin Not Super Restore',
           userEmail: 'adminnotsuperrestore@example.com',
-          role: 'ADMIN',
+          role: 'admin',
           isSuperAdmin: false,
         })
 
@@ -1273,7 +1273,7 @@ describe('Accounts CRUD Integration', () => {
           name: 'Super Restorer',
         })
         const adminAccount = await createAccount({ name: 'Super Context Restore' })
-        await addUserToAccount(superAdmin.id, adminAccount.id, 'ADMIN')
+        await addUserToAccount(superAdmin.id, adminAccount.id, 'admin')
 
         // Create deleted account
         const deletedAccount = await createDeletedAccount({ name: 'Account To Restore' })
@@ -1306,7 +1306,7 @@ describe('Accounts CRUD Integration', () => {
           name: 'Super Verify Restorer',
         })
         const adminAccount = await createAccount({ name: 'Super Context Verify Restore' })
-        await addUserToAccount(superAdmin.id, adminAccount.id, 'ADMIN')
+        await addUserToAccount(superAdmin.id, adminAccount.id, 'admin')
 
         // Create deleted account
         const deletedAccount = await createDeletedAccount({ name: 'Verify Deleted At Cleared' })
@@ -1339,7 +1339,7 @@ describe('Accounts CRUD Integration', () => {
           name: 'Super List Restorer',
         })
         const adminAccount = await createAccount({ name: 'Super Context List Restore' })
-        await addUserToAccount(superAdmin.id, adminAccount.id, 'ADMIN')
+        await addUserToAccount(superAdmin.id, adminAccount.id, 'admin')
 
         // Create deleted account
         const deletedAccount = await createDeletedAccount({ name: 'Will Appear After Restore' })

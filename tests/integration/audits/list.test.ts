@@ -139,7 +139,7 @@ describe('Audit Logs Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Viewer User',
           userEmail: 'viewer-audit@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
         })
 
         const res = await app.request('/api/audits', {
@@ -158,7 +158,7 @@ describe('Audit Logs Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Manager User',
           userEmail: 'manager-audit@example.com',
-          role: 'MANAGER',
+          role: 'manager',
         })
 
         const res = await app.request('/api/audits', {
@@ -177,7 +177,7 @@ describe('Audit Logs Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Editor User',
           userEmail: 'editor-audit@example.com',
-          role: 'EDITOR',
+          role: 'user',
         })
 
         const res = await app.request('/api/audits', {
@@ -196,7 +196,7 @@ describe('Audit Logs Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Billing User',
           userEmail: 'billing-audit@example.com',
-          role: 'BILLING',
+          role: 'viewer',
         })
 
         const res = await app.request('/api/audits', {
@@ -217,7 +217,7 @@ describe('Audit Logs Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Admin User',
           userEmail: 'admin-audit1@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         const res = await app.request('/api/audits', {
@@ -244,7 +244,7 @@ describe('Audit Logs Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Admin User',
           userEmail: 'admin-audit2@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         // Create some audit logs
@@ -281,11 +281,11 @@ describe('Audit Logs Integration', () => {
         expect(body.data.length).toBe(2)
       })
 
-      it('should return 200 with audit logs for ANALYTICS role', async () => {
+      it('should return 200 with audit logs for admin role', async () => {
         const scenario = await createTestScenario({
-          userName: 'Analytics User',
-          userEmail: 'analytics-audit@example.com',
-          role: 'ANALYTICS',
+          userName: 'Admin User',
+          userEmail: 'admin-audit2@example.com',
+          role: 'admin',
         })
 
         // Create an audit log
@@ -317,7 +317,7 @@ describe('Audit Logs Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Admin User',
           userEmail: 'admin-audit3@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         // Create another account
@@ -326,7 +326,7 @@ describe('Audit Logs Integration', () => {
           email: 'otheraudit@example.com',
           name: 'Other User',
         })
-        await addUserToAccount(otherUser.id, otherAccount.id, 'ADMIN')
+        await addUserToAccount(otherUser.id, otherAccount.id, 'admin')
 
         // Create audit logs in both accounts
         createAuditLog({
@@ -367,7 +367,7 @@ describe('Audit Logs Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Admin User',
           userEmail: 'admin-audit4@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         const entityId = crypto.randomUUID()
@@ -414,7 +414,7 @@ describe('Audit Logs Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Admin User',
           userEmail: 'admin-verify1@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         const entityId = crypto.randomUUID()
@@ -451,7 +451,7 @@ describe('Audit Logs Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Admin User',
           userEmail: 'admin-verify2@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         const entityId = crypto.randomUUID()
@@ -491,7 +491,7 @@ describe('Audit Logs Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Admin User',
           userEmail: 'admin-verify3@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         const entityId = crypto.randomUUID()
@@ -527,7 +527,7 @@ describe('Audit Logs Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Admin User',
           userEmail: 'admin-verify4@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         createAuditLog({
@@ -559,7 +559,7 @@ describe('Audit Logs Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Admin User',
           userEmail: 'admin-verify5@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         const invitationId = crypto.randomUUID()
@@ -569,7 +569,7 @@ describe('Audit Logs Integration', () => {
           entity: 'Invitation',
           entityId: invitationId,
           action: 'INSERT',
-          changes: { email: 'invited@example.com', role: 'VIEWER' },
+          changes: { email: 'invited@example.com', role: 'viewer' },
         })
 
         createAuditLog({
@@ -601,7 +601,7 @@ describe('Audit Logs Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Admin User',
           userEmail: 'admin-verify6@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         createAuditLog({
@@ -635,7 +635,7 @@ describe('Audit Logs Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Admin User',
           userEmail: 'admin-filter1@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         // Create audit logs for different entities
@@ -683,7 +683,7 @@ describe('Audit Logs Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Admin User',
           userEmail: 'admin-filter2@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         // Create audit logs with different actions
@@ -731,7 +731,7 @@ describe('Audit Logs Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Admin User',
           userEmail: 'admin-filter3@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         const targetEntityId = crypto.randomUUID()
@@ -781,7 +781,7 @@ describe('Audit Logs Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Admin User',
           userEmail: 'admin-filter4@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         // Create various audit logs
@@ -832,7 +832,7 @@ describe('Audit Logs Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Admin User',
           userEmail: 'admin-page1@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         // Create 15 audit logs
@@ -868,7 +868,7 @@ describe('Audit Logs Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Admin User',
           userEmail: 'admin-limit1@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         // Create 10 audit logs
@@ -902,7 +902,7 @@ describe('Audit Logs Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Admin User',
           userEmail: 'admin-meta1@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         // Create 25 audit logs
@@ -939,7 +939,7 @@ describe('Audit Logs Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Admin User',
           userEmail: 'admin-empty@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         // Create 5 audit logs
@@ -973,7 +973,7 @@ describe('Audit Logs Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Admin User',
           userEmail: 'admin-default@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         // Create a few audit logs
@@ -1017,7 +1017,7 @@ describe('Audit Logs Integration', () => {
         const account1 = await createAccount({ name: 'Account 1' })
         const account2 = await createAccount({ name: 'Account 2' })
 
-        await addUserToAccount(superAdmin.id, account1.id, 'ADMIN')
+        await addUserToAccount(superAdmin.id, account1.id, 'admin')
 
         // Create audit logs in both accounts
         createAuditLog({
@@ -1068,7 +1068,7 @@ describe('Audit Logs Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Admin User',
           userEmail: 'admin-order1@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         // Create audit logs with specific timestamps

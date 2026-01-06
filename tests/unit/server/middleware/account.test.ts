@@ -79,6 +79,9 @@ describe('accountMiddleware', () => {
       })
     })
 
+    // Mock account exists
+    setMockQueryResult(mockDb, ['any-account-id'], { status: 'active', deleted_at: null })
+
     const res = await app.request('/test', {
       headers: { 'account-id': 'any-account-id' },
     })
@@ -98,6 +101,9 @@ describe('accountMiddleware', () => {
       })
     })
 
+    // Mock account exists
+    setMockQueryResult(mockDb, ['account-123'], { status: 'active', deleted_at: null })
+
     const res = await app.request('/test', {
       headers: { 'account-id': 'account-123' },
     })
@@ -105,7 +111,7 @@ describe('accountMiddleware', () => {
 
     expect(res.status).toBe(200)
     expect(body.isSystemAdminAccess).toBe(true)
-    expect(body.userRole).toBe('ADMIN')
+    expect(body.userRole).toBe('admin')
   })
 
   it('normal user with membership proceeds', async () => {
@@ -117,8 +123,10 @@ describe('accountMiddleware', () => {
       })
     })
 
-    // Mock membership exists
-    setMockQueryResult(mockDb, ['user-123', 'account-123'], { role: 'VIEWER' })
+    // Mock account exists (first query)
+    setMockQueryResult(mockDb, ['account-123'], { status: 'active', deleted_at: null })
+    // Mock membership exists (second query)
+    setMockQueryResult(mockDb, ['user-123', 'account-123'], { role: 'viewer', deleted_at: null })
 
     const res = await app.request('/test', {
       headers: { 'account-id': 'account-123' },
@@ -139,8 +147,10 @@ describe('accountMiddleware', () => {
       })
     })
 
-    // Mock membership with ADMIN role
-    setMockQueryResult(mockDb, ['user-123', 'account-123'], { role: 'ADMIN' })
+    // Mock account exists (first query)
+    setMockQueryResult(mockDb, ['account-123'], { status: 'active', deleted_at: null })
+    // Mock membership with admin role (second query)
+    setMockQueryResult(mockDb, ['user-123', 'account-123'], { role: 'admin', deleted_at: null })
 
     const res = await app.request('/test', {
       headers: { 'account-id': 'account-123' },
@@ -148,11 +158,11 @@ describe('accountMiddleware', () => {
     const body = await res.json()
 
     expect(res.status).toBe(200)
-    expect(body.userRole).toBe('ADMIN')
+    expect(body.userRole).toBe('admin')
     expect(body.isSystemAdminAccess).toBe(false)
   })
 
-  it('sets userRole VIEWER for viewer membership', async () => {
+  it('sets userRole viewer for viewer membership', async () => {
     const testUser = createUserFixture({ id: 'user-123' })
     const app = createApp((app) => {
       app.use('*', async (c, next) => {
@@ -161,8 +171,10 @@ describe('accountMiddleware', () => {
       })
     })
 
-    // Mock membership with VIEWER role
-    setMockQueryResult(mockDb, ['user-123', 'account-123'], { role: 'VIEWER' })
+    // Mock account exists (first query)
+    setMockQueryResult(mockDb, ['account-123'], { status: 'active', deleted_at: null })
+    // Mock membership with viewer role (second query)
+    setMockQueryResult(mockDb, ['user-123', 'account-123'], { role: 'viewer', deleted_at: null })
 
     const res = await app.request('/test', {
       headers: { 'account-id': 'account-123' },
@@ -170,7 +182,7 @@ describe('accountMiddleware', () => {
     const body = await res.json()
 
     expect(res.status).toBe(200)
-    expect(body.userRole).toBe('VIEWER')
+    expect(body.userRole).toBe('viewer')
   })
 
   it('throws 403 when user has no membership', async () => {
@@ -182,7 +194,9 @@ describe('accountMiddleware', () => {
       })
     })
 
-    // No query result -> no membership
+    // Mock account exists (first query)
+    setMockQueryResult(mockDb, ['account-123'], { status: 'active', deleted_at: null })
+    // No membership query result -> should return 403
 
     const res = await app.request('/test', {
       headers: { 'account-id': 'account-123' },

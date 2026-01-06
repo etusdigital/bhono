@@ -152,7 +152,7 @@ describe('CSRF Protection', () => {
       const scenario = await createTestScenario({
         userName: 'CORS Malicious Test User',
         userEmail: 'cors-malicious@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
       })
 
       const res = await app.request('/api/users', {
@@ -191,7 +191,7 @@ describe('CSRF Protection', () => {
       const scenario = await createTestScenario({
         userName: 'Wildcard Test User',
         userEmail: 'wildcard-test@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
       })
 
       const res = await app.request('/api/users', {
@@ -214,7 +214,7 @@ describe('CSRF Protection', () => {
       const scenario = await createTestScenario({
         userName: 'Same Origin Test User',
         userEmail: 'same-origin@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
       })
 
       // Use a configured CORS origin (from CORS_ORIGINS in test setup)
@@ -240,7 +240,7 @@ describe('CSRF Protection', () => {
       const scenario = await createTestScenario({
         userName: 'APP URL Test User',
         userEmail: 'app-url-test@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
       })
 
       // When CORS_ORIGINS is set, APP_URL is NOT automatically included
@@ -268,7 +268,7 @@ describe('CSRF Protection', () => {
       const scenario = await createTestScenario({
         userName: 'CORS Allowed Test User',
         userEmail: 'cors-allowed@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
       })
 
       // CORS_ORIGINS is set to 'http://localhost:3000,http://localhost:5173' in test setup
@@ -294,7 +294,7 @@ describe('CSRF Protection', () => {
       const scenario = await createTestScenario({
         userName: 'Credentials Test User',
         userEmail: 'credentials-test@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
       })
 
       // Use a configured CORS origin
@@ -376,7 +376,7 @@ describe('CSRF Protection', () => {
       const scenario = await createTestScenario({
         userName: 'POST CSRF Test User',
         userEmail: 'post-csrf@example.com',
-        role: 'ADMIN',
+        role: 'admin',
       })
 
       const res = await app.request('/api/accounts', {
@@ -400,7 +400,7 @@ describe('CSRF Protection', () => {
       const scenario = await createTestScenario({
         userName: 'PATCH CSRF Test User',
         userEmail: 'patch-csrf@example.com',
-        role: 'MANAGER',
+        role: 'manager',
       })
 
       const res = await app.request(`/api/users/${scenario.user.id}`, {
@@ -424,7 +424,7 @@ describe('CSRF Protection', () => {
       const scenario = await createTestScenario({
         userName: 'DELETE CSRF Test User',
         userEmail: 'delete-csrf@example.com',
-        role: 'ADMIN',
+        role: 'admin',
       })
 
       const res = await app.request(`/api/users/${scenario.user.id}`, {
@@ -452,7 +452,7 @@ describe('CSRF Protection', () => {
       const scenario = await createTestScenario({
         userName: 'No Origin Test User',
         userEmail: 'no-origin@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
       })
 
       // Requests from same-site navigation or direct API calls may not have Origin header
@@ -474,7 +474,7 @@ describe('CSRF Protection', () => {
       const scenario = await createTestScenario({
         userName: 'No Origin CORS Test User',
         userEmail: 'no-origin-cors@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
       })
 
       const res = await app.request('/api/users', {

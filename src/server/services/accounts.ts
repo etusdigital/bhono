@@ -5,17 +5,31 @@ import { createPaginationMeta, calculateOffset } from '../lib/pagination'
 import { NotFoundError, ConflictError, ForbiddenError } from '../lib/errors'
 import type { ServiceContext, PaginationQuery, PaginatedResponse, Account } from '../types'
 import { queryAll, queryOne, toStringValue, toNullableString, type SqlRow, type SqlParams } from '../db/sql'
+import { hasMinimumRole } from '../auth/roles'
 
 interface CreateAccountInput {
   name: string
   description?: string
   domain?: string
+  slug?: string
+  timezone?: string
+  language?: string
 }
 
 interface UpdateAccountInput {
   name?: string
   description?: string
   domain?: string
+  // Account settings (Phase 2)
+  slug?: string | null
+  timezone?: string | null
+  language?: string | null
+  // Branding fields (Phase 3)
+  logoUrl?: string | null
+  faviconUrl?: string | null
+  primaryColor?: string | null
+  secondaryColor?: string | null
+  accentColor?: string | null
 }
 
 
@@ -24,6 +38,18 @@ const ACCOUNT_SELECT_COLUMNS = `
   name,
   description,
   domain,
+  slug,
+  timezone,
+  language,
+  status,
+  status_changed_at as statusChangedAt,
+  status_changed_by as statusChangedBy,
+  status_reason as statusReason,
+  logo_url as logoUrl,
+  favicon_url as faviconUrl,
+  primary_color as primaryColor,
+  secondary_color as secondaryColor,
+  accent_color as accentColor,
   created_at as createdAt,
   updated_at as updatedAt,
   deleted_at as deletedAt
@@ -34,12 +60,32 @@ function mapAccountRow(row: SqlRow): AccountRecord {
   const createdAt = row.createdAt ?? row.created_at
   const updatedAt = row.updatedAt ?? row.updated_at
   const deletedAt = row.deletedAt ?? row.deleted_at
+  const statusChangedAt = row.statusChangedAt ?? row.status_changed_at
+  const statusChangedBy = row.statusChangedBy ?? row.status_changed_by
+  const statusReason = row.statusReason ?? row.status_reason
+  const logoUrl = row.logoUrl ?? row.logo_url
+  const faviconUrl = row.faviconUrl ?? row.favicon_url
+  const primaryColor = row.primaryColor ?? row.primary_color
+  const secondaryColor = row.secondaryColor ?? row.secondary_color
+  const accentColor = row.accentColor ?? row.accent_color
 
   return {
     id: toStringValue(row.id),
     name: toStringValue(row.name),
     description: toNullableString(row.description),
     domain: toNullableString(row.domain),
+    slug: toNullableString(row.slug),
+    timezone: toNullableString(row.timezone),
+    language: toNullableString(row.language),
+    status: row.status ? (row.status as 'active' | 'suspended') : 'active',
+    statusChangedAt: toNullableString(statusChangedAt),
+    statusChangedBy: toNullableString(statusChangedBy),
+    statusReason: toNullableString(statusReason),
+    logoUrl: toNullableString(logoUrl),
+    faviconUrl: toNullableString(faviconUrl),
+    primaryColor: toNullableString(primaryColor),
+    secondaryColor: toNullableString(secondaryColor),
+    accentColor: toNullableString(accentColor),
     createdAt: toStringValue(createdAt),
     updatedAt: toStringValue(updatedAt),
     deletedAt: toNullableString(deletedAt),
@@ -52,6 +98,18 @@ function toAccount(record: AccountRecord): Account {
     name: record.name,
     description: record.description,
     domain: record.domain,
+    slug: record.slug,
+    timezone: record.timezone,
+    language: record.language,
+    status: record.status,
+    statusChangedAt: record.statusChangedAt,
+    statusChangedBy: record.statusChangedBy,
+    statusReason: record.statusReason,
+    logoUrl: record.logoUrl,
+    faviconUrl: record.faviconUrl,
+    primaryColor: record.primaryColor,
+    secondaryColor: record.secondaryColor,
+    accentColor: record.accentColor,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
     deletedAt: record.deletedAt,
@@ -154,9 +212,13 @@ async function createSql(
   }
 
   const insertResults = await auditedInsert<AccountRecord>(db, ctx, 'accounts', {
+    id: crypto.randomUUID(),
     name: input.name,
     description: input.description ?? null,
     domain: input.domain ?? null,
+    slug: input.slug ?? null,
+    timezone: input.timezone ?? null,
+    language: input.language ?? null,
   })
 
   const accountRecord = insertResults.at(0)
@@ -173,8 +235,10 @@ async function updateSql(
   id: string,
   input: UpdateAccountInput
 ): Promise<Account> {
-  if (!ctx.user.isSuperAdmin) {
-    throw new ForbiddenError('Only super-admin can update accounts')
+  // Allow super-admin or users with manager+ role
+  const hasRoleAccess = ctx.userRole && hasMinimumRole(ctx.userRole, 'manager')
+  if (!ctx.user.isSuperAdmin && !hasRoleAccess) {
+    throw new ForbiddenError('Requires manager or higher role to update accounts')
   }
 
   await findByIdSql(db, ctx, id)
@@ -198,6 +262,16 @@ async function updateSql(
   if (input.name !== undefined) updates.name = input.name
   if (input.description !== undefined) updates.description = input.description ?? null
   if (input.domain !== undefined) updates.domain = input.domain ?? null
+  // Account settings (Phase 2)
+  if (input.slug !== undefined) updates.slug = input.slug
+  if (input.timezone !== undefined) updates.timezone = input.timezone
+  if (input.language !== undefined) updates.language = input.language
+  // Branding fields
+  if (input.logoUrl !== undefined) updates.logo_url = input.logoUrl
+  if (input.faviconUrl !== undefined) updates.favicon_url = input.faviconUrl
+  if (input.primaryColor !== undefined) updates.primary_color = input.primaryColor
+  if (input.secondaryColor !== undefined) updates.secondary_color = input.secondaryColor
+  if (input.accentColor !== undefined) updates.accent_color = input.accentColor
 
   const updateResults = await auditedUpdate<AccountRecord>(
     db,

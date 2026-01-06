@@ -9,6 +9,9 @@ import istanbul from "vite-plugin-istanbul"
 const isE2ECoverage = process.env.E2E_COVERAGE === "true"
 
 export default defineConfig({
+  server: {
+    port: 8787,
+  },
   plugins: [
     tailwindcss(),
     TanStackRouterVite({

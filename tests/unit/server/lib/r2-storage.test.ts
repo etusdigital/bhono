@@ -18,20 +18,22 @@ describe('r2-storage', () => {
   })
 
   describe('generateUploadUrl', () => {
-    it('should generate URL with timestamp prefix', async () => {
+    const accountId = 'acc_test123'
+
+    it('should generate URL with account prefix and timestamp', async () => {
       const r2Bucket = mockR2 as unknown as R2Bucket
       const publicUrl = 'https://cdn.example.com'
       const filename = 'test-image.png'
       const contentType = 'image/png'
 
-      const result = await generateUploadUrl(r2Bucket, publicUrl, filename, contentType)
+      const result = await generateUploadUrl(r2Bucket, publicUrl, filename, contentType, accountId)
 
-      // Should have timestamp prefix in the name
-      expect(result.name).toMatch(/^\d+-test-image\.png$/)
+      // Should have account prefix followed by timestamp prefix in the name
+      expect(result.name).toMatch(/^acc_test123\/\d+-test-image\.png$/)
       // URL should be the internal upload endpoint
       expect(result.url).toContain('/api/storage/upload/')
-      // Public URL should be constructed correctly
-      expect(result.publicUrl).toMatch(/^https:\/\/cdn\.example\.com\/\d+-test-image\.png$/)
+      // Public URL should be constructed correctly with account prefix
+      expect(result.publicUrl).toMatch(/^https:\/\/cdn\.example\.com\/acc_test123\/\d+-test-image\.png$/)
     })
 
     it('should throw error when filename is missing', () => {
@@ -39,7 +41,7 @@ describe('r2-storage', () => {
       const publicUrl = 'https://cdn.example.com'
       const contentType = 'image/png'
 
-      expect(() => generateUploadUrl(r2Bucket, publicUrl, '', contentType)).toThrow(
+      expect(() => generateUploadUrl(r2Bucket, publicUrl, '', contentType, accountId)).toThrow(
         'Filename and ContentType are required.'
       )
     })
@@ -49,21 +51,32 @@ describe('r2-storage', () => {
       const publicUrl = 'https://cdn.example.com'
       const filename = 'test-image.png'
 
-      expect(() => generateUploadUrl(r2Bucket, publicUrl, filename, '')).toThrow(
+      expect(() => generateUploadUrl(r2Bucket, publicUrl, filename, '', accountId)).toThrow(
         'Filename and ContentType are required.'
       )
     })
 
-    it('should preserve folder structure in the filename', async () => {
+    it('should throw error when accountId is missing', () => {
+      const r2Bucket = mockR2 as unknown as R2Bucket
+      const publicUrl = 'https://cdn.example.com'
+      const filename = 'test-image.png'
+      const contentType = 'image/png'
+
+      expect(() => generateUploadUrl(r2Bucket, publicUrl, filename, contentType, '')).toThrow(
+        'Account ID is required for storage operations.'
+      )
+    })
+
+    it('should preserve folder structure in the filename with account prefix', async () => {
       const r2Bucket = mockR2 as unknown as R2Bucket
       const publicUrl = 'https://cdn.example.com'
       const filename = 'images/avatars/user-photo.jpg'
       const contentType = 'image/jpeg'
 
-      const result = await generateUploadUrl(r2Bucket, publicUrl, filename, contentType)
+      const result = await generateUploadUrl(r2Bucket, publicUrl, filename, contentType, accountId)
 
-      // Should preserve folder structure with timestamp on the file part
-      expect(result.name).toMatch(/^images\/avatars\/\d+-user-photo\.jpg$/)
+      // Should have account prefix followed by folder structure with timestamp on the file part
+      expect(result.name).toMatch(/^acc_test123\/images\/avatars\/\d+-user-photo\.jpg$/)
     })
 
     it('should handle publicUrl with trailing slash', async () => {
@@ -72,11 +85,11 @@ describe('r2-storage', () => {
       const filename = 'test.txt'
       const contentType = 'text/plain'
 
-      const result = await generateUploadUrl(r2Bucket, publicUrl, filename, contentType)
+      const result = await generateUploadUrl(r2Bucket, publicUrl, filename, contentType, accountId)
 
       // Should not have double slashes (except in https://)
       expect(result.publicUrl.replace('https://', '')).not.toContain('//')
-      expect(result.publicUrl).toMatch(/^https:\/\/cdn\.example\.com\/\d+-test\.txt$/)
+      expect(result.publicUrl).toMatch(/^https:\/\/cdn\.example\.com\/acc_test123\/\d+-test\.txt$/)
     })
   })
 

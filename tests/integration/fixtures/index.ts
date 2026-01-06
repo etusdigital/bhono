@@ -92,7 +92,7 @@ export async function createTestScenario(
   })
 
   // Add user to account
-  await addUserToAccount(user.id, account.id, options.role ?? 'ADMIN')
+  await addUserToAccount(user.id, account.id, options.role ?? 'admin')
 
   // Create session
   const { sessionId, headers } = await createUserSession(user.id, {
@@ -125,7 +125,7 @@ export async function createMultiUserScenario(): Promise<MultiUserScenarioResult
     name: 'Admin User',
     email: 'admin@example.com',
   })
-  await addUserToAccount(adminUser.id, account.id, 'ADMIN')
+  await addUserToAccount(adminUser.id, account.id, 'admin')
   const adminSession = await createUserSession(adminUser.id, {
     email: adminUser.email,
     name: adminUser.name,
@@ -136,7 +136,7 @@ export async function createMultiUserScenario(): Promise<MultiUserScenarioResult
     name: 'Manager User',
     email: 'manager@example.com',
   })
-  await addUserToAccount(managerUser.id, account.id, 'MANAGER')
+  await addUserToAccount(managerUser.id, account.id, 'manager')
   const managerSession = await createUserSession(managerUser.id, {
     email: managerUser.email,
     name: managerUser.name,
@@ -147,7 +147,7 @@ export async function createMultiUserScenario(): Promise<MultiUserScenarioResult
     name: 'Viewer User',
     email: 'viewer@example.com',
   })
-  await addUserToAccount(viewerUser.id, account.id, 'VIEWER')
+  await addUserToAccount(viewerUser.id, account.id, 'viewer')
   const viewerSession = await createUserSession(viewerUser.id, {
     email: viewerUser.email,
     name: viewerUser.name,
@@ -189,17 +189,17 @@ export async function createMultiTenantScenario(): Promise<MultiTenantScenarioRe
   const accountWithAdminAccess = await createAccount({
     name: 'Account With Admin Access',
   })
-  await addUserToAccount(user.id, accountWithAdminAccess.id, 'ADMIN')
+  await addUserToAccount(user.id, accountWithAdminAccess.id, 'admin')
 
   const accountWithManagerAccess = await createAccount({
     name: 'Account With Manager Access',
   })
-  await addUserToAccount(user.id, accountWithManagerAccess.id, 'MANAGER')
+  await addUserToAccount(user.id, accountWithManagerAccess.id, 'manager')
 
   const accountWithViewerAccess = await createAccount({
     name: 'Account With Viewer Access',
   })
-  await addUserToAccount(user.id, accountWithViewerAccess.id, 'VIEWER')
+  await addUserToAccount(user.id, accountWithViewerAccess.id, 'viewer')
 
   // Create accounts without access
   const accountWithoutAccess1 = await createAccount({
@@ -222,9 +222,9 @@ export async function createMultiTenantScenario(): Promise<MultiTenantScenarioRe
     headers,
     accounts: {
       withAccess: [
-        { account: accountWithAdminAccess, role: 'ADMIN' as Role },
-        { account: accountWithManagerAccess, role: 'MANAGER' as Role },
-        { account: accountWithViewerAccess, role: 'VIEWER' as Role },
+        { account: accountWithAdminAccess, role: 'admin' as Role },
+        { account: accountWithManagerAccess, role: 'manager' as Role },
+        { account: accountWithViewerAccess, role: 'viewer' as Role },
       ],
       withoutAccess: [accountWithoutAccess1, accountWithoutAccess2],
     },

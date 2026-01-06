@@ -138,6 +138,37 @@ describe('Auth Routes', () => {
   })
 
   describe('GET /auth/callback', () => {
+    it('returns 500 when database is not initialized', async () => {
+      // Create app without database binding
+      const appWithoutDb = new Hono<HonoEnv>()
+      appWithoutDb.use('*', async (c, next) => {
+        // Set env without DB and don't set db in context
+        ;(c as any).env = { ...mockEnv, DB: undefined }
+        // Don't set c.set('db', ...) to simulate uninitialized database
+        c.set('transactionId', 'test-transaction-id')
+        c.set('ip', '127.0.0.1')
+        c.set('userAgent', 'TestAgent/1.0')
+        c.set('sessionCookies', [])
+        await next()
+      })
+      appWithoutDb.route('/auth', auth)
+
+      const res = await appWithoutDb.request('/auth/callback?code=test-code&state=test-state', {
+        method: 'GET',
+        headers: {
+          Cookie: 'oauth_state=' + encodeURIComponent(JSON.stringify({
+            codeVerifier: 'test-verifier',
+            state: 'test-state',
+            redirect: null,
+          })),
+        },
+      })
+
+      expect(res.status).toBe(500)
+      const body = await res.text()
+      expect(body).toContain('Database not initialized')
+    })
+
     it('returns 400 when missing OAuth state cookie', async () => {
       const app = createApp()
       const res = await app.request('/auth/callback?code=test-code&state=test-state', {
@@ -250,7 +281,7 @@ describe('Auth Routes', () => {
         id: 'invite-123',
         token: 'valid-invite-token',
         email: 'test@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
         accountId: 'account-1',
         status: 'pending',
         expiresAt: new Date(Date.now() + 86400000).toISOString(),
@@ -276,6 +307,52 @@ describe('Auth Routes', () => {
       expect(res.status).toBe(302)
       expect(invitationsService.getByToken).toHaveBeenCalledWith(expect.anything(), 'valid-invite-token')
       expect(invitationsService.accept).toHaveBeenCalled()
+    })
+
+    it('skips invitation acceptance when pending invitation is not found', async () => {
+      const testUser = createUserFixture({ id: 'user-123', email: 'test@example.com' })
+
+      vi.mocked(exchangeCodeForTokens).mockResolvedValue({
+        access_token: 'test-access-token',
+        id_token: 'test-id-token',
+        refresh_token: 'test-refresh-token',
+        expires_in: 3600,
+        token_type: 'Bearer',
+      })
+
+      vi.mocked(decodeIdToken).mockReturnValue({
+        sub: 'google-123',
+        email: 'test@example.com',
+        name: 'Test User',
+        picture: 'https://example.com/avatar.jpg',
+        email_verified: true,
+      })
+
+      vi.mocked(authService.findOrCreateUser).mockResolvedValue({
+        user: testUser,
+        isNew: false,
+      })
+
+      // Invitation token exists in cookie but getByToken returns null (expired/invalid)
+      vi.mocked(invitationsService.getByToken).mockResolvedValue(null)
+
+      const app = createApp()
+      const res = await app.request('/auth/callback?code=test-code&state=test-state', {
+        method: 'GET',
+        headers: {
+          Cookie: 'oauth_state=' + encodeURIComponent(JSON.stringify({
+            codeVerifier: 'test-verifier',
+            state: 'test-state',
+            redirect: null,
+          })) + '; pending_invitation=expired-invite-token',
+        },
+        redirect: 'manual',
+      })
+
+      expect(res.status).toBe(302)
+      expect(invitationsService.getByToken).toHaveBeenCalledWith(expect.anything(), 'expired-invite-token')
+      // accept should NOT be called when invitation is not found
+      expect(invitationsService.accept).not.toHaveBeenCalled()
     })
 
     it('uses custom redirect from oauth state', async () => {
@@ -321,6 +398,30 @@ describe('Auth Routes', () => {
   })
 
   describe('POST /auth/logout', () => {
+    it('returns 500 when database is not initialized', async () => {
+      // Create app without database binding
+      const appWithoutDb = new Hono<HonoEnv>()
+      appWithoutDb.use('*', async (c, next) => {
+        // Set env without DB and don't set db in context
+        ;(c as any).env = { ...mockEnv, DB: undefined }
+        // Don't set c.set('db', ...) to simulate uninitialized database
+        c.set('transactionId', 'test-transaction-id')
+        c.set('ip', '127.0.0.1')
+        c.set('userAgent', 'TestAgent/1.0')
+        c.set('sessionCookies', [])
+        await next()
+      })
+      appWithoutDb.route('/auth', auth)
+
+      const res = await appWithoutDb.request('/auth/logout', {
+        method: 'POST',
+      })
+
+      expect(res.status).toBe(500)
+      const body = await res.text()
+      expect(body).toContain('Database not initialized')
+    })
+
     it('logs out user and returns success message', async () => {
       const sessionData = createSessionFixture({ userId: 'user-123' })
       vi.mocked(getSession).mockReturnValue(sessionData)
@@ -420,6 +521,33 @@ describe('Auth Routes', () => {
   })
 
   describe('POST /auth/refresh', () => {
+    it('returns 500 when database is not initialized', async () => {
+      // Create app without database binding
+      const appWithoutDb = new Hono<HonoEnv>()
+      appWithoutDb.use('*', async (c, next) => {
+        // Set env without DB and don't set db in context
+        ;(c as any).env = { ...mockEnv, DB: undefined }
+        // Don't set c.set('db', ...) to simulate uninitialized database
+        c.set('transactionId', 'test-transaction-id')
+        c.set('ip', '127.0.0.1')
+        c.set('userAgent', 'TestAgent/1.0')
+        c.set('sessionCookies', [])
+        await next()
+      })
+      appWithoutDb.route('/auth', auth)
+
+      const res = await appWithoutDb.request('/auth/refresh', {
+        method: 'POST',
+        headers: {
+          Cookie: 'refresh_token=valid-refresh-token',
+        },
+      })
+
+      expect(res.status).toBe(500)
+      const body = await res.text()
+      expect(body).toContain('Database not initialized')
+    })
+
     it('returns 401 when no refresh token', async () => {
       const app = createApp()
       const res = await app.request('/auth/refresh', {
@@ -452,6 +580,30 @@ describe('Auth Routes', () => {
   })
 
   describe('GET /auth/invite/{token}', () => {
+    it('returns 500 when database is not initialized', async () => {
+      // Create app without database binding
+      const appWithoutDb = new Hono<HonoEnv>()
+      appWithoutDb.use('*', async (c, next) => {
+        // Set env without DB and don't set db in context
+        ;(c as any).env = { ...mockEnv, DB: undefined }
+        // Don't set c.set('db', ...) to simulate uninitialized database
+        c.set('transactionId', 'test-transaction-id')
+        c.set('ip', '127.0.0.1')
+        c.set('userAgent', 'TestAgent/1.0')
+        c.set('sessionCookies', [])
+        await next()
+      })
+      appWithoutDb.route('/auth', auth)
+
+      const res = await appWithoutDb.request('/auth/invite/some-token', {
+        method: 'GET',
+      })
+
+      expect(res.status).toBe(500)
+      const body = await res.text()
+      expect(body).toContain('Database not initialized')
+    })
+
     it('returns 400 for invalid invitation token', async () => {
       vi.mocked(invitationsService.getByToken).mockResolvedValue(null)
 
@@ -470,7 +622,7 @@ describe('Auth Routes', () => {
         id: 'invite-123',
         token: 'valid-token',
         email: 'invitee@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
         accountId: 'account-1',
         status: 'pending',
         expiresAt: new Date(Date.now() + 86400000).toISOString(),

@@ -73,7 +73,7 @@ describe('XSS Prevention', () => {
       const scenario = await createTestScenario({
         userName: 'Content Type Test User',
         userEmail: 'contenttype@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
       })
 
       const res = await app.request('/api/accounts', {
@@ -103,7 +103,7 @@ describe('XSS Prevention', () => {
       const scenario = await createTestScenario({
         userName: 'Not Found Test User',
         userEmail: 'notfound@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
       })
 
       const nonExistentId = crypto.randomUUID()
@@ -124,7 +124,7 @@ describe('XSS Prevention', () => {
       const scenario = await createTestScenario({
         userName: 'Validation Test User',
         userEmail: 'validation@example.com',
-        role: 'MANAGER',
+        role: 'manager',
       })
 
       const res = await app.request(`/api/users/${scenario.user.id}`, {
@@ -152,7 +152,7 @@ describe('XSS Prevention', () => {
       const scenario = await createTestScenario({
         userName: 'Reflected XSS Test User',
         userEmail: 'reflectedxss@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
       })
 
       // Attempt to inject script via URL parameter (user ID)
@@ -183,7 +183,7 @@ describe('XSS Prevention', () => {
       const scenario = await createTestScenario({
         userName: 'Account XSS Test User',
         userEmail: 'accountxss@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
       })
 
       const maliciousAccountId = '"><img src=x onerror=alert(1)>'
@@ -206,7 +206,7 @@ describe('XSS Prevention', () => {
       const scenario = await createTestScenario({
         userName: 'Malformed XSS Test User',
         userEmail: 'malformedxss@example.com',
-        role: 'MANAGER',
+        role: 'manager',
       })
 
       // Try to inject XSS via JSON body with malicious name
@@ -242,7 +242,7 @@ describe('XSS Prevention', () => {
       const scenario = await createTestScenario({
         userName: 'Integrity Test User',
         userEmail: 'integrity@example.com',
-        role: 'MANAGER',
+        role: 'manager',
       })
 
       // Update user name with special characters that would be escaped in HTML
@@ -276,7 +276,7 @@ describe('XSS Prevention', () => {
       const scenario = await createTestScenario({
         userName: 'Ampersand Test User',
         userEmail: 'ampersand@example.com',
-        role: 'MANAGER',
+        role: 'manager',
       })
 
       const nameWithAmpersand = 'Johnson & Johnson'
@@ -304,7 +304,7 @@ describe('XSS Prevention', () => {
       const scenario = await createTestScenario({
         userName: 'Brackets Test User',
         userEmail: 'brackets@example.com',
-        role: 'MANAGER',
+        role: 'manager',
       })
 
       const descriptionWithBrackets = 'Use <code> tags for code'
@@ -332,7 +332,7 @@ describe('XSS Prevention', () => {
       const scenario = await createTestScenario({
         userName: 'Quotes Test User',
         userEmail: 'quotes@example.com',
-        role: 'MANAGER',
+        role: 'manager',
       })
 
       const nameWithQuotes = 'The "Best" Company'
@@ -367,7 +367,7 @@ describe('XSS Prevention', () => {
       const scenario = await createTestScenario({
         userName: 'JSON Format Test User',
         userEmail: 'jsonformat@example.com',
-        role: 'MANAGER',
+        role: 'manager',
       })
 
       // Test 401 - Unauthorized
@@ -412,7 +412,7 @@ describe('XSS Prevention', () => {
       const scenario = await createTestScenario({
         userName: 'No HTML Error Test User',
         userEmail: 'nohtmlerror@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
       })
 
       // Test API routes that go through our error handler
@@ -459,7 +459,7 @@ describe('XSS Prevention', () => {
       const scenario = await createTestScenario({
         userName: 'Stored XSS Test User',
         userEmail: 'storedxss@example.com',
-        role: 'MANAGER',
+        role: 'manager',
       })
 
       // Store a name that looks like an XSS attack
@@ -504,7 +504,7 @@ describe('XSS Prevention', () => {
       const scenario = await createTestScenario({
         userName: 'Event Handler Test User',
         userEmail: 'eventhandler@example.com',
-        role: 'MANAGER',
+        role: 'manager',
       })
 
       const maliciousDescription = '<img src=x onerror="alert(1)">'

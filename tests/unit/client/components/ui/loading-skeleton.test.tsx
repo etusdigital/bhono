@@ -5,7 +5,7 @@ import {
   TeamSkeleton,
   PageSkeleton,
   SidebarSkeleton,
-} from "../loading-skeleton"
+} from "@/components/ui/loading-skeleton"
 
 describe("DashboardSkeleton", () => {
   it("renders dashboard skeleton structure", () => {

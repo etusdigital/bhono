@@ -169,7 +169,7 @@ describe('Users List Integration', () => {
         const scenario = await createTestScenario({
           userName: 'List Test User',
           userEmail: 'listtest@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
         })
 
         const res = await app.request('/api/users', {
@@ -202,7 +202,7 @@ describe('Users List Integration', () => {
         const otherAccount = await createAccount({
           name: 'Other Account',
         })
-        await addUserToAccount(otherUser.id, otherAccount.id, 'ADMIN')
+        await addUserToAccount(otherUser.id, otherAccount.id, 'admin')
 
         // Request users for the main account
         const res = await app.request('/api/users', {
@@ -232,7 +232,7 @@ describe('Users List Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Details Test User',
           userEmail: 'details@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         const res = await app.request('/api/users', {
@@ -263,7 +263,7 @@ describe('Users List Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Viewer User',
           userEmail: 'viewer@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
         })
 
         const res = await app.request('/api/users', {
@@ -287,7 +287,7 @@ describe('Users List Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Pagination Test User',
           userEmail: 'pagination@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         const res = await app.request('/api/users', {
@@ -314,7 +314,7 @@ describe('Users List Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Page Test User',
           userEmail: 'pagetest@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         const res = await app.request('/api/users?page=1', {
@@ -336,7 +336,7 @@ describe('Users List Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Limit Test User',
           userEmail: 'limittest@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         const res = await app.request('/api/users?limit=5', {
@@ -383,7 +383,7 @@ describe('Users List Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Searchable User',
           userEmail: 'searchable@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         // Add another user to the same account
@@ -391,7 +391,7 @@ describe('Users List Integration', () => {
           email: 'another@example.com',
           name: 'Another Person',
         })
-        await addUserToAccount(anotherUser.id, scenario.account.id, 'VIEWER')
+        await addUserToAccount(anotherUser.id, scenario.account.id, 'viewer')
 
         // Search for "Searchable"
         const res = await app.request('/api/users?query=Searchable', {
@@ -417,7 +417,7 @@ describe('Users List Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Email Search User',
           userEmail: 'uniqueemail123@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         const res = await app.request('/api/users?query=uniqueemail123', {
@@ -453,7 +453,7 @@ describe('Users List Integration', () => {
         const account = await createAccount({
           name: 'Some Account',
         })
-        await addUserToAccount(regularUser.id, account.id, 'ADMIN')
+        await addUserToAccount(regularUser.id, account.id, 'admin')
 
         // Create session for super admin
         const { headers } = await createUserSession(superAdmin.id, {
@@ -488,7 +488,7 @@ describe('Users List Integration', () => {
         const account = await createAccount({
           name: 'Super Admin Account',
         })
-        await addUserToAccount(superAdmin.id, account.id, 'ADMIN')
+        await addUserToAccount(superAdmin.id, account.id, 'admin')
 
         // Create multiple users in different accounts
         const user1 = await createUser({
@@ -499,8 +499,8 @@ describe('Users List Integration', () => {
           email: 'user2multi@example.com',
           name: 'User 2 Multi',
         })
-        await addUserToAccount(user1.id, account.id, 'VIEWER')
-        await addUserToAccount(user2.id, account.id, 'VIEWER')
+        await addUserToAccount(user1.id, account.id, 'viewer')
+        await addUserToAccount(user2.id, account.id, 'viewer')
 
         // Create session for super admin
         const { headers } = await createUserSession(superAdmin.id, {
@@ -531,7 +531,7 @@ describe('Users List Integration', () => {
         const scenario = await createTestScenario({
           userName: 'JSON Test User',
           userEmail: 'jsontest@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         const res = await app.request('/api/users', {
@@ -550,7 +550,7 @@ describe('Users List Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Structure Test User',
           userEmail: 'structure@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         const res = await app.request('/api/users', {
@@ -575,7 +575,7 @@ describe('Users List Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Empty Test User',
           userEmail: 'emptytest@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         const res = await app.request('/api/users?query=xyznonexistent999', {
@@ -598,7 +598,7 @@ describe('Users List Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Beyond Page User',
           userEmail: 'beyondpage@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         const res = await app.request('/api/users?page=999', {
@@ -621,7 +621,7 @@ describe('Users List Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Concurrent User',
           userEmail: 'concurrent@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         const requestHeaders = {

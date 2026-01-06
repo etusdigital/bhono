@@ -665,7 +665,7 @@ export async function seedAccount(accountData: {
 export async function seedUserAccount(data: {
   userId: string
   accountId: string
-  role: 'ADMIN' | 'MANAGER' | 'EDITOR' | 'AUTHOR' | 'VIEWER' | 'BILLING' | 'ANALYTICS'
+  role: 'admin' | 'manager' | 'user' | 'viewer'
 }): Promise<void> {
   const db = getSqlite()
   db.prepare(`

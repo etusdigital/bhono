@@ -1,15 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { screen, waitFor } from '@testing-library/react'
-import { renderRoute } from '@tests/helpers/client-test-utils'
-
-// Mock user for authenticated tests
-const mockUser = {
-  id: 'test-user-id',
-  email: 'test@example.com',
-  name: 'Test User',
-  isSuperAdmin: false,
-  avatarUrl: null,
-}
+import { renderRoute, setupFetchMock, mockUser } from '@tests/helpers/client-test-utils'
 
 describe('Dashboard Page', () => {
   beforeEach(() => {
@@ -18,19 +9,7 @@ describe('Dashboard Page', () => {
 
   describe('when authenticated', () => {
     beforeEach(() => {
-      // Mock fetch to return authenticated user
-      vi.spyOn(global, 'fetch').mockImplementation((url) => {
-        if (url === '/auth/me') {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ user: mockUser }),
-          } as Response)
-        }
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({}),
-        } as Response)
-      })
+      setupFetchMock()
     })
 
     it('should render dashboard when authenticated', async () => {

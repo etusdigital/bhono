@@ -11,13 +11,13 @@ import {
 
 describe('User Schemas', () => {
   describe('CreateUserSchema', () => {
-    const validRoles = ['ADMIN', 'MANAGER', 'EDITOR', 'AUTHOR', 'VIEWER', 'BILLING', 'ANALYTICS'] as const
+    const validRoles = ['admin', 'manager', 'user', 'viewer'] as const
 
     it('should accept valid user creation data', () => {
       const validData = {
         email: 'test@example.com',
         name: 'John Doe',
-        role: 'ADMIN',
+        role: 'admin',
       }
       const result = CreateUserSchema.safeParse(validData)
       expect(result.success).toBe(true)
@@ -43,7 +43,7 @@ describe('User Schemas', () => {
         const result = CreateUserSchema.safeParse({
           email,
           name: 'John Doe',
-          role: 'ADMIN',
+          role: 'admin',
         })
         expect(result.success).toBe(false)
       }
@@ -52,7 +52,7 @@ describe('User Schemas', () => {
     it('should reject missing email field', () => {
       const result = CreateUserSchema.safeParse({
         name: 'John Doe',
-        role: 'ADMIN',
+        role: 'admin',
       })
       expect(result.success).toBe(false)
       if (!result.success) {
@@ -63,7 +63,7 @@ describe('User Schemas', () => {
     it('should reject missing name field', () => {
       const result = CreateUserSchema.safeParse({
         email: 'test@example.com',
-        role: 'ADMIN',
+        role: 'admin',
       })
       expect(result.success).toBe(false)
       if (!result.success) {
@@ -75,7 +75,7 @@ describe('User Schemas', () => {
       const result = CreateUserSchema.safeParse({
         email: 'test@example.com',
         name: '',
-        role: 'ADMIN',
+        role: 'admin',
       })
       expect(result.success).toBe(false)
       if (!result.success) {
@@ -95,7 +95,8 @@ describe('User Schemas', () => {
     })
 
     it('should reject invalid role value', () => {
-      const invalidRoles = ['admin', 'SUPERADMIN', 'USER', 'guest', '']
+      // Note: valid roles are lowercase: 'admin', 'manager', 'user', 'viewer'
+      const invalidRoles = ['ADMIN', 'SUPERADMIN', 'editor', 'billing', 'guest', '']
       for (const role of invalidRoles) {
         const result = CreateUserSchema.safeParse({
           email: 'test@example.com',
@@ -110,7 +111,7 @@ describe('User Schemas', () => {
       const result = CreateUserSchema.safeParse({
         email: 'test@example.com',
         name: 'A',
-        role: 'VIEWER',
+        role: 'viewer',
       })
       expect(result.success).toBe(true)
     })
@@ -119,7 +120,7 @@ describe('User Schemas', () => {
       const result = CreateUserSchema.safeParse({
         email: 'test@example.com',
         name: "John O'Brien-Smith",
-        role: 'EDITOR',
+        role: 'user',
       })
       expect(result.success).toBe(true)
     })
@@ -349,12 +350,12 @@ describe('Account Schemas', () => {
 
 describe('Invitation Schemas', () => {
   describe('CreateInvitationSchema', () => {
-    const validRoles = ['ADMIN', 'MANAGER', 'EDITOR', 'AUTHOR', 'VIEWER', 'BILLING', 'ANALYTICS'] as const
+    const validRoles = ['admin', 'manager', 'user', 'viewer'] as const
 
     it('should accept valid invitation creation data', () => {
       const validData = {
         email: 'invite@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
       }
       const result = CreateInvitationSchema.safeParse(validData)
       expect(result.success).toBe(true)
@@ -378,7 +379,7 @@ describe('Invitation Schemas', () => {
       for (const email of invalidEmails) {
         const result = CreateInvitationSchema.safeParse({
           email,
-          role: 'VIEWER',
+          role: 'viewer',
         })
         expect(result.success).toBe(false)
       }
@@ -386,7 +387,7 @@ describe('Invitation Schemas', () => {
 
     it('should reject missing email field', () => {
       const result = CreateInvitationSchema.safeParse({
-        role: 'ADMIN',
+        role: 'admin',
       })
       expect(result.success).toBe(false)
       if (!result.success) {
@@ -405,7 +406,8 @@ describe('Invitation Schemas', () => {
     })
 
     it('should reject invalid role value', () => {
-      const invalidRoles = ['admin', 'SUPERADMIN', 'USER', 'guest', '']
+      // Note: valid roles are lowercase: 'admin', 'manager', 'user', 'viewer'
+      const invalidRoles = ['ADMIN', 'SUPERADMIN', 'editor', 'billing', 'guest', '']
       for (const role of invalidRoles) {
         const result = CreateInvitationSchema.safeParse({
           email: 'invite@example.com',
@@ -425,7 +427,7 @@ describe('Invitation Schemas', () => {
       for (const email of validEmails) {
         const result = CreateInvitationSchema.safeParse({
           email,
-          role: 'VIEWER',
+          role: 'viewer',
         })
         expect(result.success).toBe(true)
       }

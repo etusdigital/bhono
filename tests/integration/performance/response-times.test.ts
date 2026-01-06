@@ -169,7 +169,7 @@ describe('Performance Response Times Integration', () => {
       const scenario = await createTestScenario({
         userName: 'List Perf User',
         userEmail: 'listperf@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
       })
 
       // Warm up
@@ -203,7 +203,7 @@ describe('Performance Response Times Integration', () => {
       const scenario = await createTestScenario({
         userName: 'Account Perf User',
         userEmail: 'accountperf@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
       })
 
       // Warm up
@@ -238,7 +238,7 @@ describe('Performance Response Times Integration', () => {
       const scenario = await createTestScenario({
         userName: 'Audit Perf User',
         userEmail: 'auditperf@example.com',
-        role: 'ADMIN',
+        role: 'admin',
       })
 
       // Warm up
@@ -272,7 +272,7 @@ describe('Performance Response Times Integration', () => {
       const scenario = await createTestScenario({
         userName: 'Pagination Perf User',
         userEmail: 'paginationperf@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
       })
 
       const { result: res, durationMs } = await measureTime(() =>
@@ -296,7 +296,7 @@ describe('Performance Response Times Integration', () => {
       const scenario = await createTestScenario({
         userName: 'Search Perf User',
         userEmail: 'searchperf@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
       })
 
       const { result: res, durationMs } = await measureTime(() =>
@@ -326,7 +326,7 @@ describe('Performance Response Times Integration', () => {
       const scenario = await createTestScenario({
         userName: 'Create Perf Admin',
         userEmail: 'createperfadmin@example.com',
-        role: 'ADMIN',
+        role: 'admin',
         isSuperAdmin: true,
       })
 
@@ -359,7 +359,7 @@ describe('Performance Response Times Integration', () => {
       const scenario = await createTestScenario({
         userName: 'Invite Perf Admin',
         userEmail: 'inviteperfadmin@example.com',
-        role: 'ADMIN',
+        role: 'admin',
       })
 
       const uniqueEmail = `invite-perf-${Date.now()}@example.com`
@@ -375,7 +375,7 @@ describe('Performance Response Times Integration', () => {
           },
           body: JSON.stringify({
             email: uniqueEmail,
-            role: 'VIEWER',
+            role: 'viewer',
           }),
         })
       )
@@ -397,7 +397,7 @@ describe('Performance Response Times Integration', () => {
       const scenario = await createTestScenario({
         userName: 'Sequential Perf User',
         userEmail: 'sequentialperf@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
       })
 
       const requestCount = 5
@@ -439,7 +439,7 @@ describe('Performance Response Times Integration', () => {
       const scenario = await createTestScenario({
         userName: 'Parallel Perf User',
         userEmail: 'parallelperf@example.com',
-        role: 'ADMIN',
+        role: 'admin',
       })
 
       const headers = {
@@ -476,7 +476,7 @@ describe('Performance Response Times Integration', () => {
       const scenario = await createTestScenario({
         userName: 'Large Set Perf User',
         userEmail: 'largesetperf@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
       })
 
       // Request a larger page size

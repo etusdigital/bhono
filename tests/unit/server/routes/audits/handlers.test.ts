@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Hono } from 'hono'
 import type { HonoEnv } from '@server/types'
 import { audits } from '@server/routes/index'
+import { errorHandler } from '@server/middleware/error-handler'
 import { createMockEnv } from '@tests/helpers/server'
 import { createUserFixture, createAccountFixture } from '@tests/fixtures/server'
 
@@ -63,7 +64,7 @@ describe('Audits Routes', () => {
   }
 
   // Helper to setup authenticated app with ADMIN role
-  function setupAuthenticatedApp(userRole = 'ADMIN', isSuperAdmin = false) {
+  function setupAuthenticatedApp(userRole = 'admin', isSuperAdmin = false) {
     const authenticatedApp = new Hono<HonoEnv>()
 
     authenticatedApp.use('*', async (c, next) => {
@@ -103,7 +104,7 @@ describe('Audits Routes', () => {
         },
       })
 
-      const authenticatedApp = setupAuthenticatedApp('ADMIN')
+      const authenticatedApp = setupAuthenticatedApp('admin')
 
       const res = await authenticatedApp.request('/audits', {
         method: 'GET',
@@ -138,7 +139,7 @@ describe('Audits Routes', () => {
         },
       })
 
-      const authenticatedApp = setupAuthenticatedApp('ADMIN')
+      const authenticatedApp = setupAuthenticatedApp('admin')
 
       const res = await authenticatedApp.request('/audits?entity=User', {
         method: 'GET',
@@ -181,7 +182,7 @@ describe('Audits Routes', () => {
         },
       })
 
-      const authenticatedApp = setupAuthenticatedApp('ADMIN')
+      const authenticatedApp = setupAuthenticatedApp('admin')
 
       const res = await authenticatedApp.request('/audits?action=UPDATE', {
         method: 'GET',
@@ -219,7 +220,7 @@ describe('Audits Routes', () => {
         },
       })
 
-      const authenticatedApp = setupAuthenticatedApp('ADMIN')
+      const authenticatedApp = setupAuthenticatedApp('admin')
 
       const res = await authenticatedApp.request('/audits', {
         method: 'GET',
@@ -252,7 +253,7 @@ describe('Audits Routes', () => {
         },
       })
 
-      const authenticatedApp = setupAuthenticatedApp('ADMIN')
+      const authenticatedApp = setupAuthenticatedApp('admin')
 
       const res = await authenticatedApp.request('/audits?page=2&limit=10', {
         method: 'GET',
@@ -299,7 +300,7 @@ describe('Audits Routes', () => {
         },
       })
 
-      const authenticatedApp = setupAuthenticatedApp('ADMIN')
+      const authenticatedApp = setupAuthenticatedApp('admin')
 
       const res = await authenticatedApp.request(`/audits?entityId=${TEST_USER_ID}`, {
         method: 'GET',
@@ -320,20 +321,9 @@ describe('Audits Routes', () => {
       )
     })
 
-    it('should work with ANALYTICS role', async () => {
-      vi.mocked(auditsService.findAll).mockResolvedValue({
-        data: [],
-        meta: {
-          currentPage: 1,
-          limit: 50,
-          totalItems: 0,
-          totalPages: 0,
-          hasPreviousPage: false,
-          hasNextPage: false,
-        },
-      })
-
-      const authenticatedApp = setupAuthenticatedApp('ANALYTICS')
+    it('should deny access for non-admin roles', async () => {
+      // viewer role should not have access to audit logs
+      const authenticatedApp = setupAuthenticatedApp('viewer')
 
       const res = await authenticatedApp.request('/audits', {
         method: 'GET',
@@ -342,8 +332,134 @@ describe('Audits Routes', () => {
         },
       })
 
-      expect(res.status).toBe(200)
-      expect(auditsService.findAll).toHaveBeenCalled()
+      expect(res.status).toBe(403)
+    })
+
+    describe('context validation errors', () => {
+      // Helper to setup app with missing context
+      function setupAppWithMissingContext(options: {
+        missingDb?: boolean
+        missingAccountId?: boolean
+        missingUser?: boolean
+        envDbUndefined?: boolean
+      }) {
+        const app = new Hono<HonoEnv>()
+
+        // Add error handler for proper JSON error responses
+        app.onError(errorHandler)
+
+        app.use('*', async (c, next) => {
+          ;(c as any).env = options.envDbUndefined
+            ? { ...mockEnv, DB: undefined }
+            : mockEnv
+          if (!options.missingDb) {
+            c.set('db', mockDb)
+          }
+          c.set('transactionId', 'test-transaction-id')
+          c.set('ip', '127.0.0.1')
+          c.set('userAgent', 'TestAgent/1.0')
+          if (!options.missingUser) {
+            c.set('user', { ...testUser, isSuperAdmin: false })
+          }
+          if (!options.missingAccountId) {
+            c.set('accountId', testAccount.id)
+          }
+          c.set('userRole', 'admin')
+          c.set('isSystemAdminAccess', false)
+          await next()
+        })
+
+        app.route('/audits', audits)
+        return app
+      }
+
+      it('should throw error when db context is missing', async () => {
+        const app = setupAppWithMissingContext({ missingDb: true })
+
+        const res = await app.request('/audits', {
+          method: 'GET',
+          headers: {
+            'Account-ID': testAccount.id,
+          },
+        })
+
+        // The error should propagate and result in a 500 status
+        // Error handler converts plain Error to "Internal server error" for security
+        expect(res.status).toBe(500)
+        const body = await res.json()
+        expect(body.error.code).toBe('INTERNAL_ERROR')
+        expect(body.error.status).toBe(500)
+      })
+
+      it('should throw error when accountId context is missing', async () => {
+        const app = setupAppWithMissingContext({ missingAccountId: true })
+
+        const res = await app.request('/audits', {
+          method: 'GET',
+          headers: {
+            'Account-ID': testAccount.id,
+          },
+        })
+
+        // The error should propagate and result in a 500 status
+        // Error handler converts plain Error to "Internal server error" for security
+        expect(res.status).toBe(500)
+        const body = await res.json()
+        expect(body.error.code).toBe('INTERNAL_ERROR')
+        expect(body.error.status).toBe(500)
+      })
+
+      it('should return 401 when user context is missing (guard intercepts)', async () => {
+        // Note: The requireRole guard middleware intercepts missing user before
+        // the handler runs, returning 401 Unauthorized
+        const app = setupAppWithMissingContext({ missingUser: true })
+
+        const res = await app.request('/audits', {
+          method: 'GET',
+          headers: {
+            'Account-ID': testAccount.id,
+          },
+        })
+
+        // The requireRole guard returns 401 before the handler runs
+        expect(res.status).toBe(401)
+        const body = await res.json()
+        expect(body.error.message).toContain('Unauthorized')
+      })
+
+      it('should use db fallback when env.DB is undefined', async () => {
+        // This tests line 29: const auditsDb = envDb ?? db
+        // When envDb (c.env.DB) is undefined, it should fallback to db
+
+        vi.mocked(auditsService.findAll).mockResolvedValue({
+          data: [],
+          meta: {
+            currentPage: 1,
+            limit: 50,
+            totalItems: 0,
+            totalPages: 0,
+            hasPreviousPage: false,
+            hasNextPage: false,
+          },
+        })
+
+        const app = setupAppWithMissingContext({ envDbUndefined: true })
+
+        const res = await app.request('/audits', {
+          method: 'GET',
+          headers: {
+            'Account-ID': testAccount.id,
+          },
+        })
+
+        expect(res.status).toBe(200)
+        // Verify it used the fallback db (mockDb) instead of envDb
+        expect(auditsService.findAll).toHaveBeenCalledWith(
+          mockDb,
+          expect.anything(),
+          expect.anything()
+        )
+      })
     })
   })
 })

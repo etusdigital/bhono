@@ -31,16 +31,39 @@ CREATE TABLE IF NOT EXISTS accounts (
   name TEXT NOT NULL,
   description TEXT,
   domain TEXT UNIQUE,
+  -- Account settings (Phase 2)
+  slug TEXT,
+  timezone TEXT DEFAULT 'UTC',
+  language TEXT DEFAULT 'en',
+  -- Status fields for account suspension
+  status TEXT DEFAULT 'active' NOT NULL CHECK (status IN ('active', 'suspended')),
+  status_changed_at TEXT,
+  status_changed_by TEXT REFERENCES users(id),
+  status_reason TEXT,
+  -- Branding fields (Phase 3)
+  logo_url TEXT,
+  favicon_url TEXT,
+  primary_color TEXT DEFAULT '#10b981',
+  secondary_color TEXT,
+  accent_color TEXT,
+  -- Timestamps
   created_at TEXT DEFAULT (datetime('now')) NOT NULL,
   updated_at TEXT DEFAULT (datetime('now')) NOT NULL,
-  deleted_at TEXT
+  deleted_at TEXT,
+  created_by_id TEXT REFERENCES users(id),
+  updated_by_id TEXT REFERENCES users(id),
+  deleted_by_id TEXT REFERENCES users(id)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_slug ON accounts(slug) WHERE slug IS NOT NULL AND deleted_at IS NULL;
 
--- User-Accounts junction table
+-- User-Accounts junction table (memberships)
 CREATE TABLE IF NOT EXISTS user_accounts (
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
-  role TEXT NOT NULL CHECK (role IN ('ADMIN', 'MANAGER', 'EDITOR', 'AUTHOR', 'VIEWER', 'BILLING', 'ANALYTICS')),
+  role TEXT NOT NULL CHECK (role IN ('viewer', 'user', 'manager', 'admin')),
+  -- Soft delete fields for membership
+  deleted_at TEXT,
+  deleted_by TEXT REFERENCES users(id),
   PRIMARY KEY (user_id, account_id)
 );
 
@@ -59,7 +82,7 @@ CREATE TABLE IF NOT EXISTS invitations (
   id TEXT PRIMARY KEY,
   account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
   email TEXT NOT NULL,
-  role TEXT NOT NULL CHECK (role IN ('ADMIN', 'MANAGER', 'EDITOR', 'AUTHOR', 'VIEWER', 'BILLING', 'ANALYTICS')),
+  role TEXT NOT NULL CHECK (role IN ('viewer', 'user', 'manager', 'admin')),
   token TEXT NOT NULL UNIQUE,
   invited_by_id TEXT NOT NULL REFERENCES users(id),
   expires_at TEXT NOT NULL,
@@ -76,9 +99,24 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   user_id TEXT REFERENCES users(id),
   entity TEXT NOT NULL,
   entity_id TEXT NOT NULL,
-  action TEXT NOT NULL CHECK (action IN ('INSERT', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'SIGNUP', 'TOKEN_REFRESH', 'LOGIN_FAILED')),
+  action TEXT NOT NULL CHECK (action IN (
+    -- CRUD operations
+    'INSERT', 'UPDATE', 'DELETE',
+    -- Auth events
+    'LOGIN', 'LOGOUT', 'SIGNUP', 'TOKEN_REFRESH', 'LOGIN_FAILED',
+    -- Account events
+    'ACCOUNT_SWITCHED', 'SETTINGS_UPDATED',
+    -- Member events
+    'MEMBER_INVITE', 'MEMBER_REMOVED', 'ROLE_CHANGED',
+    -- Branding events
+    'LOGO_UPLOAD_INITIATED', 'FAVICON_UPLOAD_INITIATED', 'LOGO_DELETED', 'FAVICON_DELETED',
+    -- Super Admin events
+    'ACCOUNT_SUSPEND', 'ACCOUNT_REACTIVATE', 'IMPERSONATE_START', 'IMPERSONATE_END'
+  )),
   changes TEXT,
   ip_address TEXT,
   user_agent TEXT,
+  -- Impersonation tracking for Super Admin audit
+  impersonated_by TEXT REFERENCES users(id),
   timestamp TEXT DEFAULT (datetime('now')) NOT NULL
 );

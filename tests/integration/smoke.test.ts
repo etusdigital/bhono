@@ -229,7 +229,7 @@ describe('Integration Test Infrastructure', () => {
       await seedUserAccount({
         userId: user.id,
         accountId: account.id,
-        role: 'ADMIN',
+        role: 'admin',
       })
 
       // Verify in database
@@ -239,7 +239,7 @@ describe('Integration Test Infrastructure', () => {
         .get(user.id, account.id) as Record<string, unknown>
 
       expect(row).toBeDefined()
-      expect(row.role).toBe('ADMIN')
+      expect(row.role).toBe('admin')
     })
   })
 
