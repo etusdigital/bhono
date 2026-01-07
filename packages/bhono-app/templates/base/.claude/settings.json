@@ -108,6 +108,7 @@
         ]
       },
       {
+        "matcher": "Bash|Edit|Write|Read",
         "hooks": [
           {
             "type": "command",

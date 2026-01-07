@@ -1,0 +1,560 @@
+{
+  "version": "2.0",
+  "description": "Comprehensive test cases for skill-rules.json validation including commands and real prompts",
+  "promptTriggers": {
+    "architecture-analyzer": {
+      "shouldMatch": [
+        "analyze architecture of this project",
+        "can you do an architecture analysis?",
+        "document codebase structure",
+        "create a C4 diagram for this system",
+        "generate an ERD for the database",
+        "map dependencies between modules",
+        "assess the tech debt in this project",
+        "generate architecture report",
+        "review the system architecture",
+        "visualize the dependency graph",
+        "build component diagram for services",
+        "create architecture documentation",
+        "document the codebase for new developers",
+        "analyze the system design",
+        "create technical debt assessment"
+      ],
+      "shouldNotMatch": [
+        "hello",
+        "how are you?",
+        "write a function",
+        "fix this bug",
+        "create a component",
+        "help me with CSS",
+        "what is the weather?",
+        "run the tests"
+      ]
+    },
+    "dev-browser": {
+      "shouldMatch": [
+        "go to https://example.com",
+        "navigate to the login page",
+        "click the submit button",
+        "fill out the contact form",
+        "take a screenshot of the page",
+        "scrape the product data from this website",
+        "automate browser to fill form",
+        "test website login flow",
+        "log into the admin panel",
+        "extract data from the table",
+        "capture screenshot of the dashboard",
+        "browser automation for testing",
+        "go to url https://localhost:3000",
+        "click on the signup button",
+        "sign in to the application"
+      ],
+      "shouldNotMatch": [
+        "write a test",
+        "create a button component",
+        "fix the CSS",
+        "add a new route",
+        "deploy to production",
+        "analyze the code",
+        "commit changes"
+      ]
+    },
+    "linear": {
+      "shouldMatch": [
+        "create a linear issue for this bug",
+        "list linear issues for the sprint",
+        "update issue status to done",
+        "get linear team members",
+        "filter issues by label",
+        "add comment to the issue",
+        "manage issue priority",
+        "archive old issues",
+        "view linear project progress",
+        "change issue assignment",
+        "linear workflow setup",
+        "create issue AA-123",
+        "implement linear issue",
+        "process triage issues in linear"
+      ],
+      "shouldNotMatch": [
+        "create a new component",
+        "github issues",
+        "jira tickets",
+        "fix the bug",
+        "deploy changes",
+        "write documentation"
+      ]
+    },
+    "playwright-e2e-testing": {
+      "shouldMatch": [
+        "write playwright test for login",
+        "create a playwright fixture",
+        "debug playwright test failure",
+        "add playwright oauth test",
+        "visual regression test with playwright",
+        "use getByRole to find button",
+        "add toBeVisible assertion",
+        "optimize playwright test suite",
+        "playwright api testing setup",
+        "improve playwright selectors",
+        "fix flaky playwright test",
+        "page object pattern for tests",
+        "run pnpm test:e2e",
+        "playwright interactive UI mode"
+      ],
+      "shouldNotMatch": [
+        "write a unit test",
+        "jest test setup",
+        "vitest configuration",
+        "selenium test",
+        "cypress test",
+        "create component"
+      ]
+    },
+    "wrangler": {
+      "shouldMatch": [
+        "wrangler deploy to production",
+        "run wrangler dev locally",
+        "configure wrangler d1 database",
+        "wrangler kv namespace setup",
+        "upload to wrangler r2",
+        "add wrangler secret",
+        "deploy cloudflare worker",
+        "wrangler queues configuration",
+        "start local worker development",
+        "wrangler init new project",
+        "cloudflare deploy workflow",
+        "manage d1 database with wrangler",
+        "pnpm deploy to cloudflare workers",
+        "run wrangler dev --local"
+      ],
+      "shouldNotMatch": [
+        "deploy to vercel",
+        "aws lambda deploy",
+        "heroku deployment",
+        "docker compose",
+        "kubernetes deploy",
+        "firebase functions"
+      ]
+    },
+    "superpowers:verification-before-completion": {
+      "shouldMatch": [
+        "verify the changes work",
+        "check if it works correctly",
+        "make sure the tests pass",
+        "test it before pushing",
+        "run tests to confirm",
+        "ensure build succeeds",
+        "verify everything passes",
+        "confirm the fix works",
+        "check that it builds",
+        "make sure it doesn't break",
+        "verify build succeeds before pushing",
+        "make sure lint passes"
+      ],
+      "shouldNotMatch": [
+        "create a function",
+        "add a new feature",
+        "refactor the code",
+        "update the docs",
+        "hello world",
+        "what time is it"
+      ]
+    },
+    "superpowers:brainstorming": {
+      "shouldMatch": [
+        "brainstorm ideas for the feature",
+        "design the authentication system",
+        "plan feature implementation",
+        "build a new notification feature",
+        "create a caching module",
+        "implement user dashboard component",
+        "add payment processing service",
+        "architect the microservices",
+        "design the API structure",
+        "plan the system solution",
+        "create a new feature for user profiles",
+        "implement the settings page",
+        "add multi-tenant support"
+      ],
+      "shouldNotMatch": [
+        "fix the typo",
+        "update the version",
+        "run the tests",
+        "deploy changes",
+        "what is this function doing",
+        "explain this code"
+      ]
+    },
+    "superpowers:systematic-debugging": {
+      "shouldMatch": [
+        "debug the login issue",
+        "fix the bug in checkout",
+        "function is not working",
+        "the API is broken",
+        "getting an error on submit",
+        "tests are failing",
+        "investigate the crash",
+        "diagnose the problem",
+        "why is this not working?",
+        "what's causing the error?",
+        "solve the authentication bug",
+        "fix broken payment flow",
+        "the build is failing with type errors",
+        "lint errors need fixing"
+      ],
+      "shouldNotMatch": [
+        "create a new feature",
+        "add a button",
+        "refactor this",
+        "optimize performance",
+        "deploy to staging",
+        "hello there"
+      ]
+    },
+    "superpowers:test-driven-development": {
+      "shouldMatch": [
+        "use tdd for this feature",
+        "implement with test driven approach",
+        "write tests first then code",
+        "test first implementation",
+        "build this using tdd",
+        "create feature with tests first"
+      ],
+      "shouldNotMatch": [
+        "write some tests",
+        "add unit tests",
+        "fix the test",
+        "run the tests",
+        "create a component",
+        "implement the feature"
+      ]
+    },
+    "ship": {
+      "shouldMatch": [
+        "ship it",
+        "commit and push changes",
+        "push the changes to remote",
+        "create pr for this feature",
+        "open a pull request",
+        "ship this code",
+        "commit these changes and push",
+        "ship the fix",
+        "push code to main",
+        "create pull request for review",
+        "ship this to develop branch",
+        "commit all changes and create PR"
+      ],
+      "shouldNotMatch": [
+        "git status",
+        "show me the diff",
+        "what changed",
+        "stage the files",
+        "write a commit message",
+        "checkout branch"
+      ]
+    }
+  },
+  "toolGuards": {
+    "playwright-e2e-testing": {
+      "Edit": {
+        "shouldMatch": [
+          "tests/e2e/login.spec.ts",
+          "src/tests/auth.test.ts",
+          "e2e/checkout.ts",
+          "tests/integration/api.ts",
+          "tests/unit/component.spec.ts",
+          "e2e/journeys/signup.ts"
+        ],
+        "shouldNotMatch": [
+          "src/server/routes/auth.ts",
+          "src/client/components/Button.tsx",
+          "package.json",
+          "README.md",
+          "src/index.ts"
+        ]
+      },
+      "Write": {
+        "shouldMatch": [
+          "tests/e2e/new.spec.ts",
+          "e2e/payment.spec.ts",
+          "tests/checkout.test.ts"
+        ],
+        "shouldNotMatch": [
+          "src/utils/helper.ts",
+          "config/vite.config.ts",
+          "src/App.tsx"
+        ]
+      }
+    },
+    "wrangler": {
+      "Bash": {
+        "shouldMatch": [
+          "wrangler deploy",
+          "wrangler publish",
+          "npx wrangler deploy --env production",
+          "pnpm wrangler deploy"
+        ],
+        "shouldNotMatch": [
+          "wrangler dev",
+          "wrangler d1 list",
+          "wrangler kv:key list",
+          "npm run dev",
+          "pnpm build"
+        ]
+      },
+      "Edit": {
+        "shouldMatch": [
+          "config/wrangler.json",
+          "wrangler.toml",
+          "packages/api/wrangler.json"
+        ],
+        "shouldNotMatch": [
+          "config/vite.config.ts",
+          "package.json",
+          "tsconfig.json"
+        ]
+      }
+    },
+    "superpowers:verification-before-completion": {
+      "Bash": {
+        "shouldMatch": [
+          "git push",
+          "git push origin main",
+          "git push origin develop",
+          "gh pr create",
+          "gh pr create --title 'feat: new feature'",
+          "npm publish",
+          "pnpm publish --access public"
+        ],
+        "shouldNotMatch": [
+          "git status",
+          "git diff",
+          "git log",
+          "git add .",
+          "npm test",
+          "pnpm build"
+        ]
+      }
+    },
+    "superpowers:brainstorming": {
+      "Write": {
+        "shouldMatch": [
+          "src/server/services/payment.ts",
+          "src/client/components/Dashboard.tsx",
+          "src/shared/utils/validator.js",
+          "src/lib/auth.jsx"
+        ],
+        "shouldNotMatch": [
+          "tests/unit/payment.spec.ts",
+          "README.md",
+          "package.json",
+          "docs/api.md",
+          "config/wrangler.json"
+        ]
+      }
+    },
+    "superpowers:test-driven-development": {
+      "Write": {
+        "shouldMatch": [
+          "src/server/services/auth.ts",
+          "src/client/hooks/useAuth.tsx",
+          "src/shared/utils/format.ts"
+        ],
+        "shouldNotMatch": [
+          "src/server/services/auth.spec.ts",
+          "src/client/hooks/useAuth.test.tsx",
+          "tests/unit/format.spec.ts",
+          "package.json"
+        ]
+      }
+    },
+    "ship": {
+      "Bash": {
+        "shouldMatch": [
+          "git commit -m 'feat: add login'",
+          "git push",
+          "git push origin feature/auth",
+          "git commit --amend"
+        ],
+        "shouldNotMatch": [
+          "git status",
+          "git diff",
+          "git log --oneline",
+          "git branch -a",
+          "npm test"
+        ]
+      }
+    }
+  },
+  "commandTests": {
+    "description": "Tests for skill activation based on command names. Note: Commands trigger skills via their name keywords, not their expanded content.",
+    "commands": {
+      "/ship": {
+        "expectedSkills": ["ship"],
+        "reason": "Command name contains 'ship' keyword"
+      },
+      "/ship --pr pull request": {
+        "expectedSkills": ["ship"],
+        "reason": "Ship command with PR flag - contains ship and pull request keywords"
+      },
+      "/linear:implement-issue AA-123": {
+        "expectedSkills": ["linear", "superpowers:brainstorming"],
+        "reason": "Command contains 'linear', 'issue', and 'implement' keywords"
+      },
+      "/linear:create-issue": {
+        "expectedSkills": ["linear"],
+        "reason": "Command contains 'linear', 'create issue' keywords"
+      },
+      "/linear:process-triage": {
+        "expectedSkills": ["linear"],
+        "reason": "Command contains 'linear' keyword"
+      },
+      "/linear:setup": {
+        "expectedSkills": ["linear"],
+        "reason": "Command contains 'linear' keyword"
+      },
+      "/claude-md create": {
+        "expectedSkills": [],
+        "reason": "No skill-related keywords in command name"
+      },
+      "/code-prompt": {
+        "expectedSkills": [],
+        "reason": "No skill-related keywords in command name (browser automation is in content)"
+      },
+      "/prime": {
+        "expectedSkills": [],
+        "reason": "No skill-related keywords"
+      },
+      "/init-projec": {
+        "expectedSkills": [],
+        "reason": "No skill-related keywords"
+      },
+      "/explain-code": {
+        "expectedSkills": [],
+        "reason": "No skill-related keywords"
+      },
+      "/review-gap": {
+        "expectedSkills": ["superpowers:systematic-debugging"],
+        "reason": "Command contains 'review gap' which matches debugging skill"
+      },
+      "/setup-aa": {
+        "expectedSkills": [],
+        "reason": "No skill-related keywords"
+      },
+      "/check-skill-rules": {
+        "expectedSkills": [],
+        "reason": "No skill-related keywords"
+      },
+      "/tools": {
+        "expectedSkills": [],
+        "reason": "No skill-related keywords"
+      }
+    }
+  },
+  "realWorldPrompts": {
+    "description": "Real-world prompts collected from project usage patterns",
+    "scenarios": [
+      {
+        "prompt": "Leia os logs do debug dessa sessao para investigar porque os hooks nao estao funcionando",
+        "expectedSkills": ["superpowers:systematic-debugging"],
+        "reason": "Debugging hooks issue"
+      },
+      {
+        "prompt": "Implemente todas as atualizacoes nos hooks",
+        "expectedSkills": ["superpowers:brainstorming"],
+        "reason": "Implementing new features"
+      },
+      {
+        "prompt": "Revise o meu comando de check-skills-rules agora com tudo que mudamos",
+        "expectedSkills": [],
+        "reason": "Review command, no specific skill"
+      },
+      {
+        "prompt": "Eu preciso que voce me ajude a criar mais de 10 cenarios para cada skill",
+        "expectedSkills": [],
+        "reason": "Creating test scenarios"
+      },
+      {
+        "prompt": "Pode implementar mas reflita sobre o semantic-context",
+        "expectedSkills": ["superpowers:brainstorming"],
+        "reason": "Implementing with design thinking"
+      },
+      {
+        "prompt": "deploy the worker to cloudflare",
+        "expectedSkills": ["wrangler"],
+        "reason": "Cloudflare deployment"
+      },
+      {
+        "prompt": "run pnpm test:e2e to verify the changes",
+        "expectedSkills": ["playwright-e2e-testing", "superpowers:verification-before-completion"],
+        "reason": "Contains test:e2e keyword and verify keyword"
+      },
+      {
+        "prompt": "analyze the architecture of the auth module",
+        "expectedSkills": ["architecture-analyzer"],
+        "reason": "Architecture analysis"
+      },
+      {
+        "prompt": "go to localhost:3000 and take a screenshot",
+        "expectedSkills": ["dev-browser"],
+        "reason": "Browser automation"
+      },
+      {
+        "prompt": "create a linear issue for the bug we found",
+        "expectedSkills": ["linear"],
+        "reason": "Linear issue creation"
+      },
+      {
+        "prompt": "the login is broken, can you debug it?",
+        "expectedSkills": ["superpowers:systematic-debugging"],
+        "reason": "Debugging issue"
+      },
+      {
+        "prompt": "commit all changes and push to develop",
+        "expectedSkills": ["ship"],
+        "reason": "Contains commit and push keywords matching ship skill"
+      },
+      {
+        "prompt": "implement user authentication with OAuth",
+        "expectedSkills": ["superpowers:brainstorming"],
+        "reason": "Feature implementation"
+      },
+      {
+        "prompt": "use TDD to build the payment service",
+        "expectedSkills": ["superpowers:test-driven-development"],
+        "reason": "TDD approach"
+      },
+      {
+        "prompt": "create a C4 diagram for the system",
+        "expectedSkills": ["architecture-analyzer"],
+        "reason": "Architecture documentation"
+      },
+      {
+        "prompt": "fill out the registration form and submit",
+        "expectedSkills": ["dev-browser"],
+        "reason": "Browser form interaction"
+      },
+      {
+        "prompt": "wrangler d1 execute query on the database",
+        "expectedSkills": ["wrangler"],
+        "reason": "Wrangler D1 command"
+      },
+      {
+        "prompt": "verify the build passes before creating PR",
+        "expectedSkills": ["superpowers:verification-before-completion"],
+        "reason": "Build verification"
+      },
+      {
+        "prompt": "write a playwright test for the checkout flow",
+        "expectedSkills": ["playwright-e2e-testing"],
+        "reason": "E2E test creation"
+      },
+      {
+        "prompt": "design a new notification system for the app",
+        "expectedSkills": ["superpowers:brainstorming"],
+        "reason": "Feature design"
+      }
+    ]
+  }
+}
