@@ -21,39 +21,59 @@ import {
 import { sessionMiddleware } from './lib/session'
 import { validateEnv } from './env'
 
-// @etus/auth instance - handles OAuth flow via gateway
-const etusAuth = createAuth({
-  gateway: 'https://ag.etus.io',
-  clientId: 'boilerplate-hono',
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- Required by @etus/auth, validated in middleware
-  db: (env) => (env as Env).DB!,
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- Required by @etus/auth, validated in middleware
-  sessions: (env) => (env as Env).SESSIONS!,
-  access: {
-    mode: 'open',
-    allowedDomains: ['brius.com.br', 'etus.com.br'],
-    admins: ['aa@brius.com.br'],
-    roles: ['admin', 'editor', 'viewer'],
-    defaultRole: 'viewer',
-  },
-  session: {
-    maxAge: 30 * 24 * 60 * 60, // 30 days
-    sliding: true,
-  },
-  redirects: {
-    afterLogin: '/',
-    afterLogout: '/login',
-  },
-  // eslint-disable-next-line @typescript-eslint/require-await -- Required by @etus/auth callback signature
-  onNewUser: async (user) => {
-    // Note: We can't access env.DB here directly, audit logging will use the auth's db
-    console.log('[AUTH] New user provisioned:', user.email)
-  },
-  // eslint-disable-next-line @typescript-eslint/require-await -- Required by @etus/auth callback signature
-  onLogin: async (user) => {
-    console.log('[AUTH] User logged in:', user.email)
-  },
-})
+// @etus/auth factory - creates auth instance with environment config
+// Called lazily on first request to access env vars (Cloudflare Workers pattern)
+function createEtusAuth(env: Env) {
+  // Parse comma-separated lists from environment
+  const allowedDomains = env.ETUS_ALLOWED_DOMAINS
+    ? env.ETUS_ALLOWED_DOMAINS.split(',').map((d) => d.trim())
+    : []
+  const adminEmails = env.ETUS_ADMIN_EMAILS
+    ? env.ETUS_ADMIN_EMAILS.split(',').map((e) => e.trim().toLowerCase())
+    : []
+
+  return createAuth({
+    gateway: env.ETUS_GATEWAY ?? 'https://ag.etus.io',
+    clientId: env.ETUS_CLIENT_ID ?? 'boilerplate-hono',
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- Required by @etus/auth, validated in middleware
+    db: (e) => (e as Env).DB!,
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- Required by @etus/auth, validated in middleware
+    sessions: (e) => (e as Env).SESSIONS!,
+    access: {
+      mode: 'open',
+      allowedDomains,
+      admins: adminEmails,
+      // Use uppercase roles to match local RBAC system
+      roles: ['ADMIN', 'EDITOR', 'VIEWER', 'BILLING'],
+      defaultRole: 'VIEWER',
+    },
+    session: {
+      maxAge: 30 * 24 * 60 * 60, // 30 days
+      sliding: true,
+    },
+    redirects: {
+      afterLogin: '/',
+      afterLogout: '/login',
+    },
+    // eslint-disable-next-line @typescript-eslint/require-await -- Required by @etus/auth callback signature
+    onNewUser: async (user) => {
+      console.log('[AUTH] New user provisioned:', user.id)
+    },
+    // eslint-disable-next-line @typescript-eslint/require-await -- Required by @etus/auth callback signature
+    onLogin: async (user) => {
+      console.log('[AUTH] User logged in:', user.id)
+    },
+  })
+}
+
+// Lazy-initialized auth instance (created on first request with env)
+let etusAuth: ReturnType<typeof createAuth> | null = null
+
+// Get or create @etus/auth instance (singleton per Worker instance)
+function getEtusAuth(env: Env): ReturnType<typeof createAuth> {
+  etusAuth ??= createEtusAuth(env)
+  return etusAuth
+}
 
 // Hono app with bindings and variables
 const app = new Hono<HonoEnv>()
@@ -130,17 +150,29 @@ app.use('*', pendingInvitationMiddleware)
 app.route('/health', health)
 
 // @etus/auth routes (OAuth flow via gateway)
+// Uses middleware pattern for lazy initialization with env vars
 // Handles: /auth/login, /auth/callback, /auth/logout, /auth/me
-app.route('/auth', etusAuth.routes())
-
-// @etus/auth admin routes (user management)
-app.route('/auth/admin', etusAuth.adminRoutes())
+app.use('/auth/*', async (c, _next) => {
+  const auth = getEtusAuth(c.env)
+  const authApp = new Hono<HonoEnv>()
+  authApp.route('/', auth.routes())
+  authApp.route('/admin', auth.adminRoutes())
+  return authApp.fetch(c.req.raw, c.env, c.executionCtx)
+})
 
 // Public invite acceptance route
 app.route('/invite', inviteRouter)
 
 // Development routes (test-login for E2E tests)
-app.route('/dev', devRouter)
+// Only mounted in non-production environments for security
+app.use('/dev/*', async (c, _next) => {
+  if (c.env.ENVIRONMENT === 'production') {
+    return c.json({ error: { message: 'Not found' } }, 404)
+  }
+  const devApp = new Hono<HonoEnv>()
+  devApp.route('/', devRouter)
+  return devApp.fetch(c.req.raw, c.env, c.executionCtx)
+})
 
 // API routes (with auth)
 app.route('/api', api)

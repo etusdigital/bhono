@@ -27,6 +27,8 @@ export interface Env {
   ETUS_GATEWAY?: string
   ETUS_CLIENT_ID?: string
   ETUS_CLIENT_SECRET?: string
+  ETUS_ALLOWED_DOMAINS?: string // Comma-separated list of allowed email domains
+  ETUS_ADMIN_EMAILS?: string // Comma-separated list of admin emails
 
   // Google OAuth (legacy - kept for backward compatibility)
   GOOGLE_CLIENT_ID?: string
