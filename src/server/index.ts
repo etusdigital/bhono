@@ -5,9 +5,11 @@ import { createAuth } from '@etus/auth'
 import type { HonoEnv } from './types'
 import type { Env } from './env'
 import { createDb } from './db/client'
-import { auth as legacyAuth } from './routes/auth'
 import { api } from './routes'
 import { health } from './routes/health'
+import { inviteRouter } from './routes/invite'
+import { devRouter } from './routes/dev/test-login'
+import { pendingInvitationMiddleware } from './middleware/pending-invitation'
 import {
   errorHandler,
   requestLogger,
@@ -120,6 +122,9 @@ app.use('*', async (c, next) => {
 // 10. Session middleware - read session from KV
 app.use('*', sessionMiddleware())
 
+// 11. Pending invitation middleware - auto-accept invitations after login
+app.use('*', pendingInvitationMiddleware)
+
 // Mount routes
 // Health checks (no auth required) - must be before /api
 app.route('/health', health)
@@ -131,9 +136,11 @@ app.route('/auth', etusAuth.routes())
 // @etus/auth admin routes (user management)
 app.route('/auth/admin', etusAuth.adminRoutes())
 
-// Legacy auth routes (kept for backward compatibility during transition)
-// TODO: Remove after migration is complete
-app.route('/auth/legacy', legacyAuth)
+// Public invite acceptance route
+app.route('/invite', inviteRouter)
+
+// Development routes (test-login for E2E tests)
+app.route('/dev', devRouter)
 
 // API routes (with auth)
 app.route('/api', api)
