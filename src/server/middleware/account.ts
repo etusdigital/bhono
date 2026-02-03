@@ -15,7 +15,7 @@ export const accountMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
     })
   }
 
-  // Get user from context (should be set by jwtAuth middleware)
+  // Get user from context (should be set by auth middleware)
   const user = c.get('user')
 
   if (!user) {

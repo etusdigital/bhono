@@ -19,17 +19,22 @@ export interface Env {
   // App URL
   APP_URL: string
 
-  // JWT
+  // JWT (legacy - kept for backward compatibility)
   JWT_SECRET: string
-  JWT_EXPIRY_MINUTES: string
+  JWT_EXPIRY_MINUTES?: string
 
-  // Google OAuth
-  GOOGLE_CLIENT_ID: string
-  GOOGLE_CLIENT_SECRET: string
-  GOOGLE_REDIRECT_URI: string
+  // @etus/auth OAuth Gateway
+  ETUS_GATEWAY?: string
+  ETUS_CLIENT_ID?: string
+  ETUS_CLIENT_SECRET?: string
 
-  // Refresh Token
-  REFRESH_TOKEN_EXPIRY_DAYS: string
+  // Google OAuth (legacy - kept for backward compatibility)
+  GOOGLE_CLIENT_ID?: string
+  GOOGLE_CLIENT_SECRET?: string
+  GOOGLE_REDIRECT_URI?: string
+
+  // Refresh Token (legacy)
+  REFRESH_TOKEN_EXPIRY_DAYS?: string
 
   // SendGrid
   SENDGRID_API_KEY: string
@@ -46,8 +51,8 @@ export interface Env {
 export function getEnv(env: Env) {
   return {
     ...env,
-    JWT_EXPIRY_MINUTES: Number.parseInt(env.JWT_EXPIRY_MINUTES || '15', 10),
-    REFRESH_TOKEN_EXPIRY_DAYS: Number.parseInt(env.REFRESH_TOKEN_EXPIRY_DAYS || '30', 10),
+    JWT_EXPIRY_MINUTES: Number.parseInt(env.JWT_EXPIRY_MINUTES ?? '15', 10),
+    REFRESH_TOKEN_EXPIRY_DAYS: Number.parseInt(env.REFRESH_TOKEN_EXPIRY_DAYS ?? '30', 10),
     CORS_ORIGINS_LIST: env.CORS_ORIGINS
       ? env.CORS_ORIGINS.split(',').map((o) => o.trim())
       : [],

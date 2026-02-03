@@ -39,8 +39,9 @@
   "vars": {
     "ENVIRONMENT": "production",
     "APP_URL": "https://hono-boilerplate.a3s.workers.dev",
-    "GOOGLE_REDIRECT_URI": "https://hono-boilerplate.a3s.workers.dev/auth/callback",
-    "R2_PUBLIC_URL": "https://pub-your-bucket-id.r2.dev"
+    "R2_PUBLIC_URL": "https://pub-your-bucket-id.r2.dev",
+    "ETUS_GATEWAY": "https://ag.etus.io",
+    "ETUS_CLIENT_ID": "cl_ml750fiz_Dv62zSC_Ld-5d6TYbXcAfA"
   },
   "env": {
     "staging": {
@@ -67,8 +68,9 @@
       "vars": {
         "ENVIRONMENT": "staging",
         "APP_URL": "https://hono-boilerplate-staging.a3s.workers.dev",
-        "GOOGLE_REDIRECT_URI": "https://hono-boilerplate-staging.a3s.workers.dev/auth/callback",
-        "R2_PUBLIC_URL": "https://pub-your-bucket-id.r2.dev"
+        "R2_PUBLIC_URL": "https://pub-your-bucket-id.r2.dev",
+        "ETUS_GATEWAY": "https://ag.etus.io",
+        "ETUS_CLIENT_ID": "cl_ml750fiz_Dv62zSC_Ld-5d6TYbXcAfA"
       }
     }
   }
