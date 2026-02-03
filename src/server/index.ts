@@ -40,7 +40,7 @@ const etusAuth = createAuth({
   },
   redirects: {
     afterLogin: '/',
-    afterLogout: '/auth/login',
+    afterLogout: '/login',
   },
   // eslint-disable-next-line @typescript-eslint/require-await -- Required by @etus/auth callback signature
   onNewUser: async (user) => {
