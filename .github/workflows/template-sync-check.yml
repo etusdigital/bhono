@@ -8,12 +8,15 @@ on:
 
 jobs:
   check-sync:
-    name: Verify Template is Synced
+    name: Sync Template with Boilerplate
     runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -23,16 +26,16 @@ jobs:
       - name: Run sync script
         run: ./scripts/sync-template.sh
 
-      - name: Check for differences
+      - name: Commit sync if needed
         run: |
           if [ -n "$(git status --porcelain packages/bhono-app/templates/)" ]; then
-            echo "::error::Template is out of sync with boilerplate!"
-            echo ""
-            echo "The following files differ:"
-            git status --porcelain packages/bhono-app/templates/
-            echo ""
-            echo "Run 'pnpm sync:template' locally and commit the changes."
-            exit 1
+            echo "Template out of sync — committing automatically..."
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add packages/bhono-app/templates/
+            git commit -m "chore(template): sync template with boilerplate [skip ci]"
+            git push
+            echo "Sync committed successfully."
           else
-            echo "Template is in sync with boilerplate."
+            echo "Template is already in sync."
           fi
