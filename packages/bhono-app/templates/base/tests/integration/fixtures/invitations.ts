@@ -82,7 +82,7 @@ export async function createInvitation(options: CreateInvitationOptions): Promis
     id: options.id ?? defaults.id,
     accountId: options.accountId,
     email: options.email ?? defaults.email,
-    role: options.role ?? 'VIEWER',
+    role: options.role ?? 'viewer',
     token: options.token ?? defaults.token,
     invitedById: options.invitedById,
     expiresAt: options.expiresAt ?? daysFromNow(7), // Default: expires in 7 days

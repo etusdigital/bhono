@@ -48,7 +48,7 @@ function createMockContext(overrides: Partial<ServiceContext> = {}): ServiceCont
   return {
     accountId: 'account-123',
     user,
-    userRole: 'ADMIN',
+    userRole: 'admin',
     transactionId: 'tx-123',
     ip: '127.0.0.1',
     userAgent: 'TestAgent/1.0',
@@ -66,7 +66,7 @@ function createSuperAdminContext(overrides: Partial<ServiceContext> = {}): Servi
   return {
     accountId: 'account-123',
     user,
-    userRole: 'ADMIN',
+    userRole: 'admin',
     transactionId: 'tx-123',
     ip: '127.0.0.1',
     userAgent: 'TestAgent/1.0',
@@ -237,8 +237,56 @@ describe('accountsService', () => {
   })
 
   describe('update', () => {
-    it('should reject non-super-admin users', async () => {
-      await expect(accountsService.update(db, ctx, 'account-1', { name: 'Updated' })).rejects.toThrow(ForbiddenError)
+    it('should reject users without manager+ role', async () => {
+      // Viewer role should not be able to update accounts
+      const viewerCtx = createMockContext({ userRole: 'viewer' })
+      await expect(accountsService.update(db, viewerCtx, 'account-1', { name: 'Updated' })).rejects.toThrow(ForbiddenError)
+    })
+
+    it('should allow admin role to update', async () => {
+      // Admin role should be able to update accounts
+      const adminCtx = createMockContext({ userRole: 'admin' })
+      const account = createAccountFixture({ id: 'account-1', name: 'Original' })
+      ;(queryOne as Mock)
+        .mockResolvedValueOnce({
+          ...account,
+          created_at: account.createdAt,
+          updated_at: account.updatedAt,
+          deleted_at: account.deletedAt,
+        })
+        // Second call: membership check (for non-super-admin users)
+        .mockResolvedValueOnce({ ok: 1 })
+
+      const updated = { ...account, name: 'Updated' }
+      ;(auditedUpdate as Mock).mockResolvedValueOnce([
+        { ...updated, created_at: updated.createdAt, updated_at: updated.updatedAt, deleted_at: updated.deletedAt },
+      ])
+
+      const result = await accountsService.update(db, adminCtx, account.id, { name: 'Updated' })
+      expect(result.name).toBe('Updated')
+    })
+
+    it('should allow manager role to update', async () => {
+      // Manager role should be able to update accounts
+      const managerCtx = createMockContext({ userRole: 'manager' })
+      const account = createAccountFixture({ id: 'account-1', name: 'Original' })
+      ;(queryOne as Mock)
+        .mockResolvedValueOnce({
+          ...account,
+          created_at: account.createdAt,
+          updated_at: account.updatedAt,
+          deleted_at: account.deletedAt,
+        })
+        // Second call: membership check (for non-super-admin users)
+        .mockResolvedValueOnce({ ok: 1 })
+
+      const updated = { ...account, name: 'Updated' }
+      ;(auditedUpdate as Mock).mockResolvedValueOnce([
+        { ...updated, created_at: updated.createdAt, updated_at: updated.updatedAt, deleted_at: updated.deletedAt },
+      ])
+
+      const result = await accountsService.update(db, managerCtx, account.id, { name: 'Updated' })
+      expect(result.name).toBe('Updated')
     })
 
     it('should reject duplicate domain', async () => {

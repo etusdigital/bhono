@@ -10,6 +10,7 @@ vi.mock('@server/lib/email', () => ({
 }))
 
 vi.mock('@server/lib/audit', () => ({
+  logAudit: vi.fn(),
   logAuthEvent: vi.fn(),
 }))
 
@@ -31,7 +32,7 @@ vi.mock('@server/db/sql', () => ({
 }))
 
 import { sendInvitationEmail } from '@server/lib/email'
-import { logAuthEvent } from '@server/lib/audit'
+import { logAudit, logAuthEvent } from '@server/lib/audit'
 import { queryOne, queryAll, execute } from '@server/db/sql'
 
 const db = {} as D1Database
@@ -46,7 +47,7 @@ function createMockContext(overrides: Partial<ServiceContext> = {}): ServiceCont
   return {
     accountId: 'account-123',
     user,
-    userRole: 'ADMIN',
+    userRole: 'admin',
     transactionId: 'tx-123',
     ip: '127.0.0.1',
     userAgent: 'TestAgent/1.0',
@@ -78,19 +79,19 @@ describe('invitationsService', () => {
       await expect(
         invitationsService.create(db, env, ctxWithoutRole, {
           email: 'invite@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
         })
       ).rejects.toThrow('User must have a role in this account to invite others')
     })
 
     it('should throw ForbiddenError when assigning higher role than own', async () => {
       const env = createMockEnv()
-      const ctxAsViewer = createMockContext({ userRole: 'VIEWER' })
+      const ctxAsViewer = createMockContext({ userRole: 'viewer' })
 
       await expect(
         invitationsService.create(db, env, ctxAsViewer, {
           email: 'invite@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
       ).rejects.toThrow('Cannot assign a role higher than your own')
     })
@@ -103,7 +104,7 @@ describe('invitationsService', () => {
       await expect(
         invitationsService.create(db, env, ctx, {
           email: 'member@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
         })
       ).rejects.toThrow('User is already a member of this account')
     })
@@ -120,7 +121,7 @@ describe('invitationsService', () => {
       await expect(
         invitationsService.create(db, env, ctx, {
           email: 'invite@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
         })
       ).rejects.toThrow('Account not found')
     })
@@ -135,7 +136,7 @@ describe('invitationsService', () => {
 
       const result = await invitationsService.create(db, env, ctx, {
         email: existingUser.email,
-        role: 'VIEWER',
+        role: 'viewer',
       })
 
       expect(result.linked).toBe(true)
@@ -155,11 +156,29 @@ describe('invitationsService', () => {
 
       const result = await invitationsService.create(db, env, ctx, {
         email: 'invite@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
       })
 
       expect(result.invited).toBe(true)
       expect(sendInvitationEmail).toHaveBeenCalled()
+
+      // Verify MEMBER_INVITE audit log was created
+      expect(logAudit).toHaveBeenCalledWith(
+        db,
+        ctx,
+        'Invitation',
+        expect.any(String), // invitationId
+        'MEMBER_INVITE',
+        {
+          inviteeEmail: 'invite@example.com',
+          role: 'viewer',
+          invitedBy: {
+            id: ctx.user.id,
+            email: ctx.user.email,
+            name: ctx.user.name,
+          },
+        }
+      )
     })
 
     it('should reject when pending invitation exists', async () => {
@@ -173,7 +192,7 @@ describe('invitationsService', () => {
       await expect(
         invitationsService.create(db, env, ctx, {
           email: 'invite@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
         })
       ).rejects.toThrow(ConflictError)
     })
@@ -185,7 +204,7 @@ describe('invitationsService', () => {
         {
           id: 'inv-1',
           email: 'invite@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
           invitedById: 'user-1',
           inviterName: 'Inviter',
           expiresAt: new Date().toISOString(),
@@ -217,7 +236,7 @@ describe('invitationsService', () => {
 
   describe('accept', () => {
     it('should accept invitation and log auth event', async () => {
-      ;(queryOne as Mock).mockResolvedValueOnce({ id: 'inv-1', accountId: 'account-123', role: 'VIEWER' })
+      ;(queryOne as Mock).mockResolvedValueOnce({ id: 'inv-1', accountId: 'account-123', role: 'viewer' })
 
       await invitationsService.accept(db, 'inv-1', 'user-1', {
         transactionId: 'tx',
@@ -236,7 +255,7 @@ describe('invitationsService', () => {
     })
 
     it('should handle snake_case column names', async () => {
-      ;(queryOne as Mock).mockResolvedValueOnce({ id: 'inv-1', account_id: 'account-456', role: 'EDITOR' })
+      ;(queryOne as Mock).mockResolvedValueOnce({ id: 'inv-1', account_id: 'account-456', role: 'user' })
 
       await invitationsService.accept(db, 'inv-1', 'user-1', { transactionId: 'tx' })
 
@@ -258,7 +277,7 @@ describe('invitationsService', () => {
         id: 'inv-1',
         accountId: 'account-123',
         email: 'test@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
         acceptedAt: new Date().toISOString(),
         expiresAt: new Date(Date.now() + 86400000).toISOString(),
         accountName: 'Test Account',
@@ -274,7 +293,7 @@ describe('invitationsService', () => {
         id: 'inv-1',
         accountId: 'account-123',
         email: 'test@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
         acceptedAt: null,
         expiresAt: new Date(Date.now() - 86400000).toISOString(),
         accountName: 'Test Account',
@@ -290,7 +309,7 @@ describe('invitationsService', () => {
         id: 'inv-1',
         accountId: 'account-123',
         email: 'test@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
         acceptedAt: null,
         expiresAt: new Date(Date.now() + 86400000).toISOString(),
         accountName: 'Test Account',
@@ -307,7 +326,7 @@ describe('invitationsService', () => {
         id: 'inv-1',
         account_id: 'account-123',
         email: 'test@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
         accepted_at: null,
         expires_at: new Date(Date.now() + 86400000).toISOString(),
         account_name: 'Test Account',
@@ -326,7 +345,7 @@ describe('invitationsService', () => {
         {
           id: 'inv-1',
           email: 'invite@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
           invited_by_id: 'user-1',
           inviter_name: 'Inviter',
           expires_at: new Date().toISOString(),
@@ -338,6 +357,202 @@ describe('invitationsService', () => {
 
       expect(result).toHaveLength(1)
       expect(result[0].invitedBy.id).toBe('user-1')
+    })
+  })
+
+  describe('resend', () => {
+    it('should resend non-expired invitation', async () => {
+      const env = createMockEnv()
+
+      // First query: find invitation
+      ;(queryOne as Mock)
+        .mockResolvedValueOnce({
+          id: 'inv-1',
+          email: 'invite@example.com',
+          role: 'viewer',
+          accountId: 'account-123',
+          accountName: 'Test Account',
+          expiresAt: new Date(Date.now() + 86400000).toISOString(), // Not expired
+          acceptedAt: null,
+        })
+        // Second query: get existing token
+        .mockResolvedValueOnce({ token: 'existing-token' })
+
+      await invitationsService.resend(db, env, ctx, 'inv-1')
+
+      expect(sendInvitationEmail).toHaveBeenCalledWith(
+        env,
+        'invite@example.com',
+        ctx.user.name,
+        'Test Account',
+        expect.stringContaining('existing-token')
+      )
+    })
+
+    it('should regenerate token and extend expiry for expired invitation', async () => {
+      const env = createMockEnv()
+
+      // First query: find invitation (expired)
+      ;(queryOne as Mock).mockResolvedValueOnce({
+        id: 'inv-1',
+        email: 'invite@example.com',
+        role: 'viewer',
+        accountId: 'account-123',
+        accountName: 'Test Account',
+        expiresAt: new Date(Date.now() - 86400000).toISOString(), // Expired
+        acceptedAt: null,
+      })
+
+      await invitationsService.resend(db, env, ctx, 'inv-1')
+
+      // Should update token and expiry
+      expect(execute).toHaveBeenCalled()
+      expect(sendInvitationEmail).toHaveBeenCalled()
+    })
+
+    it('should throw NotFoundError when invitation not found', async () => {
+      const env = createMockEnv()
+
+      ;(queryOne as Mock).mockResolvedValueOnce(null)
+
+      await expect(invitationsService.resend(db, env, ctx, 'inv-999')).rejects.toThrow(NotFoundError)
+    })
+
+    it('should throw ConflictError when invitation already accepted', async () => {
+      const env = createMockEnv()
+
+      ;(queryOne as Mock).mockResolvedValueOnce({
+        id: 'inv-1',
+        email: 'invite@example.com',
+        role: 'viewer',
+        accountId: 'account-123',
+        accountName: 'Test Account',
+        expiresAt: new Date(Date.now() + 86400000).toISOString(),
+        acceptedAt: new Date().toISOString(), // Already accepted
+      })
+
+      await expect(invitationsService.resend(db, env, ctx, 'inv-1')).rejects.toThrow(ConflictError)
+    })
+
+    it('should throw error when token retrieval fails', async () => {
+      const env = createMockEnv()
+
+      ;(queryOne as Mock)
+        .mockResolvedValueOnce({
+          id: 'inv-1',
+          email: 'invite@example.com',
+          role: 'viewer',
+          accountId: 'account-123',
+          accountName: 'Test Account',
+          expiresAt: new Date(Date.now() + 86400000).toISOString(),
+          acceptedAt: null,
+        })
+        .mockResolvedValueOnce(null) // Token not found
+
+      await expect(invitationsService.resend(db, env, ctx, 'inv-1')).rejects.toThrow(
+        'Failed to retrieve invitation token'
+      )
+    })
+  })
+
+  describe('getByToken - account status checks', () => {
+    it('should return null when account is deleted', async () => {
+      ;(queryOne as Mock).mockResolvedValueOnce({
+        id: 'inv-1',
+        accountId: 'account-123',
+        email: 'test@example.com',
+        role: 'viewer',
+        acceptedAt: null,
+        expiresAt: new Date(Date.now() + 86400000).toISOString(),
+        accountName: 'Test Account',
+        accountDeletedAt: new Date().toISOString(), // Account is deleted
+        accountStatus: 'active',
+      })
+
+      const result = await invitationsService.getByToken(db, 'valid-token')
+
+      expect(result).toBeNull()
+    })
+
+    it('should return null when account is suspended', async () => {
+      ;(queryOne as Mock).mockResolvedValueOnce({
+        id: 'inv-1',
+        accountId: 'account-123',
+        email: 'test@example.com',
+        role: 'viewer',
+        acceptedAt: null,
+        expiresAt: new Date(Date.now() + 86400000).toISOString(),
+        accountName: 'Test Account',
+        accountDeletedAt: null,
+        accountStatus: 'suspended', // Account is suspended
+      })
+
+      const result = await invitationsService.getByToken(db, 'valid-token')
+
+      expect(result).toBeNull()
+    })
+  })
+
+  describe('accept - additional checks', () => {
+    it('should throw ForbiddenError when account is deleted', async () => {
+      ;(queryOne as Mock).mockResolvedValueOnce({
+        id: 'inv-1',
+        accountId: 'account-123',
+        role: 'viewer',
+        accountDeletedAt: new Date().toISOString(),
+        accountStatus: 'active',
+      })
+
+      await expect(
+        invitationsService.accept(db, 'inv-1', 'user-1', { transactionId: 'tx' })
+      ).rejects.toThrow('Cannot join a deleted account')
+    })
+
+    it('should throw ForbiddenError when account is suspended', async () => {
+      ;(queryOne as Mock).mockResolvedValueOnce({
+        id: 'inv-1',
+        accountId: 'account-123',
+        role: 'viewer',
+        accountDeletedAt: null,
+        accountStatus: 'suspended',
+      })
+
+      await expect(
+        invitationsService.accept(db, 'inv-1', 'user-1', { transactionId: 'tx' })
+      ).rejects.toThrow('Cannot join a suspended account')
+    })
+
+    it('should throw ConflictError when user is already an active member', async () => {
+      ;(queryOne as Mock)
+        .mockResolvedValueOnce({
+          id: 'inv-1',
+          accountId: 'account-123',
+          role: 'viewer',
+          accountDeletedAt: null,
+          accountStatus: 'active',
+        })
+        .mockResolvedValueOnce({ ok: 1, deleted_at: null }) // Active membership exists
+
+      await expect(
+        invitationsService.accept(db, 'inv-1', 'user-1', { transactionId: 'tx' })
+      ).rejects.toThrow(ConflictError)
+    })
+
+    it('should reactivate soft-deleted membership', async () => {
+      ;(queryOne as Mock)
+        .mockResolvedValueOnce({
+          id: 'inv-1',
+          accountId: 'account-123',
+          role: 'viewer',
+          accountDeletedAt: null,
+          accountStatus: 'active',
+        })
+        .mockResolvedValueOnce({ ok: 1, deleted_at: new Date().toISOString() }) // Soft-deleted membership
+
+      await invitationsService.accept(db, 'inv-1', 'user-1', { transactionId: 'tx' })
+
+      // Should call UPDATE instead of INSERT
+      expect(execute).toHaveBeenCalled()
     })
   })
 })

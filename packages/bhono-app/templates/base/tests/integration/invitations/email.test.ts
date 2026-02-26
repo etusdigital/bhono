@@ -183,7 +183,7 @@ describe('Invitation Email Integration Tests', () => {
         name: 'Admin Inviter',
       })
       const account = await createAccount({ name: 'Email Test Account' })
-      await addUserToAccount(user.id, account.id, 'ADMIN')
+      await addUserToAccount(user.id, account.id, 'admin')
 
       const { headers } = await createUserSession(user.id, {
         email: user.email,
@@ -200,7 +200,7 @@ describe('Invitation Email Integration Tests', () => {
         },
         body: JSON.stringify({
           email: 'new-invitee@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
         }),
       })
 
@@ -230,7 +230,7 @@ describe('Invitation Email Integration Tests', () => {
         name: 'URL Inviter',
       })
       const account = await createAccount({ name: 'URL Test Account' })
-      await addUserToAccount(user.id, account.id, 'ADMIN')
+      await addUserToAccount(user.id, account.id, 'admin')
 
       const { headers } = await createUserSession(user.id, {
         email: user.email,
@@ -247,7 +247,7 @@ describe('Invitation Email Integration Tests', () => {
         },
         body: JSON.stringify({
           email: 'url-check@example.com',
-          role: 'EDITOR',
+          role: 'user',
         }),
       })
 
@@ -273,7 +273,7 @@ describe('Invitation Email Integration Tests', () => {
         name: 'DB Check Inviter',
       })
       const account = await createAccount({ name: 'DB Check Account' })
-      await addUserToAccount(user.id, account.id, 'ADMIN')
+      await addUserToAccount(user.id, account.id, 'admin')
 
       const { headers } = await createUserSession(user.id, {
         email: user.email,
@@ -292,7 +292,7 @@ describe('Invitation Email Integration Tests', () => {
         },
         body: JSON.stringify({
           email: inviteeEmail,
-          role: 'VIEWER',
+          role: 'viewer',
         }),
       })
 
@@ -306,7 +306,7 @@ describe('Invitation Email Integration Tests', () => {
 
       expect(invitation).toBeDefined()
       expect(invitation.email).toBe(inviteeEmail)
-      expect(invitation.role).toBe('VIEWER')
+      expect(invitation.role).toBe('viewer')
       expect(invitation.invited_by_id).toBe(user.id)
     })
   })

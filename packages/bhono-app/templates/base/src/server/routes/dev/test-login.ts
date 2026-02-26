@@ -1,5 +1,6 @@
-// src/server/routes/auth/test-login.ts
-import type { RouteHandler } from '@hono/zod-openapi'
+// src/server/routes/dev/test-login.ts
+// Development-only test login endpoint for E2E tests
+import { OpenAPIHono } from '@hono/zod-openapi'
 import { createRoute, z } from '@hono/zod-openapi'
 import { HTTPException } from 'hono/http-exception'
 import { execute, queryOne, toStringValue, toNullableString, type SqlRow } from '../../db/sql'
@@ -48,10 +49,10 @@ function mapUserRow(row: SqlRow): UserRecord {
   }
 }
 
-export const testLoginRoute = createRoute({
+const testLoginRoute = createRoute({
   method: 'post',
   path: '/test-login',
-  tags: ['Auth'],
+  tags: ['Development'],
   summary: 'Test login endpoint (development only)',
   description:
     'Creates or finds a test user and establishes a session. Only available in development/test environments.',
@@ -89,7 +90,9 @@ export const testLoginRoute = createRoute({
   },
 })
 
-export const testLoginHandler: RouteHandler<typeof testLoginRoute, HonoEnv> = async (c) => {
+const devRouter = new OpenAPIHono<HonoEnv>()
+
+devRouter.openapi(testLoginRoute, async (c) => {
   // Only allow in development/test
   const env = c.env
   if (env.ENVIRONMENT === 'production') {
@@ -207,4 +210,6 @@ export const testLoginHandler: RouteHandler<typeof testLoginRoute, HonoEnv> = as
     },
     200
   )
-}
+})
+
+export { devRouter }

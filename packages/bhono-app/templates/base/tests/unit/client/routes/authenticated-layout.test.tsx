@@ -1,15 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { screen, waitFor, act } from '@testing-library/react'
-import { renderRoute } from '@tests/helpers/client-test-utils'
-
-// Mock user for authenticated tests
-const mockUser = {
-  id: 'test-user-id',
-  email: 'test@example.com',
-  name: 'Test User',
-  isSuperAdmin: false,
-  avatarUrl: null,
-}
+import { renderRoute, setupFetchMock, mockUser, mockAccount } from '@tests/helpers/client-test-utils'
 
 describe('Authenticated Layout', () => {
   beforeEach(() => {
@@ -21,20 +12,11 @@ describe('Authenticated Layout', () => {
   })
 
   describe('AuthenticatedLayout', () => {
-    it('should render sidebar and main content area', async () => {
-      vi.spyOn(global, 'fetch').mockImplementation((url) => {
-        if (url === '/auth/me') {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ user: mockUser }),
-          } as Response)
-        }
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({}),
-        } as Response)
-      })
+    beforeEach(() => {
+      setupFetchMock()
+    })
 
+    it('should render sidebar and main content area', async () => {
       renderRoute({ initialEntries: ['/dashboard'] })
 
       await waitFor(() => {
@@ -47,19 +29,6 @@ describe('Authenticated Layout', () => {
     })
 
     it('should render dashboard page inside layout', async () => {
-      vi.spyOn(global, 'fetch').mockImplementation((url) => {
-        if (url === '/auth/me') {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ user: mockUser }),
-          } as Response)
-        }
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({}),
-        } as Response)
-      })
-
       renderRoute({ initialEntries: ['/dashboard'] })
 
       await waitFor(() => {
@@ -69,19 +38,6 @@ describe('Authenticated Layout', () => {
     })
 
     it('should render settings page inside layout', async () => {
-      vi.spyOn(global, 'fetch').mockImplementation((url) => {
-        if (url === '/auth/me') {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ user: mockUser }),
-          } as Response)
-        }
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({}),
-        } as Response)
-      })
-
       renderRoute({ initialEntries: ['/settings'] })
 
       await waitFor(() => {
@@ -90,19 +46,6 @@ describe('Authenticated Layout', () => {
     })
 
     it('should render team page inside layout', async () => {
-      vi.spyOn(global, 'fetch').mockImplementation((url) => {
-        if (url === '/auth/me') {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ user: mockUser }),
-          } as Response)
-        }
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({}),
-        } as Response)
-      })
-
       renderRoute({ initialEntries: ['/team'] })
 
       await waitFor(() => {
@@ -119,9 +62,16 @@ describe('Authenticated Layout', () => {
         resolveAuth = resolve
       })
 
-      vi.spyOn(global, 'fetch').mockImplementation((url) => {
-        if (url === '/auth/me') {
+      vi.spyOn(global, 'fetch').mockImplementation((input) => {
+        const url = typeof input === 'string' ? input : input.toString()
+        if (url === '/auth/me' || url.endsWith('/auth/me')) {
           return pendingPromise
+        }
+        if (url === '/api/accounts/my' || url.endsWith('/api/accounts/my')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ data: [mockAccount], currentAccountId: mockAccount.id }),
+          } as Response)
         }
         return Promise.resolve({
           ok: true,
@@ -152,9 +102,16 @@ describe('Authenticated Layout', () => {
         resolveAuth = resolve
       })
 
-      vi.spyOn(global, 'fetch').mockImplementation((url) => {
-        if (url === '/auth/me') {
+      vi.spyOn(global, 'fetch').mockImplementation((input) => {
+        const url = typeof input === 'string' ? input : input.toString()
+        if (url === '/auth/me' || url.endsWith('/auth/me')) {
           return pendingPromise
+        }
+        if (url === '/api/accounts/my' || url.endsWith('/api/accounts/my')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ data: [mockAccount], currentAccountId: mockAccount.id }),
+          } as Response)
         }
         return Promise.resolve({
           ok: true,
@@ -182,8 +139,16 @@ describe('Authenticated Layout', () => {
 
   describe('Redirect to login', () => {
     it('should redirect to login when not authenticated', async () => {
-      vi.spyOn(global, 'fetch').mockImplementation((url) => {
-        if (url === '/auth/me') {
+      vi.spyOn(global, 'fetch').mockImplementation((input) => {
+        const url = typeof input === 'string' ? input : input.toString()
+        if (url === '/auth/me' || url.endsWith('/auth/me')) {
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            json: () => Promise.resolve({ error: 'Not authenticated' }),
+          } as Response)
+        }
+        if (url === '/api/accounts/my' || url.endsWith('/api/accounts/my')) {
           return Promise.resolve({
             ok: false,
             status: 401,
@@ -205,8 +170,16 @@ describe('Authenticated Layout', () => {
     })
 
     it('should redirect from settings when not authenticated', async () => {
-      vi.spyOn(global, 'fetch').mockImplementation((url) => {
-        if (url === '/auth/me') {
+      vi.spyOn(global, 'fetch').mockImplementation((input) => {
+        const url = typeof input === 'string' ? input : input.toString()
+        if (url === '/auth/me' || url.endsWith('/auth/me')) {
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            json: () => Promise.resolve({ error: 'Not authenticated' }),
+          } as Response)
+        }
+        if (url === '/api/accounts/my' || url.endsWith('/api/accounts/my')) {
           return Promise.resolve({
             ok: false,
             status: 401,
@@ -227,8 +200,16 @@ describe('Authenticated Layout', () => {
     })
 
     it('should redirect from team when not authenticated', async () => {
-      vi.spyOn(global, 'fetch').mockImplementation((url) => {
-        if (url === '/auth/me') {
+      vi.spyOn(global, 'fetch').mockImplementation((input) => {
+        const url = typeof input === 'string' ? input : input.toString()
+        if (url === '/auth/me' || url.endsWith('/auth/me')) {
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            json: () => Promise.resolve({ error: 'Not authenticated' }),
+          } as Response)
+        }
+        if (url === '/api/accounts/my' || url.endsWith('/api/accounts/my')) {
           return Promise.resolve({
             ok: false,
             status: 401,

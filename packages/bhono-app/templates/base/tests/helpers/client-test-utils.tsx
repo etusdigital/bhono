@@ -9,6 +9,79 @@ import {
 import { routeTree } from "@/routeTree.gen"
 import { ThemeProvider } from "@/hooks/use-theme"
 import type { ReactElement, ReactNode } from "react"
+import { vi } from "vitest"
+
+// Standard mock data for tests
+export const mockUser = {
+  id: "test-user-id",
+  email: "test@example.com",
+  name: "Test User",
+  isSuperAdmin: false,
+  avatarUrl: null,
+}
+
+export const mockAccount = {
+  id: "test-account-id",
+  name: "Test Account",
+  description: null,
+  domain: null,
+  status: "active" as const,
+  role: "admin" as const,
+  isCurrent: true,
+}
+
+/**
+ * Creates a mock fetch implementation that handles common API endpoints.
+ * Override specific endpoints by providing custom handlers.
+ */
+export function createMockFetch(overrides?: Record<string, () => Promise<Response>>) {
+  return vi.fn().mockImplementation((input: RequestInfo | URL) => {
+    const url = typeof input === "string" ? input : input.toString()
+
+    // Check for overrides first
+    if (overrides) {
+      for (const [pattern, handler] of Object.entries(overrides)) {
+        if (url === pattern || url.endsWith(pattern)) {
+          return handler()
+        }
+      }
+    }
+
+    // Mock /auth/me
+    if (url === "/auth/me" || url.endsWith("/auth/me")) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ user: mockUser }),
+      } as Response)
+    }
+
+    // Mock /api/accounts/my
+    if (url === "/api/accounts/my" || url.endsWith("/api/accounts/my")) {
+      return Promise.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            data: [mockAccount],
+            currentAccountId: mockAccount.id,
+          }),
+      } as Response)
+    }
+
+    // Default mock for other URLs
+    return Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({}),
+    } as Response)
+  })
+}
+
+/**
+ * Setup fetch mock with standard endpoints.
+ * Call this in beforeEach to ensure consistent mocking.
+ */
+export function setupFetchMock(overrides?: Record<string, () => Promise<Response>>) {
+  vi.spyOn(global, "fetch").mockImplementation(createMockFetch(overrides) as typeof fetch)
+}
 
 // Create a fresh QueryClient for each test
 export function createTestQueryClient() {

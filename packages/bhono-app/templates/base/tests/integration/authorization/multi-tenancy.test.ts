@@ -151,14 +151,14 @@ describe('Multi-Tenancy Isolation', () => {
   describe('User access isolation', () => {
     it('should only view users in accessible accounts', async () => {
       const scenario = await createMultiTenantScenario()
-      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'ADMIN')!
+      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'admin')!
 
       // Create users in the accessible account
       const userInAccessibleAccount = await createUser({
         email: 'accessible-account-user@example.com',
         name: 'Accessible Account User',
       })
-      await addUserToAccount(userInAccessibleAccount.id, accountWithAdminAccess.account.id, 'VIEWER')
+      await addUserToAccount(userInAccessibleAccount.id, accountWithAdminAccess.account.id, 'viewer')
 
       // Create users in an account without access
       const accountWithoutAccess = scenario.accounts.withoutAccess[0]
@@ -166,7 +166,7 @@ describe('Multi-Tenancy Isolation', () => {
         email: 'inaccessible-account-user@example.com',
         name: 'Inaccessible Account User',
       })
-      await addUserToAccount(userInInaccessibleAccount.id, accountWithoutAccess.id, 'VIEWER')
+      await addUserToAccount(userInInaccessibleAccount.id, accountWithoutAccess.id, 'viewer')
 
       // Request users from the accessible account - should work
       const res = await app.request('/api/users', {
@@ -190,7 +190,7 @@ describe('Multi-Tenancy Isolation', () => {
 
     it('should NOT be able to view a specific user from another account', async () => {
       const scenario = await createMultiTenantScenario()
-      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'ADMIN')!
+      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'admin')!
 
       // Create a user in another account
       const accountWithoutAccess = scenario.accounts.withoutAccess[0]
@@ -198,7 +198,7 @@ describe('Multi-Tenancy Isolation', () => {
         email: 'other-account-specific@example.com',
         name: 'Other Account User',
       })
-      await addUserToAccount(otherUser.id, accountWithoutAccess.id, 'VIEWER')
+      await addUserToAccount(otherUser.id, accountWithoutAccess.id, 'viewer')
 
       // Try to get the other user from the accessible account context
       const res = await app.request(`/api/users/${otherUser.id}`, {
@@ -216,7 +216,7 @@ describe('Multi-Tenancy Isolation', () => {
 
     it('should NOT be able to update users in other accounts', async () => {
       const scenario = await createMultiTenantScenario()
-      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'ADMIN')!
+      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'admin')!
 
       // Create a user in another account
       const accountWithoutAccess = scenario.accounts.withoutAccess[0]
@@ -224,7 +224,7 @@ describe('Multi-Tenancy Isolation', () => {
         email: 'update-other-account@example.com',
         name: 'Update Other Account User',
       })
-      await addUserToAccount(otherUser.id, accountWithoutAccess.id, 'VIEWER')
+      await addUserToAccount(otherUser.id, accountWithoutAccess.id, 'viewer')
 
       // Try to update the other user
       const res = await app.request(`/api/users/${otherUser.id}`, {
@@ -249,7 +249,7 @@ describe('Multi-Tenancy Isolation', () => {
 
     it('should NOT be able to delete users in other accounts', async () => {
       const scenario = await createMultiTenantScenario()
-      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'ADMIN')!
+      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'admin')!
 
       // Create a user in another account
       const accountWithoutAccess = scenario.accounts.withoutAccess[0]
@@ -257,7 +257,7 @@ describe('Multi-Tenancy Isolation', () => {
         email: 'delete-other-account@example.com',
         name: 'Delete Other Account User',
       })
-      await addUserToAccount(otherUser.id, accountWithoutAccess.id, 'VIEWER')
+      await addUserToAccount(otherUser.id, accountWithoutAccess.id, 'viewer')
 
       // Try to delete the other user
       const res = await app.request(`/api/users/${otherUser.id}`, {
@@ -286,7 +286,7 @@ describe('Multi-Tenancy Isolation', () => {
   describe('Account access isolation', () => {
     it('should only view accounts user has access to', async () => {
       const scenario = await createMultiTenantScenario()
-      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'ADMIN')!
+      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'admin')!
 
       // Request accounts list
       const res = await app.request('/api/accounts', {
@@ -315,7 +315,7 @@ describe('Multi-Tenancy Isolation', () => {
 
     it('should return 404 (not 403) when viewing other accounts', async () => {
       const scenario = await createMultiTenantScenario()
-      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'ADMIN')!
+      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'admin')!
       const accountWithoutAccess = scenario.accounts.withoutAccess[0]
 
       // Try to get an account without access
@@ -334,7 +334,7 @@ describe('Multi-Tenancy Isolation', () => {
 
     it('should NOT be able to update other accounts', async () => {
       const scenario = await createMultiTenantScenario()
-      const accountWithManagerAccess = scenario.accounts.withAccess.find(a => a.role === 'MANAGER')!
+      const accountWithManagerAccess = scenario.accounts.withAccess.find(a => a.role === 'manager')!
       const accountWithoutAccess = scenario.accounts.withoutAccess[0]
 
       // Try to update an account without access
@@ -360,7 +360,7 @@ describe('Multi-Tenancy Isolation', () => {
 
     it('should NOT be able to delete other accounts (even with ADMIN role)', async () => {
       const scenario = await createMultiTenantScenario()
-      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'ADMIN')!
+      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'admin')!
       const accountWithoutAccess = scenario.accounts.withoutAccess[0]
 
       // Try to delete an account without access
@@ -390,14 +390,14 @@ describe('Multi-Tenancy Isolation', () => {
   describe('Invitation isolation', () => {
     it('should only view invitations in accessible accounts', async () => {
       const scenario = await createMultiTenantScenario()
-      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'ADMIN')!
+      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'admin')!
       const accountWithoutAccess = scenario.accounts.withoutAccess[0]
 
       // Create invitation in accessible account
       const invitationInAccessible = await createInvitation({
         accountId: accountWithAdminAccess.account.id,
         email: 'accessible-invitation@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
         invitedById: scenario.user.id,
       })
 
@@ -406,13 +406,13 @@ describe('Multi-Tenancy Isolation', () => {
         email: 'other-inviter@example.com',
         name: 'Other Inviter',
       })
-      await addUserToAccount(otherUser.id, accountWithoutAccess.id, 'ADMIN')
+      await addUserToAccount(otherUser.id, accountWithoutAccess.id, 'admin')
 
       // Create invitation in inaccessible account
       const invitationInInaccessible = await createInvitation({
         accountId: accountWithoutAccess.id,
         email: 'inaccessible-invitation@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
         invitedById: otherUser.id,
       })
 
@@ -438,7 +438,7 @@ describe('Multi-Tenancy Isolation', () => {
 
     it('should NOT be able to create invitations for other accounts', async () => {
       const scenario = await createMultiTenantScenario()
-      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'ADMIN')!
+      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'admin')!
       const accountWithoutAccess = scenario.accounts.withoutAccess[0]
 
       const testEmail = 'cross-tenant-invite@example.com'
@@ -454,7 +454,7 @@ describe('Multi-Tenancy Isolation', () => {
         },
         body: JSON.stringify({
           email: testEmail,
-          role: 'VIEWER',
+          role: 'viewer',
         }),
       })
 
@@ -473,7 +473,7 @@ describe('Multi-Tenancy Isolation', () => {
 
     it('should NOT be able to revoke invitations in other accounts', async () => {
       const scenario = await createMultiTenantScenario()
-      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'ADMIN')!
+      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'admin')!
       const accountWithoutAccess = scenario.accounts.withoutAccess[0]
 
       // Create user in inaccessible account
@@ -481,13 +481,13 @@ describe('Multi-Tenancy Isolation', () => {
         email: 'other-revoke-inviter@example.com',
         name: 'Other Revoke Inviter',
       })
-      await addUserToAccount(otherUser.id, accountWithoutAccess.id, 'ADMIN')
+      await addUserToAccount(otherUser.id, accountWithoutAccess.id, 'admin')
 
       // Create invitation in inaccessible account
       const invitation = await createInvitation({
         accountId: accountWithoutAccess.id,
         email: 'revoke-cross-tenant@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
         invitedById: otherUser.id,
       })
 
@@ -518,7 +518,7 @@ describe('Multi-Tenancy Isolation', () => {
   describe('Audit log isolation', () => {
     it('should only view audit logs for accessible accounts', async () => {
       const scenario = await createMultiTenantScenario()
-      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'ADMIN')!
+      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'admin')!
       const accountWithoutAccess = scenario.accounts.withoutAccess[0]
 
       // Create audit log in accessible account
@@ -536,7 +536,7 @@ describe('Multi-Tenancy Isolation', () => {
         email: 'other-audit-user@example.com',
         name: 'Other Audit User',
       })
-      await addUserToAccount(otherUser.id, accountWithoutAccess.id, 'ADMIN')
+      await addUserToAccount(otherUser.id, accountWithoutAccess.id, 'admin')
 
       // Create audit log in inaccessible account
       const auditInInaccessible = createAuditLog({
@@ -570,7 +570,7 @@ describe('Multi-Tenancy Isolation', () => {
 
     it('should NOT be able to view audit logs from other accounts via filtering', async () => {
       const scenario = await createMultiTenantScenario()
-      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'ADMIN')!
+      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'admin')!
       const accountWithoutAccess = scenario.accounts.withoutAccess[0]
 
       // Create user and audit log in inaccessible account
@@ -578,7 +578,7 @@ describe('Multi-Tenancy Isolation', () => {
         email: 'other-filter-audit@example.com',
         name: 'Other Filter Audit User',
       })
-      await addUserToAccount(otherUser.id, accountWithoutAccess.id, 'ADMIN')
+      await addUserToAccount(otherUser.id, accountWithoutAccess.id, 'admin')
 
       const specificEntityId = crypto.randomUUID()
       createAuditLog({
@@ -614,16 +614,16 @@ describe('Multi-Tenancy Isolation', () => {
   describe('Account switching', () => {
     it('should enforce different roles in different accounts', async () => {
       const scenario = await createMultiTenantScenario()
-      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'ADMIN')!
-      const accountWithViewerAccess = scenario.accounts.withAccess.find(a => a.role === 'VIEWER')!
+      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'admin')!
+      const accountWithViewerAccess = scenario.accounts.withAccess.find(a => a.role === 'viewer')!
 
       // Create a target user in both accounts
       const targetUser = await createUser({
         email: 'target-for-switching@example.com',
         name: 'Target For Switching',
       })
-      await addUserToAccount(targetUser.id, accountWithAdminAccess.account.id, 'VIEWER')
-      await addUserToAccount(targetUser.id, accountWithViewerAccess.account.id, 'VIEWER')
+      await addUserToAccount(targetUser.id, accountWithAdminAccess.account.id, 'viewer')
+      await addUserToAccount(targetUser.id, accountWithViewerAccess.account.id, 'viewer')
 
       // Try to update user in account where user has ADMIN role - should succeed
       const adminRes = await app.request(`/api/users/${targetUser.id}`, {
@@ -654,21 +654,21 @@ describe('Multi-Tenancy Isolation', () => {
 
     it('should allow same user to view users in both accounts with correct filtering', async () => {
       const scenario = await createMultiTenantScenario()
-      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'ADMIN')!
-      const accountWithViewerAccess = scenario.accounts.withAccess.find(a => a.role === 'VIEWER')!
+      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'admin')!
+      const accountWithViewerAccess = scenario.accounts.withAccess.find(a => a.role === 'viewer')!
 
       // Create users unique to each account
       const userInAccount1 = await createUser({
         email: 'unique-to-admin-account@example.com',
         name: 'Unique To Admin Account',
       })
-      await addUserToAccount(userInAccount1.id, accountWithAdminAccess.account.id, 'VIEWER')
+      await addUserToAccount(userInAccount1.id, accountWithAdminAccess.account.id, 'viewer')
 
       const userInAccount2 = await createUser({
         email: 'unique-to-viewer-account@example.com',
         name: 'Unique To Viewer Account',
       })
-      await addUserToAccount(userInAccount2.id, accountWithViewerAccess.account.id, 'VIEWER')
+      await addUserToAccount(userInAccount2.id, accountWithViewerAccess.account.id, 'viewer')
 
       // Get users from admin account
       const res1 = await app.request('/api/users', {
@@ -703,8 +703,8 @@ describe('Multi-Tenancy Isolation', () => {
 
     it('should correctly enforce invitation permissions across accounts', async () => {
       const scenario = await createMultiTenantScenario()
-      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'ADMIN')!
-      const accountWithViewerAccess = scenario.accounts.withAccess.find(a => a.role === 'VIEWER')!
+      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'admin')!
+      const accountWithViewerAccess = scenario.accounts.withAccess.find(a => a.role === 'viewer')!
 
       // Try to create invitation in admin account - should succeed
       const adminInviteRes = await app.request('/api/invitations', {
@@ -717,7 +717,7 @@ describe('Multi-Tenancy Isolation', () => {
         },
         body: JSON.stringify({
           email: 'admin-invite-test@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
         }),
       })
       expect(adminInviteRes.status).toBe(200)
@@ -733,7 +733,7 @@ describe('Multi-Tenancy Isolation', () => {
         },
         body: JSON.stringify({
           email: 'viewer-invite-test@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
         }),
       })
       expect(viewerInviteRes.status).toBe(403)
@@ -754,7 +754,7 @@ describe('Multi-Tenancy Isolation', () => {
 
       // Create an account for the super admin context
       const adminContext = await createAccount({ name: 'Super Admin Context' })
-      await addUserToAccount(superAdmin.id, adminContext.id, 'ADMIN')
+      await addUserToAccount(superAdmin.id, adminContext.id, 'admin')
 
       // Create another account with users
       const otherAccount = await createAccount({ name: 'Other Account For Super' })
@@ -762,7 +762,7 @@ describe('Multi-Tenancy Isolation', () => {
         email: 'other-for-super@example.com',
         name: 'Other For Super',
       })
-      await addUserToAccount(otherUser.id, otherAccount.id, 'VIEWER')
+      await addUserToAccount(otherUser.id, otherAccount.id, 'viewer')
 
       const { headers } = await createUserSession(superAdmin.id, {
         email: superAdmin.email,
@@ -794,7 +794,7 @@ describe('Multi-Tenancy Isolation', () => {
 
       // Create an account for the super admin context
       const adminContext = await createAccount({ name: 'Super Admin Users Context' })
-      await addUserToAccount(superAdmin.id, adminContext.id, 'ADMIN')
+      await addUserToAccount(superAdmin.id, adminContext.id, 'admin')
 
       // Create multiple accounts with users
       const account1 = await createAccount({ name: 'Account 1 For Super' })
@@ -802,14 +802,14 @@ describe('Multi-Tenancy Isolation', () => {
         email: 'user1-for-super@example.com',
         name: 'User 1 For Super',
       })
-      await addUserToAccount(user1.id, account1.id, 'VIEWER')
+      await addUserToAccount(user1.id, account1.id, 'viewer')
 
       const account2 = await createAccount({ name: 'Account 2 For Super' })
       const user2 = await createUser({
         email: 'user2-for-super@example.com',
         name: 'User 2 For Super',
       })
-      await addUserToAccount(user2.id, account2.id, 'VIEWER')
+      await addUserToAccount(user2.id, account2.id, 'viewer')
 
       const { headers } = await createUserSession(superAdmin.id, {
         email: superAdmin.email,
@@ -849,7 +849,7 @@ describe('Multi-Tenancy Isolation', () => {
 
       // Create an account for the super admin context
       const adminContext = await createAccount({ name: 'Super Admin Modify Context' })
-      await addUserToAccount(superAdmin.id, adminContext.id, 'ADMIN')
+      await addUserToAccount(superAdmin.id, adminContext.id, 'admin')
 
       // Create another account to modify
       const targetAccount = await createAccount({
@@ -893,7 +893,7 @@ describe('Multi-Tenancy Isolation', () => {
 
       // Create an account for the super admin context
       const adminContext = await createAccount({ name: 'Super Admin Audits Context' })
-      await addUserToAccount(superAdmin.id, adminContext.id, 'ADMIN')
+      await addUserToAccount(superAdmin.id, adminContext.id, 'admin')
 
       // Create audit logs in different accounts
       const account1 = await createAccount({ name: 'Audit Account 1' })
@@ -901,7 +901,7 @@ describe('Multi-Tenancy Isolation', () => {
         email: 'audit-user1@example.com',
         name: 'Audit User 1',
       })
-      await addUserToAccount(user1.id, account1.id, 'ADMIN')
+      await addUserToAccount(user1.id, account1.id, 'admin')
 
       const audit1 = createAuditLog({
         accountId: account1.id,
@@ -917,7 +917,7 @@ describe('Multi-Tenancy Isolation', () => {
         email: 'audit-user2@example.com',
         name: 'Audit User 2',
       })
-      await addUserToAccount(user2.id, account2.id, 'ADMIN')
+      await addUserToAccount(user2.id, account2.id, 'admin')
 
       const audit2 = createAuditLog({
         accountId: account2.id,
@@ -962,7 +962,7 @@ describe('Multi-Tenancy Isolation', () => {
 
       // Create an account for the super admin context
       const adminContext = await createAccount({ name: 'Super Admin Delete Context' })
-      await addUserToAccount(superAdmin.id, adminContext.id, 'ADMIN')
+      await addUserToAccount(superAdmin.id, adminContext.id, 'admin')
 
       // Create another account to delete
       const targetAccount = await createAccount({ name: 'Account To Be Deleted By Super' })
@@ -999,7 +999,7 @@ describe('Multi-Tenancy Isolation', () => {
   describe('Cross-tenant data leakage prevention', () => {
     it('should not leak user existence across accounts via response timing', async () => {
       const scenario = await createMultiTenantScenario()
-      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'ADMIN')!
+      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'admin')!
 
       // Create a user in another account
       const accountWithoutAccess = scenario.accounts.withoutAccess[0]
@@ -1007,7 +1007,7 @@ describe('Multi-Tenancy Isolation', () => {
         email: 'timing-test-user@example.com',
         name: 'Timing Test User',
       })
-      await addUserToAccount(existingUser.id, accountWithoutAccess.id, 'VIEWER')
+      await addUserToAccount(existingUser.id, accountWithoutAccess.id, 'viewer')
 
       // Non-existent user ID
       const nonExistentId = crypto.randomUUID()
@@ -1038,7 +1038,7 @@ describe('Multi-Tenancy Isolation', () => {
 
     it('should not leak account existence across tenants via response timing', async () => {
       const scenario = await createMultiTenantScenario()
-      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'ADMIN')!
+      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'admin')!
       const accountWithoutAccess = scenario.accounts.withoutAccess[0]
 
       // Non-existent account ID
@@ -1070,7 +1070,7 @@ describe('Multi-Tenancy Isolation', () => {
 
     it('should prevent enumeration attacks on user IDs', async () => {
       const scenario = await createMultiTenantScenario()
-      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'ADMIN')!
+      const accountWithAdminAccess = scenario.accounts.withAccess.find(a => a.role === 'admin')!
 
       // Create multiple users in another account
       const accountWithoutAccess = scenario.accounts.withoutAccess[0]
@@ -1080,7 +1080,7 @@ describe('Multi-Tenancy Isolation', () => {
             email: `enum-test-${i}@example.com`,
             name: `Enum Test User ${i}`,
           })
-          await addUserToAccount(user.id, accountWithoutAccess.id, 'VIEWER')
+          await addUserToAccount(user.id, accountWithoutAccess.id, 'viewer')
           return user
         })
       )

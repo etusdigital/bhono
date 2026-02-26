@@ -34,7 +34,7 @@ function createMockContext(overrides: Partial<ServiceContext> = {}): ServiceCont
   return {
     accountId: 'account-123',
     user,
-    userRole: 'ADMIN',
+    userRole: 'admin',
     transactionId: 'tx-123',
     ip: '127.0.0.1',
     userAgent: 'TestAgent/1.0',
@@ -52,7 +52,7 @@ function createSuperAdminContext(overrides: Partial<ServiceContext> = {}): Servi
   return {
     accountId: 'account-123',
     user,
-    userRole: 'ADMIN',
+    userRole: 'admin',
     transactionId: 'tx-123',
     ip: '127.0.0.1',
     userAgent: 'TestAgent/1.0',

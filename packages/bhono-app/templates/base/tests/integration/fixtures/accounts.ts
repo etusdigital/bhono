@@ -11,7 +11,7 @@ import { getSqlite } from '../setup'
 // TYPES
 // ============================================================================
 
-export type Role = 'ADMIN' | 'MANAGER' | 'EDITOR' | 'AUTHOR' | 'VIEWER' | 'BILLING' | 'ANALYTICS'
+export type Role = 'admin' | 'manager' | 'user' | 'viewer'
 
 export interface CreateAccountOptions {
   id?: string

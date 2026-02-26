@@ -184,7 +184,7 @@ describe('Super Admin Integration Tests', () => {
 
       // Create an account for super admin context
       const superAdminAccount = await createAccount({ name: 'Super Admin Context Account' })
-      await addUserToAccount(superAdmin.id, superAdminAccount.id, 'ADMIN')
+      await addUserToAccount(superAdmin.id, superAdminAccount.id, 'admin')
 
       // Create a separate account without super admin access
       const targetAccount = await createAccount({
@@ -222,7 +222,7 @@ describe('Super Admin Integration Tests', () => {
       })
 
       const superAdminAccount = await createAccount({ name: 'Super Admin Modify Context' })
-      await addUserToAccount(superAdmin.id, superAdminAccount.id, 'ADMIN')
+      await addUserToAccount(superAdmin.id, superAdminAccount.id, 'admin')
 
       const targetAccount = await createAccount({
         name: 'Target For Modification',
@@ -265,7 +265,7 @@ describe('Super Admin Integration Tests', () => {
 
       // Create account for regular user
       const regularUserAccount = await createAccount({ name: 'Regular User Account' })
-      await addUserToAccount(regularUser.id, regularUserAccount.id, 'ADMIN')
+      await addUserToAccount(regularUser.id, regularUserAccount.id, 'admin')
 
       // Create a separate account without regular user access
       const targetAccount = await createAccount({
@@ -299,7 +299,7 @@ describe('Super Admin Integration Tests', () => {
       })
 
       const superAdminAccount = await createAccount({ name: 'Super Admin Delete Context' })
-      await addUserToAccount(superAdmin.id, superAdminAccount.id, 'ADMIN')
+      await addUserToAccount(superAdmin.id, superAdminAccount.id, 'admin')
 
       // Create account to be deleted
       const accountToDelete = await createAccount({
@@ -338,7 +338,7 @@ describe('Super Admin Integration Tests', () => {
       })
 
       const superAdminAccount = await createAccount({ name: 'Super Admin Users Context' })
-      await addUserToAccount(superAdmin.id, superAdminAccount.id, 'ADMIN')
+      await addUserToAccount(superAdmin.id, superAdminAccount.id, 'admin')
 
       // Create users in different accounts
       const account1 = await createAccount({ name: 'Account 1' })
@@ -346,14 +346,14 @@ describe('Super Admin Integration Tests', () => {
         email: 'user1-multi@example.com',
         name: 'User In Account 1',
       })
-      await addUserToAccount(user1.id, account1.id, 'VIEWER')
+      await addUserToAccount(user1.id, account1.id, 'viewer')
 
       const account2 = await createAccount({ name: 'Account 2' })
       const user2 = await createUser({
         email: 'user2-multi@example.com',
         name: 'User In Account 2',
       })
-      await addUserToAccount(user2.id, account2.id, 'VIEWER')
+      await addUserToAccount(user2.id, account2.id, 'viewer')
 
       const { headers } = await createUserSession(superAdmin.id, {
         email: superAdmin.email,

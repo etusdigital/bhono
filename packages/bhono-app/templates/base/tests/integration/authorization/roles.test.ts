@@ -165,7 +165,7 @@ describe('Role Hierarchy Authorization', () => {
   describe('ADMIN role', () => {
     it('should be able to view all users', async () => {
       const account = await createAccount({ name: 'Admin Test Account' })
-      const { headers } = await createUserWithRole(account.id, 'ADMIN')
+      const { headers } = await createUserWithRole(account.id, 'admin')
 
       const res = await app.request('/api/users', {
         method: 'GET',
@@ -184,8 +184,8 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should be able to update any user', async () => {
       const account = await createAccount({ name: 'Admin Update Test' })
-      const { headers: adminHeaders } = await createUserWithRole(account.id, 'ADMIN')
-      const { user: targetUser } = await createUserWithRole(account.id, 'VIEWER')
+      const { headers: adminHeaders } = await createUserWithRole(account.id, 'admin')
+      const { user: targetUser } = await createUserWithRole(account.id, 'viewer')
 
       const res = await app.request(`/api/users/${targetUser.id}`, {
         method: 'PATCH',
@@ -205,8 +205,8 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should be able to delete any user', async () => {
       const account = await createAccount({ name: 'Admin Delete Test' })
-      const { headers: adminHeaders } = await createUserWithRole(account.id, 'ADMIN')
-      const { user: targetUser } = await createUserWithRole(account.id, 'VIEWER')
+      const { headers: adminHeaders } = await createUserWithRole(account.id, 'admin')
+      const { user: targetUser } = await createUserWithRole(account.id, 'viewer')
 
       const res = await app.request(`/api/users/${targetUser.id}`, {
         method: 'DELETE',
@@ -222,14 +222,14 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should be able to restore soft-deleted users', async () => {
       const account = await createAccount({ name: 'Admin Restore Test' })
-      const { headers: adminHeaders } = await createUserWithRole(account.id, 'ADMIN')
+      const { headers: adminHeaders } = await createUserWithRole(account.id, 'admin')
 
       // Create a deleted user
       const deletedUser = await createDeletedUser({
         email: 'deleted-for-admin@example.com',
         name: 'Deleted For Admin',
       })
-      await addUserToAccount(deletedUser.id, account.id, 'VIEWER')
+      await addUserToAccount(deletedUser.id, account.id, 'viewer')
 
       const res = await app.request(`/api/users/${deletedUser.id}/restore`, {
         method: 'POST',
@@ -245,7 +245,7 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should be able to create invitations', async () => {
       const account = await createAccount({ name: 'Admin Invitation Test' })
-      const { headers: adminHeaders } = await createUserWithRole(account.id, 'ADMIN')
+      const { headers: adminHeaders } = await createUserWithRole(account.id, 'admin')
 
       const res = await app.request('/api/invitations', {
         method: 'POST',
@@ -257,7 +257,7 @@ describe('Role Hierarchy Authorization', () => {
         },
         body: JSON.stringify({
           email: 'invited-by-admin@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
         }),
       })
 
@@ -266,7 +266,7 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should be able to list invitations', async () => {
       const account = await createAccount({ name: 'Admin List Invitations Test' })
-      const { headers: adminHeaders } = await createUserWithRole(account.id, 'ADMIN')
+      const { headers: adminHeaders } = await createUserWithRole(account.id, 'admin')
 
       const res = await app.request('/api/invitations', {
         method: 'GET',
@@ -282,7 +282,7 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should be able to update account', async () => {
       const account = await createAccount({ name: 'Admin Account Update Test' })
-      const { headers: adminHeaders } = await createUserWithRole(account.id, 'ADMIN')
+      const { headers: adminHeaders } = await createUserWithRole(account.id, 'admin')
 
       const res = await app.request(`/api/accounts/${account.id}`, {
         method: 'PATCH',
@@ -302,7 +302,7 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should be able to view audit logs', async () => {
       const account = await createAccount({ name: 'Admin Audit Test' })
-      const { user, headers: adminHeaders } = await createUserWithRole(account.id, 'ADMIN')
+      const { user, headers: adminHeaders } = await createUserWithRole(account.id, 'admin')
 
       // Create an audit log entry
       createAuditLog({
@@ -335,7 +335,7 @@ describe('Role Hierarchy Authorization', () => {
   describe('MANAGER role', () => {
     it('should be able to view all users', async () => {
       const account = await createAccount({ name: 'Manager View Users Test' })
-      const { headers } = await createUserWithRole(account.id, 'MANAGER')
+      const { headers } = await createUserWithRole(account.id, 'manager')
 
       const res = await app.request('/api/users', {
         method: 'GET',
@@ -351,8 +351,8 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should be able to update users', async () => {
       const account = await createAccount({ name: 'Manager Update Test' })
-      const { headers: managerHeaders } = await createUserWithRole(account.id, 'MANAGER')
-      const { user: targetUser } = await createUserWithRole(account.id, 'VIEWER')
+      const { headers: managerHeaders } = await createUserWithRole(account.id, 'manager')
+      const { user: targetUser } = await createUserWithRole(account.id, 'viewer')
 
       const res = await app.request(`/api/users/${targetUser.id}`, {
         method: 'PATCH',
@@ -370,8 +370,8 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should NOT be able to delete users', async () => {
       const account = await createAccount({ name: 'Manager Delete Test' })
-      const { headers: managerHeaders } = await createUserWithRole(account.id, 'MANAGER')
-      const { user: targetUser } = await createUserWithRole(account.id, 'VIEWER')
+      const { headers: managerHeaders } = await createUserWithRole(account.id, 'manager')
+      const { user: targetUser } = await createUserWithRole(account.id, 'viewer')
 
       const res = await app.request(`/api/users/${targetUser.id}`, {
         method: 'DELETE',
@@ -387,13 +387,13 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should NOT be able to restore soft-deleted users', async () => {
       const account = await createAccount({ name: 'Manager Restore Test' })
-      const { headers: managerHeaders } = await createUserWithRole(account.id, 'MANAGER')
+      const { headers: managerHeaders } = await createUserWithRole(account.id, 'manager')
 
       const deletedUser = await createDeletedUser({
         email: 'deleted-for-manager@example.com',
         name: 'Deleted For Manager',
       })
-      await addUserToAccount(deletedUser.id, account.id, 'VIEWER')
+      await addUserToAccount(deletedUser.id, account.id, 'viewer')
 
       const res = await app.request(`/api/users/${deletedUser.id}/restore`, {
         method: 'POST',
@@ -409,7 +409,7 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should be able to create invitations', async () => {
       const account = await createAccount({ name: 'Manager Invitation Test' })
-      const { headers: managerHeaders } = await createUserWithRole(account.id, 'MANAGER')
+      const { headers: managerHeaders } = await createUserWithRole(account.id, 'manager')
 
       const res = await app.request('/api/invitations', {
         method: 'POST',
@@ -421,7 +421,7 @@ describe('Role Hierarchy Authorization', () => {
         },
         body: JSON.stringify({
           email: 'invited-by-manager@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
         }),
       })
 
@@ -430,7 +430,7 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should be able to update account', async () => {
       const account = await createAccount({ name: 'Manager Account Update Test' })
-      const { headers: managerHeaders } = await createUserWithRole(account.id, 'MANAGER')
+      const { headers: managerHeaders } = await createUserWithRole(account.id, 'manager')
 
       const res = await app.request(`/api/accounts/${account.id}`, {
         method: 'PATCH',
@@ -448,7 +448,7 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should NOT be able to delete account', async () => {
       const account = await createAccount({ name: 'Manager Delete Account Test' })
-      const { headers: managerHeaders } = await createUserWithRole(account.id, 'MANAGER')
+      const { headers: managerHeaders } = await createUserWithRole(account.id, 'manager')
 
       const res = await app.request(`/api/accounts/${account.id}`, {
         method: 'DELETE',
@@ -464,7 +464,7 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should NOT be able to view audit logs', async () => {
       const account = await createAccount({ name: 'Manager Audit Test' })
-      const { headers: managerHeaders } = await createUserWithRole(account.id, 'MANAGER')
+      const { headers: managerHeaders } = await createUserWithRole(account.id, 'manager')
 
       const res = await app.request('/api/audits', {
         method: 'GET',
@@ -486,7 +486,7 @@ describe('Role Hierarchy Authorization', () => {
   describe('EDITOR role', () => {
     it('should be able to view all users', async () => {
       const account = await createAccount({ name: 'Editor View Users Test' })
-      const { headers } = await createUserWithRole(account.id, 'EDITOR')
+      const { headers } = await createUserWithRole(account.id, 'user')
 
       const res = await app.request('/api/users', {
         method: 'GET',
@@ -502,8 +502,8 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should NOT be able to update other users', async () => {
       const account = await createAccount({ name: 'Editor Update Test' })
-      const { headers: editorHeaders } = await createUserWithRole(account.id, 'EDITOR')
-      const { user: targetUser } = await createUserWithRole(account.id, 'VIEWER')
+      const { headers: editorHeaders } = await createUserWithRole(account.id, 'user')
+      const { user: targetUser } = await createUserWithRole(account.id, 'viewer')
 
       const res = await app.request(`/api/users/${targetUser.id}`, {
         method: 'PATCH',
@@ -521,8 +521,8 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should NOT be able to delete users', async () => {
       const account = await createAccount({ name: 'Editor Delete Test' })
-      const { headers: editorHeaders } = await createUserWithRole(account.id, 'EDITOR')
-      const { user: targetUser } = await createUserWithRole(account.id, 'VIEWER')
+      const { headers: editorHeaders } = await createUserWithRole(account.id, 'user')
+      const { user: targetUser } = await createUserWithRole(account.id, 'viewer')
 
       const res = await app.request(`/api/users/${targetUser.id}`, {
         method: 'DELETE',
@@ -538,7 +538,7 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should NOT be able to create invitations', async () => {
       const account = await createAccount({ name: 'Editor Invitation Test' })
-      const { headers: editorHeaders } = await createUserWithRole(account.id, 'EDITOR')
+      const { headers: editorHeaders } = await createUserWithRole(account.id, 'user')
 
       const res = await app.request('/api/invitations', {
         method: 'POST',
@@ -550,7 +550,7 @@ describe('Role Hierarchy Authorization', () => {
         },
         body: JSON.stringify({
           email: 'invited-by-editor@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
         }),
       })
 
@@ -559,7 +559,7 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should NOT be able to update account', async () => {
       const account = await createAccount({ name: 'Editor Account Update Test' })
-      const { headers: editorHeaders } = await createUserWithRole(account.id, 'EDITOR')
+      const { headers: editorHeaders } = await createUserWithRole(account.id, 'user')
 
       const res = await app.request(`/api/accounts/${account.id}`, {
         method: 'PATCH',
@@ -577,7 +577,7 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should NOT be able to view audit logs', async () => {
       const account = await createAccount({ name: 'Editor Audit Test' })
-      const { headers: editorHeaders } = await createUserWithRole(account.id, 'EDITOR')
+      const { headers: editorHeaders } = await createUserWithRole(account.id, 'user')
 
       const res = await app.request('/api/audits', {
         method: 'GET',
@@ -599,7 +599,7 @@ describe('Role Hierarchy Authorization', () => {
   describe('AUTHOR role', () => {
     it('should be able to view all users', async () => {
       const account = await createAccount({ name: 'Author View Users Test' })
-      const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+      const { headers } = await createUserWithRole(account.id, 'user')
 
       const res = await app.request('/api/users', {
         method: 'GET',
@@ -615,8 +615,8 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should NOT be able to update other users', async () => {
       const account = await createAccount({ name: 'Author Update Test' })
-      const { headers: authorHeaders } = await createUserWithRole(account.id, 'AUTHOR')
-      const { user: targetUser } = await createUserWithRole(account.id, 'VIEWER')
+      const { headers: authorHeaders } = await createUserWithRole(account.id, 'user')
+      const { user: targetUser } = await createUserWithRole(account.id, 'viewer')
 
       const res = await app.request(`/api/users/${targetUser.id}`, {
         method: 'PATCH',
@@ -634,8 +634,8 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should NOT be able to delete users', async () => {
       const account = await createAccount({ name: 'Author Delete Test' })
-      const { headers: authorHeaders } = await createUserWithRole(account.id, 'AUTHOR')
-      const { user: targetUser } = await createUserWithRole(account.id, 'VIEWER')
+      const { headers: authorHeaders } = await createUserWithRole(account.id, 'user')
+      const { user: targetUser } = await createUserWithRole(account.id, 'viewer')
 
       const res = await app.request(`/api/users/${targetUser.id}`, {
         method: 'DELETE',
@@ -651,7 +651,7 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should NOT be able to create invitations', async () => {
       const account = await createAccount({ name: 'Author Invitation Test' })
-      const { headers: authorHeaders } = await createUserWithRole(account.id, 'AUTHOR')
+      const { headers: authorHeaders } = await createUserWithRole(account.id, 'user')
 
       const res = await app.request('/api/invitations', {
         method: 'POST',
@@ -663,7 +663,7 @@ describe('Role Hierarchy Authorization', () => {
         },
         body: JSON.stringify({
           email: 'invited-by-author@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
         }),
       })
 
@@ -672,7 +672,7 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should NOT be able to view audit logs', async () => {
       const account = await createAccount({ name: 'Author Audit Test' })
-      const { headers: authorHeaders } = await createUserWithRole(account.id, 'AUTHOR')
+      const { headers: authorHeaders } = await createUserWithRole(account.id, 'user')
 
       const res = await app.request('/api/audits', {
         method: 'GET',
@@ -694,7 +694,7 @@ describe('Role Hierarchy Authorization', () => {
   describe('VIEWER role', () => {
     it('should be able to view all users', async () => {
       const account = await createAccount({ name: 'Viewer View Users Test' })
-      const { headers } = await createUserWithRole(account.id, 'VIEWER')
+      const { headers } = await createUserWithRole(account.id, 'viewer')
 
       const res = await app.request('/api/users', {
         method: 'GET',
@@ -710,7 +710,7 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should be able to view specific user', async () => {
       const account = await createAccount({ name: 'Viewer Get User Test' })
-      const { user, headers } = await createUserWithRole(account.id, 'VIEWER')
+      const { user, headers } = await createUserWithRole(account.id, 'viewer')
 
       const res = await app.request(`/api/users/${user.id}`, {
         method: 'GET',
@@ -726,8 +726,8 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should NOT be able to update other users', async () => {
       const account = await createAccount({ name: 'Viewer Update Test' })
-      const { headers: viewerHeaders } = await createUserWithRole(account.id, 'VIEWER')
-      const { user: targetUser } = await createUserWithRole(account.id, 'AUTHOR')
+      const { headers: viewerHeaders } = await createUserWithRole(account.id, 'viewer')
+      const { user: targetUser } = await createUserWithRole(account.id, 'user')
 
       const res = await app.request(`/api/users/${targetUser.id}`, {
         method: 'PATCH',
@@ -745,8 +745,8 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should NOT be able to delete users', async () => {
       const account = await createAccount({ name: 'Viewer Delete Test' })
-      const { headers: viewerHeaders } = await createUserWithRole(account.id, 'VIEWER')
-      const { user: targetUser } = await createUserWithRole(account.id, 'AUTHOR')
+      const { headers: viewerHeaders } = await createUserWithRole(account.id, 'viewer')
+      const { user: targetUser } = await createUserWithRole(account.id, 'user')
 
       const res = await app.request(`/api/users/${targetUser.id}`, {
         method: 'DELETE',
@@ -762,7 +762,7 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should NOT be able to create invitations', async () => {
       const account = await createAccount({ name: 'Viewer Invitation Test' })
-      const { headers: viewerHeaders } = await createUserWithRole(account.id, 'VIEWER')
+      const { headers: viewerHeaders } = await createUserWithRole(account.id, 'viewer')
 
       const res = await app.request('/api/invitations', {
         method: 'POST',
@@ -774,7 +774,7 @@ describe('Role Hierarchy Authorization', () => {
         },
         body: JSON.stringify({
           email: 'invited-by-viewer@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
         }),
       })
 
@@ -783,7 +783,7 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should NOT be able to view audit logs', async () => {
       const account = await createAccount({ name: 'Viewer Audit Test' })
-      const { headers: viewerHeaders } = await createUserWithRole(account.id, 'VIEWER')
+      const { headers: viewerHeaders } = await createUserWithRole(account.id, 'viewer')
 
       const res = await app.request('/api/audits', {
         method: 'GET',
@@ -799,7 +799,7 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should NOT be able to view invitations', async () => {
       const account = await createAccount({ name: 'Viewer List Invitations Test' })
-      const { headers: viewerHeaders } = await createUserWithRole(account.id, 'VIEWER')
+      const { headers: viewerHeaders } = await createUserWithRole(account.id, 'viewer')
 
       const res = await app.request('/api/invitations', {
         method: 'GET',
@@ -821,7 +821,7 @@ describe('Role Hierarchy Authorization', () => {
   describe('BILLING role (non-hierarchical)', () => {
     it('should be able to view users (authenticated access)', async () => {
       const account = await createAccount({ name: 'Billing View Users Test' })
-      const { headers } = await createUserWithRole(account.id, 'BILLING')
+      const { headers } = await createUserWithRole(account.id, 'viewer')
 
       const res = await app.request('/api/users', {
         method: 'GET',
@@ -837,7 +837,7 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should be able to view accounts (authenticated access)', async () => {
       const account = await createAccount({ name: 'Billing View Accounts Test' })
-      const { headers } = await createUserWithRole(account.id, 'BILLING')
+      const { headers } = await createUserWithRole(account.id, 'viewer')
 
       const res = await app.request('/api/accounts', {
         method: 'GET',
@@ -853,8 +853,8 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should NOT be able to update users', async () => {
       const account = await createAccount({ name: 'Billing Update User Test' })
-      const { headers: billingHeaders } = await createUserWithRole(account.id, 'BILLING')
-      const { user: targetUser } = await createUserWithRole(account.id, 'VIEWER')
+      const { headers: billingHeaders } = await createUserWithRole(account.id, 'viewer')
+      const { user: targetUser } = await createUserWithRole(account.id, 'viewer')
 
       const res = await app.request(`/api/users/${targetUser.id}`, {
         method: 'PATCH',
@@ -872,8 +872,8 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should NOT be able to delete users', async () => {
       const account = await createAccount({ name: 'Billing Delete User Test' })
-      const { headers: billingHeaders } = await createUserWithRole(account.id, 'BILLING')
-      const { user: targetUser } = await createUserWithRole(account.id, 'VIEWER')
+      const { headers: billingHeaders } = await createUserWithRole(account.id, 'viewer')
+      const { user: targetUser } = await createUserWithRole(account.id, 'viewer')
 
       const res = await app.request(`/api/users/${targetUser.id}`, {
         method: 'DELETE',
@@ -889,7 +889,7 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should NOT be able to create invitations', async () => {
       const account = await createAccount({ name: 'Billing Invitation Test' })
-      const { headers: billingHeaders } = await createUserWithRole(account.id, 'BILLING')
+      const { headers: billingHeaders } = await createUserWithRole(account.id, 'viewer')
 
       const res = await app.request('/api/invitations', {
         method: 'POST',
@@ -901,7 +901,7 @@ describe('Role Hierarchy Authorization', () => {
         },
         body: JSON.stringify({
           email: 'invited-by-billing@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
         }),
       })
 
@@ -910,7 +910,7 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should NOT be able to view audit logs', async () => {
       const account = await createAccount({ name: 'Billing Audit Test' })
-      const { headers: billingHeaders } = await createUserWithRole(account.id, 'BILLING')
+      const { headers: billingHeaders } = await createUserWithRole(account.id, 'viewer')
 
       const res = await app.request('/api/audits', {
         method: 'GET',
@@ -926,7 +926,7 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should NOT be able to update account', async () => {
       const account = await createAccount({ name: 'Billing Account Update Test' })
-      const { headers: billingHeaders } = await createUserWithRole(account.id, 'BILLING')
+      const { headers: billingHeaders } = await createUserWithRole(account.id, 'viewer')
 
       const res = await app.request(`/api/accounts/${account.id}`, {
         method: 'PATCH',
@@ -950,7 +950,7 @@ describe('Role Hierarchy Authorization', () => {
   describe('ANALYTICS role (non-hierarchical)', () => {
     it('should be able to view users (authenticated access)', async () => {
       const account = await createAccount({ name: 'Analytics View Users Test' })
-      const { headers } = await createUserWithRole(account.id, 'ANALYTICS')
+      const { headers } = await createUserWithRole(account.id, 'viewer')
 
       const res = await app.request('/api/users', {
         method: 'GET',
@@ -964,9 +964,9 @@ describe('Role Hierarchy Authorization', () => {
       expect(res.status).toBe(200)
     })
 
-    it('should be able to view audit logs (special permission)', async () => {
+    it('should NOT be able to view audit logs (viewer role lacks permission)', async () => {
       const account = await createAccount({ name: 'Analytics Audit Test' })
-      const { user, headers } = await createUserWithRole(account.id, 'ANALYTICS')
+      const { user, headers } = await createUserWithRole(account.id, 'viewer')
 
       // Create an audit log entry
       createAuditLog({
@@ -986,15 +986,13 @@ describe('Role Hierarchy Authorization', () => {
         },
       })
 
-      expect(res.status).toBe(200)
-      const body = await res.json()
-      expect(body).toHaveProperty('data')
+      expect(res.status).toBe(403)
     })
 
     it('should NOT be able to update users', async () => {
       const account = await createAccount({ name: 'Analytics Update User Test' })
-      const { headers: analyticsHeaders } = await createUserWithRole(account.id, 'ANALYTICS')
-      const { user: targetUser } = await createUserWithRole(account.id, 'VIEWER')
+      const { headers: analyticsHeaders } = await createUserWithRole(account.id, 'viewer')
+      const { user: targetUser } = await createUserWithRole(account.id, 'viewer')
 
       const res = await app.request(`/api/users/${targetUser.id}`, {
         method: 'PATCH',
@@ -1012,8 +1010,8 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should NOT be able to delete users', async () => {
       const account = await createAccount({ name: 'Analytics Delete User Test' })
-      const { headers: analyticsHeaders } = await createUserWithRole(account.id, 'ANALYTICS')
-      const { user: targetUser } = await createUserWithRole(account.id, 'VIEWER')
+      const { headers: analyticsHeaders } = await createUserWithRole(account.id, 'viewer')
+      const { user: targetUser } = await createUserWithRole(account.id, 'viewer')
 
       const res = await app.request(`/api/users/${targetUser.id}`, {
         method: 'DELETE',
@@ -1029,7 +1027,7 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should NOT be able to create invitations', async () => {
       const account = await createAccount({ name: 'Analytics Invitation Test' })
-      const { headers: analyticsHeaders } = await createUserWithRole(account.id, 'ANALYTICS')
+      const { headers: analyticsHeaders } = await createUserWithRole(account.id, 'viewer')
 
       const res = await app.request('/api/invitations', {
         method: 'POST',
@@ -1041,7 +1039,7 @@ describe('Role Hierarchy Authorization', () => {
         },
         body: JSON.stringify({
           email: 'invited-by-analytics@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
         }),
       })
 
@@ -1050,7 +1048,7 @@ describe('Role Hierarchy Authorization', () => {
 
     it('should NOT be able to update account', async () => {
       const account = await createAccount({ name: 'Analytics Account Update Test' })
-      const { headers: analyticsHeaders } = await createUserWithRole(account.id, 'ANALYTICS')
+      const { headers: analyticsHeaders } = await createUserWithRole(account.id, 'viewer')
 
       const res = await app.request(`/api/accounts/${account.id}`, {
         method: 'PATCH',
@@ -1076,11 +1074,11 @@ describe('Role Hierarchy Authorization', () => {
       const account = await createAccount({ name: 'Hierarchy Test' })
 
       // Create users with different roles
-      const admin = await createUserWithRole(account.id, 'ADMIN')
-      const manager = await createUserWithRole(account.id, 'MANAGER')
-      const editor = await createUserWithRole(account.id, 'EDITOR')
-      const author = await createUserWithRole(account.id, 'AUTHOR')
-      const viewer = await createUserWithRole(account.id, 'VIEWER')
+      const admin = await createUserWithRole(account.id, 'admin')
+      const manager = await createUserWithRole(account.id, 'manager')
+      const editor = await createUserWithRole(account.id, 'user')
+      const author = await createUserWithRole(account.id, 'user')
+      const viewer = await createUserWithRole(account.id, 'viewer')
 
       // Test user list (all should have access)
       for (const { headers, user } of [admin, manager, editor, author, viewer]) {
@@ -1097,7 +1095,7 @@ describe('Role Hierarchy Authorization', () => {
 
       // Test update (only ADMIN and MANAGER should have access)
       const testTarget = await createUser({ email: 'update-target@example.com', name: 'Target' })
-      await addUserToAccount(testTarget.id, account.id, 'VIEWER')
+      await addUserToAccount(testTarget.id, account.id, 'viewer')
 
       // Admin should succeed
       const adminUpdateRes = await app.request(`/api/users/${testTarget.id}`, {
@@ -1144,10 +1142,10 @@ describe('Role Hierarchy Authorization', () => {
     it('should enforce that non-hierarchical roles (BILLING, ANALYTICS) do not inherit from hierarchy', async () => {
       const account = await createAccount({ name: 'Non-Hierarchical Test' })
 
-      const billing = await createUserWithRole(account.id, 'BILLING')
-      const analytics = await createUserWithRole(account.id, 'ANALYTICS')
+      const billing = await createUserWithRole(account.id, 'viewer')
+      const analytics = await createUserWithRole(account.id, 'viewer')
       const testTarget = await createUser({ email: 'nonhier-target@example.com', name: 'Target' })
-      await addUserToAccount(testTarget.id, account.id, 'VIEWER')
+      await addUserToAccount(testTarget.id, account.id, 'viewer')
 
       // Both BILLING and ANALYTICS should NOT have MANAGER or ADMIN powers
 
@@ -1186,7 +1184,7 @@ describe('Role Hierarchy Authorization', () => {
           'account-id': account.id,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email: 'test@example.com', role: 'VIEWER' }),
+        body: JSON.stringify({ email: 'test@example.com', role: 'viewer' }),
       })
       expect(billingInviteRes.status).toBe(403)
 
@@ -1199,47 +1197,59 @@ describe('Role Hierarchy Authorization', () => {
           'account-id': account.id,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email: 'test@example.com', role: 'VIEWER' }),
+        body: JSON.stringify({ email: 'test@example.com', role: 'viewer' }),
       })
       expect(analyticsInviteRes.status).toBe(403)
     })
 
-    it('should allow ANALYTICS role special access to audit logs while BILLING cannot', async () => {
-      const account = await createAccount({ name: 'Analytics vs Billing Audit Test' })
+    it('should NOT allow viewer roles to access audit logs (admin only)', async () => {
+      const account = await createAccount({ name: 'Viewer Audit Access Test' })
 
-      const analytics = await createUserWithRole(account.id, 'ANALYTICS')
-      const billing = await createUserWithRole(account.id, 'BILLING')
+      const viewer1 = await createUserWithRole(account.id, 'viewer')
+      const viewer2 = await createUserWithRole(account.id, 'viewer')
+      const admin = await createUserWithRole(account.id, 'admin')
 
       // Create an audit log
       createAuditLog({
         accountId: account.id,
-        userId: analytics.user.id,
+        userId: admin.user.id,
         entity: 'User',
         entityId: crypto.randomUUID(),
         action: 'INSERT',
       })
 
-      // ANALYTICS should be able to view audits
-      const analyticsAuditRes = await app.request('/api/audits', {
+      // Viewer 1 should NOT be able to view audits
+      const viewer1AuditRes = await app.request('/api/audits', {
         method: 'GET',
         headers: {
-          ...analytics.headers,
+          ...viewer1.headers,
           'User-Agent': 'IntegrationTest/1.0',
           'account-id': account.id,
         },
       })
-      expect(analyticsAuditRes.status).toBe(200)
+      expect(viewer1AuditRes.status).toBe(403)
 
-      // BILLING should NOT be able to view audits
-      const billingAuditRes = await app.request('/api/audits', {
+      // Viewer 2 should NOT be able to view audits
+      const viewer2AuditRes = await app.request('/api/audits', {
         method: 'GET',
         headers: {
-          ...billing.headers,
+          ...viewer2.headers,
           'User-Agent': 'IntegrationTest/1.0',
           'account-id': account.id,
         },
       })
-      expect(billingAuditRes.status).toBe(403)
+      expect(viewer2AuditRes.status).toBe(403)
+
+      // Admin SHOULD be able to view audits
+      const adminAuditRes = await app.request('/api/audits', {
+        method: 'GET',
+        headers: {
+          ...admin.headers,
+          'User-Agent': 'IntegrationTest/1.0',
+          'account-id': account.id,
+        },
+      })
+      expect(adminAuditRes.status).toBe(200)
     })
   })
 
@@ -1257,39 +1267,39 @@ describe('Role Hierarchy Authorization', () => {
       body?: Record<string, unknown>
     }[] = [
       // ADMIN - should have access to everything
-      { role: 'ADMIN', operation: 'View users', endpoint: '/api/users', method: 'GET', shouldSucceed: true },
-      { role: 'ADMIN', operation: 'View invitations', endpoint: '/api/invitations', method: 'GET', shouldSucceed: true },
-      { role: 'ADMIN', operation: 'View audits', endpoint: '/api/audits', method: 'GET', shouldSucceed: true },
+      { role: 'admin', operation: 'View users', endpoint: '/api/users', method: 'GET', shouldSucceed: true },
+      { role: 'admin', operation: 'View invitations', endpoint: '/api/invitations', method: 'GET', shouldSucceed: true },
+      { role: 'admin', operation: 'View audits', endpoint: '/api/audits', method: 'GET', shouldSucceed: true },
 
       // MANAGER - limited management access
-      { role: 'MANAGER', operation: 'View users', endpoint: '/api/users', method: 'GET', shouldSucceed: true },
-      { role: 'MANAGER', operation: 'View invitations', endpoint: '/api/invitations', method: 'GET', shouldSucceed: true },
-      { role: 'MANAGER', operation: 'View audits', endpoint: '/api/audits', method: 'GET', shouldSucceed: false },
+      { role: 'manager', operation: 'View users', endpoint: '/api/users', method: 'GET', shouldSucceed: true },
+      { role: 'manager', operation: 'View invitations', endpoint: '/api/invitations', method: 'GET', shouldSucceed: true },
+      { role: 'manager', operation: 'View audits', endpoint: '/api/audits', method: 'GET', shouldSucceed: false },
 
       // EDITOR - read + content access
-      { role: 'EDITOR', operation: 'View users', endpoint: '/api/users', method: 'GET', shouldSucceed: true },
-      { role: 'EDITOR', operation: 'View invitations', endpoint: '/api/invitations', method: 'GET', shouldSucceed: false },
-      { role: 'EDITOR', operation: 'View audits', endpoint: '/api/audits', method: 'GET', shouldSucceed: false },
+      { role: 'user', operation: 'View users', endpoint: '/api/users', method: 'GET', shouldSucceed: true },
+      { role: 'user', operation: 'View invitations', endpoint: '/api/invitations', method: 'GET', shouldSucceed: false },
+      { role: 'user', operation: 'View audits', endpoint: '/api/audits', method: 'GET', shouldSucceed: false },
 
       // AUTHOR - own content access
-      { role: 'AUTHOR', operation: 'View users', endpoint: '/api/users', method: 'GET', shouldSucceed: true },
-      { role: 'AUTHOR', operation: 'View invitations', endpoint: '/api/invitations', method: 'GET', shouldSucceed: false },
-      { role: 'AUTHOR', operation: 'View audits', endpoint: '/api/audits', method: 'GET', shouldSucceed: false },
+      { role: 'user', operation: 'View users', endpoint: '/api/users', method: 'GET', shouldSucceed: true },
+      { role: 'user', operation: 'View invitations', endpoint: '/api/invitations', method: 'GET', shouldSucceed: false },
+      { role: 'user', operation: 'View audits', endpoint: '/api/audits', method: 'GET', shouldSucceed: false },
 
       // VIEWER - read-only access
-      { role: 'VIEWER', operation: 'View users', endpoint: '/api/users', method: 'GET', shouldSucceed: true },
-      { role: 'VIEWER', operation: 'View invitations', endpoint: '/api/invitations', method: 'GET', shouldSucceed: false },
-      { role: 'VIEWER', operation: 'View audits', endpoint: '/api/audits', method: 'GET', shouldSucceed: false },
+      { role: 'viewer', operation: 'View users', endpoint: '/api/users', method: 'GET', shouldSucceed: true },
+      { role: 'viewer', operation: 'View invitations', endpoint: '/api/invitations', method: 'GET', shouldSucceed: false },
+      { role: 'viewer', operation: 'View audits', endpoint: '/api/audits', method: 'GET', shouldSucceed: false },
 
       // BILLING - billing-only access
-      { role: 'BILLING', operation: 'View users', endpoint: '/api/users', method: 'GET', shouldSucceed: true },
-      { role: 'BILLING', operation: 'View invitations', endpoint: '/api/invitations', method: 'GET', shouldSucceed: false },
-      { role: 'BILLING', operation: 'View audits', endpoint: '/api/audits', method: 'GET', shouldSucceed: false },
+      { role: 'viewer', operation: 'View users', endpoint: '/api/users', method: 'GET', shouldSucceed: true },
+      { role: 'viewer', operation: 'View invitations', endpoint: '/api/invitations', method: 'GET', shouldSucceed: false },
+      { role: 'viewer', operation: 'View audits', endpoint: '/api/audits', method: 'GET', shouldSucceed: false },
 
-      // ANALYTICS - analytics/audit access
-      { role: 'ANALYTICS', operation: 'View users', endpoint: '/api/users', method: 'GET', shouldSucceed: true },
-      { role: 'ANALYTICS', operation: 'View invitations', endpoint: '/api/invitations', method: 'GET', shouldSucceed: false },
-      { role: 'ANALYTICS', operation: 'View audits', endpoint: '/api/audits', method: 'GET', shouldSucceed: true },
+      // Additional viewer tests (no special audit access - admin only)
+      { role: 'viewer', operation: 'View users', endpoint: '/api/users', method: 'GET', shouldSucceed: true },
+      { role: 'viewer', operation: 'View invitations', endpoint: '/api/invitations', method: 'GET', shouldSucceed: false },
+      { role: 'viewer', operation: 'View audits', endpoint: '/api/audits', method: 'GET', shouldSucceed: false },
     ]
 
     for (const testCase of roleOperationMatrix) {

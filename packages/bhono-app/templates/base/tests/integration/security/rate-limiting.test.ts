@@ -414,7 +414,7 @@ describe('Rate Limiting', () => {
       const scenario = await createTestScenario({
         userName: 'Rate Limit Test User',
         userEmail: 'ratelimit@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
       })
 
       const ip = '192.168.1.180'
@@ -451,7 +451,7 @@ describe('Rate Limiting', () => {
       const scenario = await createTestScenario({
         userName: 'Multi Route Test User',
         userEmail: 'multiroute@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
       })
 
       const ip = '192.168.1.181'

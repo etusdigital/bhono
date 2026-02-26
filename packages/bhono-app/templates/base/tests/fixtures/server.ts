@@ -1,6 +1,6 @@
 // tests/fixtures/server.ts
 import type { User, Account, SessionData } from '@server/types'
-import type { Role } from '@server/auth/roles'
+import type { RoleName as Role } from '@server/auth/roles'
 
 /**
  * Counter for generating unique IDs
@@ -183,7 +183,7 @@ export function createUserAccountFixture(options: UserAccountFixtureOptions): {
   return {
     userId: options.userId,
     accountId: options.accountId,
-    role: options.role ?? 'VIEWER',
+    role: options.role ?? 'viewer',
   }
 }
 
@@ -325,7 +325,7 @@ export const validUpdateUserBody = {
  */
 export const validInvitationBody = {
   email: 'invited@example.com',
-  role: 'VIEWER' as Role,
+  role: 'viewer' as Role,
 }
 
 // ============================================================================

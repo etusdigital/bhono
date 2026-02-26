@@ -155,7 +155,7 @@ describe('Storage Integration', () => {
     describe('Authorization (403)', () => {
       it('should return 403 if user lacks upload permission (VIEWER role)', async () => {
         const account = await createAccount({ name: 'Storage Viewer Test' })
-        const { headers } = await createUserWithRole(account.id, 'VIEWER')
+        const { headers } = await createUserWithRole(account.id, 'viewer')
 
         const res = await app.request('/api/storage/upload-url', {
           method: 'POST',
@@ -176,7 +176,7 @@ describe('Storage Integration', () => {
 
       it('should return 403 if BILLING role tries to upload', async () => {
         const account = await createAccount({ name: 'Storage Billing Test' })
-        const { headers } = await createUserWithRole(account.id, 'BILLING')
+        const { headers } = await createUserWithRole(account.id, 'viewer')
 
         const res = await app.request('/api/storage/upload-url', {
           method: 'POST',
@@ -197,7 +197,7 @@ describe('Storage Integration', () => {
 
       it('should return 403 if ANALYTICS role tries to upload', async () => {
         const account = await createAccount({ name: 'Storage Analytics Test' })
-        const { headers } = await createUserWithRole(account.id, 'ANALYTICS')
+        const { headers } = await createUserWithRole(account.id, 'viewer')
 
         const res = await app.request('/api/storage/upload-url', {
           method: 'POST',
@@ -220,7 +220,7 @@ describe('Storage Integration', () => {
     describe('Validation (400)', () => {
       it('should return 400 for missing filename', async () => {
         const account = await createAccount({ name: 'Storage Validation Test' })
-        const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+        const { headers } = await createUserWithRole(account.id, 'user')
 
         const res = await app.request('/api/storage/upload-url', {
           method: 'POST',
@@ -240,7 +240,7 @@ describe('Storage Integration', () => {
 
       it('should return 400 for missing contentType', async () => {
         const account = await createAccount({ name: 'Storage ContentType Test' })
-        const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+        const { headers } = await createUserWithRole(account.id, 'user')
 
         const res = await app.request('/api/storage/upload-url', {
           method: 'POST',
@@ -260,7 +260,7 @@ describe('Storage Integration', () => {
 
       it('should return 400 for empty filename', async () => {
         const account = await createAccount({ name: 'Storage Empty Filename Test' })
-        const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+        const { headers } = await createUserWithRole(account.id, 'user')
 
         const res = await app.request('/api/storage/upload-url', {
           method: 'POST',
@@ -281,7 +281,7 @@ describe('Storage Integration', () => {
 
       it('should return 400 for empty contentType', async () => {
         const account = await createAccount({ name: 'Storage Empty ContentType Test' })
-        const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+        const { headers } = await createUserWithRole(account.id, 'user')
 
         const res = await app.request('/api/storage/upload-url', {
           method: 'POST',
@@ -304,7 +304,7 @@ describe('Storage Integration', () => {
     describe('Successful Upload URL Generation (200)', () => {
       it('should return 200 with upload URL for AUTHOR role', async () => {
         const account = await createAccount({ name: 'Storage Author Upload URL Test' })
-        const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+        const { headers } = await createUserWithRole(account.id, 'user')
 
         const res = await app.request('/api/storage/upload-url', {
           method: 'POST',
@@ -333,7 +333,7 @@ describe('Storage Integration', () => {
 
       it('should return 200 with upload URL for EDITOR role', async () => {
         const account = await createAccount({ name: 'Storage Editor Upload URL Test' })
-        const { headers } = await createUserWithRole(account.id, 'EDITOR')
+        const { headers } = await createUserWithRole(account.id, 'user')
 
         const res = await app.request('/api/storage/upload-url', {
           method: 'POST',
@@ -354,7 +354,7 @@ describe('Storage Integration', () => {
 
       it('should return 200 with upload URL for MANAGER role', async () => {
         const account = await createAccount({ name: 'Storage Manager Upload URL Test' })
-        const { headers } = await createUserWithRole(account.id, 'MANAGER')
+        const { headers } = await createUserWithRole(account.id, 'manager')
 
         const res = await app.request('/api/storage/upload-url', {
           method: 'POST',
@@ -375,7 +375,7 @@ describe('Storage Integration', () => {
 
       it('should return 200 with upload URL for ADMIN role', async () => {
         const account = await createAccount({ name: 'Storage Admin Upload URL Test' })
-        const { headers } = await createUserWithRole(account.id, 'ADMIN')
+        const { headers } = await createUserWithRole(account.id, 'admin')
 
         const res = await app.request('/api/storage/upload-url', {
           method: 'POST',
@@ -396,7 +396,7 @@ describe('Storage Integration', () => {
 
       it('should preserve folder structure in filename', async () => {
         const account = await createAccount({ name: 'Storage Folder Structure Test' })
-        const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+        const { headers } = await createUserWithRole(account.id, 'user')
 
         const res = await app.request('/api/storage/upload-url', {
           method: 'POST',
@@ -422,7 +422,7 @@ describe('Storage Integration', () => {
 
       it('should generate unique filename with timestamp', async () => {
         const account = await createAccount({ name: 'Storage Unique Filename Test' })
-        const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+        const { headers } = await createUserWithRole(account.id, 'user')
 
         // Make two requests with the same filename
         const res1 = await app.request('/api/storage/upload-url', {
@@ -493,7 +493,7 @@ describe('Storage Integration', () => {
     describe('Authorization (403)', () => {
       it('should return 403 if user lacks upload permission (VIEWER role)', async () => {
         const account = await createAccount({ name: 'Storage Viewer Upload Test' })
-        const { headers } = await createUserWithRole(account.id, 'VIEWER')
+        const { headers } = await createUserWithRole(account.id, 'viewer')
 
         const res = await app.request('/api/storage/upload/test-key.txt', {
           method: 'PUT',
@@ -513,9 +513,10 @@ describe('Storage Integration', () => {
     describe('Validation (400)', () => {
       it('should return 400 for empty request body', async () => {
         const account = await createAccount({ name: 'Storage Empty Body Test' })
-        const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+        const { headers } = await createUserWithRole(account.id, 'user')
+        const fileKey = `${account.id}/test-key.txt`
 
-        const res = await app.request('/api/storage/upload/test-key.txt', {
+        const res = await app.request(`/api/storage/upload/${encodeURIComponent(fileKey)}`, {
           method: 'PUT',
           headers: {
             ...headers,
@@ -536,10 +537,10 @@ describe('Storage Integration', () => {
     describe('Successful Upload (200)', () => {
       it('should return 200 on successful text file upload', async () => {
         const account = await createAccount({ name: 'Storage Text Upload Test' })
-        const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+        const { headers } = await createUserWithRole(account.id, 'user')
         const r2 = getR2()
 
-        const fileKey = `test-${Date.now()}.txt`
+        const fileKey = `${account.id}/test-${Date.now()}.txt`
         const fileContent = 'Hello, World!'
 
         const res = await app.request(`/api/storage/upload/${encodeURIComponent(fileKey)}`, {
@@ -571,10 +572,10 @@ describe('Storage Integration', () => {
 
       it('should return 200 on successful binary file upload', async () => {
         const account = await createAccount({ name: 'Storage Binary Upload Test' })
-        const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+        const { headers } = await createUserWithRole(account.id, 'user')
         const r2 = getR2()
 
-        const fileKey = `test-${Date.now()}.bin`
+        const fileKey = `${account.id}/test-${Date.now()}.bin`
         const binaryContent = new Uint8Array([0x00, 0x01, 0x02, 0x03, 0xff])
 
         const res = await app.request(`/api/storage/upload/${encodeURIComponent(fileKey)}`, {
@@ -602,10 +603,10 @@ describe('Storage Integration', () => {
 
       it('should handle URL-encoded file keys', async () => {
         const account = await createAccount({ name: 'Storage Encoded Key Test' })
-        const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+        const { headers } = await createUserWithRole(account.id, 'user')
         const r2 = getR2()
 
-        const fileKey = `folder/subfolder/test-${Date.now()}.txt`
+        const fileKey = `${account.id}/folder/subfolder/test-${Date.now()}.txt`
         const fileContent = 'Nested file content'
 
         const res = await app.request(`/api/storage/upload/${encodeURIComponent(fileKey)}`, {
@@ -631,9 +632,9 @@ describe('Storage Integration', () => {
 
       it('should return correct public URL in response', async () => {
         const account = await createAccount({ name: 'Storage Public URL Test' })
-        const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+        const { headers } = await createUserWithRole(account.id, 'user')
 
-        const fileKey = `test-${Date.now()}.txt`
+        const fileKey = `${account.id}/test-${Date.now()}.txt`
 
         const res = await app.request(`/api/storage/upload/${encodeURIComponent(fileKey)}`, {
           method: 'PUT',
@@ -676,11 +677,11 @@ describe('Storage Integration', () => {
     describe('Authorization (403)', () => {
       it('should return 403 if user lacks delete permission (VIEWER role)', async () => {
         const account = await createAccount({ name: 'Storage Viewer Delete Test' })
-        const { headers } = await createUserWithRole(account.id, 'VIEWER')
+        const { headers } = await createUserWithRole(account.id, 'viewer')
         const r2 = getR2()
 
         // First, create a file to delete
-        const fileKey = `delete-test-viewer-${Date.now()}.txt`
+        const fileKey = `${account.id}/delete-test-viewer-${Date.now()}.txt`
         await r2.put(fileKey, 'test content')
 
         const res = await app.request(`/api/storage/${encodeURIComponent(fileKey)}`, {
@@ -699,38 +700,19 @@ describe('Storage Integration', () => {
         expect(stored).not.toBeNull()
       })
 
-      it('should return 403 if user lacks delete permission (AUTHOR role)', async () => {
-        const account = await createAccount({ name: 'Storage Author Delete Test' })
-        const { headers } = await createUserWithRole(account.id, 'AUTHOR')
-        const r2 = getR2()
-
-        // First, create a file to delete
-        const fileKey = `delete-test-author-${Date.now()}.txt`
-        await r2.put(fileKey, 'test content')
-
-        const res = await app.request(`/api/storage/${encodeURIComponent(fileKey)}`, {
-          method: 'DELETE',
-          headers: {
-            ...headers,
-            'User-Agent': 'IntegrationTest/1.0',
-            'account-id': account.id,
-          },
-        })
-
-        expect(res.status).toBe(403)
-
-        // Verify file still exists
-        const stored = await r2.get(fileKey)
-        expect(stored).not.toBeNull()
-      })
+      // NOTE: In the new 4-role system (viewer, user, manager, admin),
+      // 'user' role CAN delete files. There's no intermediate role between
+      // viewer (can't delete) and user (can delete). The viewer test above
+      // already covers the 403 case.
     })
 
     describe('Not Found (404)', () => {
       it('should return 404 for non-existent file', async () => {
         const account = await createAccount({ name: 'Storage Not Found Test' })
-        const { headers } = await createUserWithRole(account.id, 'EDITOR')
+        const { headers } = await createUserWithRole(account.id, 'user')
+        const fileKey = `${account.id}/non-existent-file.txt`
 
-        const res = await app.request('/api/storage/non-existent-file.txt', {
+        const res = await app.request(`/api/storage/${encodeURIComponent(fileKey)}`, {
           method: 'DELETE',
           headers: {
             ...headers,
@@ -749,11 +731,11 @@ describe('Storage Integration', () => {
     describe('Successful Delete (204)', () => {
       it('should return 204 on successful delete for EDITOR role', async () => {
         const account = await createAccount({ name: 'Storage Editor Delete Test' })
-        const { headers } = await createUserWithRole(account.id, 'EDITOR')
+        const { headers } = await createUserWithRole(account.id, 'user')
         const r2 = getR2()
 
         // First, create a file to delete
-        const fileKey = `delete-test-editor-${Date.now()}.txt`
+        const fileKey = `${account.id}/delete-test-editor-${Date.now()}.txt`
         await r2.put(fileKey, 'test content')
 
         const res = await app.request(`/api/storage/${encodeURIComponent(fileKey)}`, {
@@ -774,11 +756,11 @@ describe('Storage Integration', () => {
 
       it('should return 204 on successful delete for MANAGER role', async () => {
         const account = await createAccount({ name: 'Storage Manager Delete Test' })
-        const { headers } = await createUserWithRole(account.id, 'MANAGER')
+        const { headers } = await createUserWithRole(account.id, 'manager')
         const r2 = getR2()
 
         // First, create a file to delete
-        const fileKey = `delete-test-manager-${Date.now()}.txt`
+        const fileKey = `${account.id}/delete-test-manager-${Date.now()}.txt`
         await r2.put(fileKey, 'test content')
 
         const res = await app.request(`/api/storage/${encodeURIComponent(fileKey)}`, {
@@ -799,11 +781,11 @@ describe('Storage Integration', () => {
 
       it('should return 204 on successful delete for ADMIN role', async () => {
         const account = await createAccount({ name: 'Storage Admin Delete Test' })
-        const { headers } = await createUserWithRole(account.id, 'ADMIN')
+        const { headers } = await createUserWithRole(account.id, 'admin')
         const r2 = getR2()
 
         // First, create a file to delete
-        const fileKey = `delete-test-admin-${Date.now()}.txt`
+        const fileKey = `${account.id}/delete-test-admin-${Date.now()}.txt`
         await r2.put(fileKey, 'test content')
 
         const res = await app.request(`/api/storage/${encodeURIComponent(fileKey)}`, {
@@ -824,11 +806,11 @@ describe('Storage Integration', () => {
 
       it('should handle URL-encoded file keys in delete', async () => {
         const account = await createAccount({ name: 'Storage Encoded Delete Test' })
-        const { headers } = await createUserWithRole(account.id, 'EDITOR')
+        const { headers } = await createUserWithRole(account.id, 'user')
         const r2 = getR2()
 
         // First, create a file with nested path
-        const fileKey = `folder/subfolder/delete-test-${Date.now()}.txt`
+        const fileKey = `${account.id}/folder/subfolder/delete-test-${Date.now()}.txt`
         await r2.put(fileKey, 'nested file content')
 
         const res = await app.request(`/api/storage/${encodeURIComponent(fileKey)}`, {
@@ -856,7 +838,7 @@ describe('Storage Integration', () => {
   describe('End-to-end workflow', () => {
     it('should complete full upload workflow: generate URL -> upload -> verify', async () => {
       const account = await createAccount({ name: 'Storage E2E Test' })
-      const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+      const { headers } = await createUserWithRole(account.id, 'user')
       const r2 = getR2()
 
       // Step 1: Generate upload URL
@@ -906,10 +888,10 @@ describe('Storage Integration', () => {
 
     it('should complete full lifecycle: upload -> verify -> delete -> verify deleted', async () => {
       const account = await createAccount({ name: 'Storage Lifecycle Test' })
-      const { headers } = await createUserWithRole(account.id, 'EDITOR') // EDITOR can both upload and delete
+      const { headers } = await createUserWithRole(account.id, 'user') // EDITOR can both upload and delete
       const r2 = getR2()
 
-      const fileKey = `lifecycle-test-${Date.now()}.txt`
+      const fileKey = `${account.id}/lifecycle-test-${Date.now()}.txt`
       const fileContent = 'Lifecycle test content'
 
       // Step 1: Upload file
@@ -963,25 +945,25 @@ describe('Storage Integration', () => {
       contentType?: string
     }[] = [
       // ADMIN - full access
-      { role: 'ADMIN', operation: 'Generate upload URL', endpoint: '/api/storage/upload-url', method: 'POST', shouldSucceed: true, body: { filename: 'test.txt', contentType: 'text/plain' }, contentType: 'application/json' },
+      { role: 'admin', operation: 'Generate upload URL', endpoint: '/api/storage/upload-url', method: 'POST', shouldSucceed: true, body: { filename: 'test.txt', contentType: 'text/plain' }, contentType: 'application/json' },
 
       // MANAGER - full access
-      { role: 'MANAGER', operation: 'Generate upload URL', endpoint: '/api/storage/upload-url', method: 'POST', shouldSucceed: true, body: { filename: 'test.txt', contentType: 'text/plain' }, contentType: 'application/json' },
+      { role: 'manager', operation: 'Generate upload URL', endpoint: '/api/storage/upload-url', method: 'POST', shouldSucceed: true, body: { filename: 'test.txt', contentType: 'text/plain' }, contentType: 'application/json' },
 
       // EDITOR - full access
-      { role: 'EDITOR', operation: 'Generate upload URL', endpoint: '/api/storage/upload-url', method: 'POST', shouldSucceed: true, body: { filename: 'test.txt', contentType: 'text/plain' }, contentType: 'application/json' },
+      { role: 'user', operation: 'Generate upload URL', endpoint: '/api/storage/upload-url', method: 'POST', shouldSucceed: true, body: { filename: 'test.txt', contentType: 'text/plain' }, contentType: 'application/json' },
 
       // AUTHOR - can upload, cannot delete
-      { role: 'AUTHOR', operation: 'Generate upload URL', endpoint: '/api/storage/upload-url', method: 'POST', shouldSucceed: true, body: { filename: 'test.txt', contentType: 'text/plain' }, contentType: 'application/json' },
+      { role: 'user', operation: 'Generate upload URL', endpoint: '/api/storage/upload-url', method: 'POST', shouldSucceed: true, body: { filename: 'test.txt', contentType: 'text/plain' }, contentType: 'application/json' },
 
       // VIEWER - no storage access
-      { role: 'VIEWER', operation: 'Generate upload URL', endpoint: '/api/storage/upload-url', method: 'POST', shouldSucceed: false, body: { filename: 'test.txt', contentType: 'text/plain' }, contentType: 'application/json' },
+      { role: 'viewer', operation: 'Generate upload URL', endpoint: '/api/storage/upload-url', method: 'POST', shouldSucceed: false, body: { filename: 'test.txt', contentType: 'text/plain' }, contentType: 'application/json' },
 
       // BILLING - no storage access
-      { role: 'BILLING', operation: 'Generate upload URL', endpoint: '/api/storage/upload-url', method: 'POST', shouldSucceed: false, body: { filename: 'test.txt', contentType: 'text/plain' }, contentType: 'application/json' },
+      { role: 'viewer', operation: 'Generate upload URL', endpoint: '/api/storage/upload-url', method: 'POST', shouldSucceed: false, body: { filename: 'test.txt', contentType: 'text/plain' }, contentType: 'application/json' },
 
       // ANALYTICS - no storage access
-      { role: 'ANALYTICS', operation: 'Generate upload URL', endpoint: '/api/storage/upload-url', method: 'POST', shouldSucceed: false, body: { filename: 'test.txt', contentType: 'text/plain' }, contentType: 'application/json' },
+      { role: 'viewer', operation: 'Generate upload URL', endpoint: '/api/storage/upload-url', method: 'POST', shouldSucceed: false, body: { filename: 'test.txt', contentType: 'text/plain' }, contentType: 'application/json' },
     ]
 
     for (const testCase of storagePermissionTests) {
@@ -1017,17 +999,15 @@ describe('Storage Integration', () => {
     }
 
     // Delete permission tests (need to create files first)
+    // In 4-role system: user and above can delete, viewer cannot
     const deletePermissionTests: {
       role: Role
       shouldSucceed: boolean
     }[] = [
-      { role: 'ADMIN', shouldSucceed: true },
-      { role: 'MANAGER', shouldSucceed: true },
-      { role: 'EDITOR', shouldSucceed: true },
-      { role: 'AUTHOR', shouldSucceed: false },
-      { role: 'VIEWER', shouldSucceed: false },
-      { role: 'BILLING', shouldSucceed: false },
-      { role: 'ANALYTICS', shouldSucceed: false },
+      { role: 'admin', shouldSucceed: true },
+      { role: 'manager', shouldSucceed: true },
+      { role: 'user', shouldSucceed: true },
+      { role: 'viewer', shouldSucceed: false },
     ]
 
     for (const testCase of deletePermissionTests) {
@@ -1037,7 +1017,7 @@ describe('Storage Integration', () => {
         const r2 = getR2()
 
         // Create a file to delete
-        const fileKey = `delete-matrix-${testCase.role}-${Date.now()}.txt`
+        const fileKey = `${account.id}/delete-matrix-${testCase.role}-${Date.now()}.txt`
         await r2.put(fileKey, 'test content')
 
         const res = await app.request(`/api/storage/${encodeURIComponent(fileKey)}`, {
@@ -1071,10 +1051,10 @@ describe('Storage Integration', () => {
   describe('Content type handling', () => {
     it('should handle image upload (image/jpeg)', async () => {
       const account = await createAccount({ name: 'Storage Image Upload Test' })
-      const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+      const { headers } = await createUserWithRole(account.id, 'user')
       const r2 = getR2()
 
-      const fileKey = `image-test-${Date.now()}.jpg`
+      const fileKey = `${account.id}/image-test-${Date.now()}.jpg`
       // Create a minimal JPEG-like binary content
       const binaryContent = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10])
 
@@ -1097,10 +1077,10 @@ describe('Storage Integration', () => {
 
     it('should handle JSON upload (application/json)', async () => {
       const account = await createAccount({ name: 'Storage JSON Upload Test' })
-      const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+      const { headers } = await createUserWithRole(account.id, 'user')
       const r2 = getR2()
 
-      const fileKey = `data-test-${Date.now()}.json`
+      const fileKey = `${account.id}/data-test-${Date.now()}.json`
       const jsonContent = JSON.stringify({ test: 'data', number: 123 })
 
       const res = await app.request(`/api/storage/upload/${encodeURIComponent(fileKey)}`, {
@@ -1126,10 +1106,10 @@ describe('Storage Integration', () => {
 
     it('should handle PDF upload (application/pdf)', async () => {
       const account = await createAccount({ name: 'Storage PDF Upload Test' })
-      const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+      const { headers } = await createUserWithRole(account.id, 'user')
       const r2 = getR2()
 
-      const fileKey = `document-test-${Date.now()}.pdf`
+      const fileKey = `${account.id}/document-test-${Date.now()}.pdf`
       // Create minimal PDF-like binary content
       const pdfContent = new TextEncoder().encode('%PDF-1.4 mock content')
 

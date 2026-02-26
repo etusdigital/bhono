@@ -109,12 +109,12 @@ describe('Database Constraints Integration Tests', () => {
       it('should reject duplicate invitation to same email in same account', async () => {
         const user = await createUser({ email: 'inviter@example.com', name: 'Inviter' })
         const account = await createAccount({ name: 'Invitation Account' })
-        await addUserToAccount(user.id, account.id, 'ADMIN')
+        await addUserToAccount(user.id, account.id, 'admin')
 
         await createInvitation({
           accountId: account.id,
           email: 'invitee@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
           invitedById: user.id,
         })
 
@@ -133,7 +133,7 @@ describe('Database Constraints Integration Tests', () => {
               crypto.randomUUID(),
               account.id,
               'invitee@example.com',
-              'EDITOR',
+              'user',
               crypto.randomUUID(),
               user.id,
               new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
@@ -145,16 +145,16 @@ describe('Database Constraints Integration Tests', () => {
         const user = await createUser({ email: 'multi-inviter@example.com', name: 'Multi Inviter' })
 
         const account1 = await createAccount({ name: 'Account for Invite 1' })
-        await addUserToAccount(user.id, account1.id, 'ADMIN')
+        await addUserToAccount(user.id, account1.id, 'admin')
 
         const account2 = await createAccount({ name: 'Account for Invite 2' })
-        await addUserToAccount(user.id, account2.id, 'ADMIN')
+        await addUserToAccount(user.id, account2.id, 'admin')
 
         // Invite same email to account 1
         await createInvitation({
           accountId: account1.id,
           email: 'multi-invitee@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
           invitedById: user.id,
         })
 
@@ -162,7 +162,7 @@ describe('Database Constraints Integration Tests', () => {
         const invite2 = await createInvitation({
           accountId: account2.id,
           email: 'multi-invitee@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
           invitedById: user.id,
         })
 
@@ -174,7 +174,7 @@ describe('Database Constraints Integration Tests', () => {
       it('should reject duplicate invitation tokens', async () => {
         const user = await createUser({ email: 'token-inviter@example.com', name: 'Token Inviter' })
         const account = await createAccount({ name: 'Token Account' })
-        await addUserToAccount(user.id, account.id, 'ADMIN')
+        await addUserToAccount(user.id, account.id, 'admin')
 
         const sqlite = getSqlite()
         const duplicateToken = crypto.randomUUID()
@@ -191,7 +191,7 @@ describe('Database Constraints Integration Tests', () => {
             crypto.randomUUID(),
             account.id,
             'token-test-1@example.com',
-            'VIEWER',
+            'viewer',
             duplicateToken,
             user.id,
             new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
@@ -210,7 +210,7 @@ describe('Database Constraints Integration Tests', () => {
               crypto.randomUUID(),
               account.id,
               'token-test-2@example.com',
-              'VIEWER',
+              'viewer',
               duplicateToken,
               user.id,
               new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
@@ -224,7 +224,7 @@ describe('Database Constraints Integration Tests', () => {
         const user = await createUser({ email: 'dup-role@example.com', name: 'Dup Role User' })
         const account = await createAccount({ name: 'Dup Role Account' })
 
-        await addUserToAccount(user.id, account.id, 'ADMIN')
+        await addUserToAccount(user.id, account.id, 'admin')
 
         const sqlite = getSqlite()
 
@@ -237,7 +237,7 @@ describe('Database Constraints Integration Tests', () => {
             VALUES (?, ?, ?)
           `
             )
-            .run(user.id, account.id, 'VIEWER')
+            .run(user.id, account.id, 'viewer')
         }).toThrow(/UNIQUE constraint failed|PRIMARY KEY constraint/)
       })
     })
@@ -272,7 +272,7 @@ describe('Database Constraints Integration Tests', () => {
             VALUES (?, ?, ?)
           `
             )
-            .run(fakeUserId, accountId, 'VIEWER')
+            .run(fakeUserId, accountId, 'viewer')
         }).toThrow(/FOREIGN KEY constraint failed/)
       })
 
@@ -290,7 +290,7 @@ describe('Database Constraints Integration Tests', () => {
             VALUES (?, ?, ?)
           `
             )
-            .run(user.id, fakeAccountId, 'VIEWER')
+            .run(user.id, fakeAccountId, 'viewer')
         }).toThrow(/FOREIGN KEY constraint failed/)
       })
     })
@@ -314,7 +314,7 @@ describe('Database Constraints Integration Tests', () => {
               crypto.randomUUID(),
               fakeAccountId,
               'test@example.com',
-              'VIEWER',
+              'viewer',
               crypto.randomUUID(),
               user.id,
               new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
@@ -340,7 +340,7 @@ describe('Database Constraints Integration Tests', () => {
               crypto.randomUUID(),
               account.id,
               'test@example.com',
-              'VIEWER',
+              'viewer',
               crypto.randomUUID(),
               fakeUserId,
               new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
@@ -435,7 +435,7 @@ describe('Database Constraints Integration Tests', () => {
         const user = await createUser({ email: 'role-check@example.com', name: 'Role Check User' })
         const account = await createAccount({ name: 'Role Check Account' })
 
-        const validRoles = ['ADMIN', 'MANAGER', 'EDITOR', 'AUTHOR', 'VIEWER', 'BILLING', 'ANALYTICS']
+        const validRoles = ['admin', 'manager', 'user', 'user', 'viewer', 'viewer', 'viewer']
 
         for (const role of validRoles) {
           const sqlite = getSqlite()
@@ -490,9 +490,9 @@ describe('Database Constraints Integration Tests', () => {
       it('should accept valid invitation role values', async () => {
         const user = await createUser({ email: 'invite-role-check@example.com', name: 'Invite Role Check' })
         const account = await createAccount({ name: 'Invite Role Account' })
-        await addUserToAccount(user.id, account.id, 'ADMIN')
+        await addUserToAccount(user.id, account.id, 'admin')
 
-        const validRoles = ['ADMIN', 'MANAGER', 'EDITOR', 'AUTHOR', 'VIEWER', 'BILLING', 'ANALYTICS']
+        const validRoles = ['admin', 'manager', 'user', 'user', 'viewer', 'viewer', 'viewer']
 
         for (let i = 0; i < validRoles.length; i++) {
           const invitation = await createInvitation({
@@ -508,7 +508,7 @@ describe('Database Constraints Integration Tests', () => {
       it('should reject invalid invitation role values', async () => {
         const user = await createUser({ email: 'invalid-invite-role@example.com', name: 'Invalid Invite Role' })
         const account = await createAccount({ name: 'Invalid Invite Role Account' })
-        await addUserToAccount(user.id, account.id, 'ADMIN')
+        await addUserToAccount(user.id, account.id, 'admin')
 
         const sqlite = getSqlite()
 
@@ -578,7 +578,7 @@ describe('Database Constraints Integration Tests', () => {
       it('should cascade delete user_accounts when user is deleted', async () => {
         const user = await createUser({ email: 'cascade-user@example.com', name: 'Cascade User' })
         const account = await createAccount({ name: 'Cascade Account' })
-        await addUserToAccount(user.id, account.id, 'ADMIN')
+        await addUserToAccount(user.id, account.id, 'admin')
 
         const sqlite = getSqlite()
 
@@ -640,7 +640,7 @@ describe('Database Constraints Integration Tests', () => {
       it('should cascade delete user_accounts when account is deleted', async () => {
         const user = await createUser({ email: 'cascade-acct@example.com', name: 'Cascade Acct User' })
         const account = await createAccount({ name: 'Cascade Delete Account' })
-        await addUserToAccount(user.id, account.id, 'ADMIN')
+        await addUserToAccount(user.id, account.id, 'admin')
 
         const sqlite = getSqlite()
 
@@ -663,12 +663,12 @@ describe('Database Constraints Integration Tests', () => {
       it('should cascade delete invitations when account is deleted', async () => {
         const user = await createUser({ email: 'cascade-invite@example.com', name: 'Cascade Invite User' })
         const account = await createAccount({ name: 'Cascade Invite Account' })
-        await addUserToAccount(user.id, account.id, 'ADMIN')
+        await addUserToAccount(user.id, account.id, 'admin')
 
         await createInvitation({
           accountId: account.id,
           email: 'cascade-invitee@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
           invitedById: user.id,
         })
 

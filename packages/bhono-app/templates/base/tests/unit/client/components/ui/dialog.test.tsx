@@ -9,7 +9,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "../dialog"
+} from "@/components/ui/dialog"
 
 describe("Dialog", () => {
   it("opens dialog when trigger is clicked", async () => {

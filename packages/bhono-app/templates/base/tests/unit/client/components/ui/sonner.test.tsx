@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest"
 import { render, screen } from "@tests/helpers/client-test-utils"
-import { Toaster } from "../sonner"
+import { Toaster } from "@/components/ui/sonner"
 
 describe("Toaster", () => {
   it("renders toaster component", () => {

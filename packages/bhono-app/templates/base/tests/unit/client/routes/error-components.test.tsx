@@ -40,9 +40,23 @@ vi.mock('@/hooks/use-theme', () => ({
   }),
 }))
 
+// Mock useAccounts hooks for Sidebar component (AccountSwitcher)
+vi.mock('@/hooks/use-accounts', () => ({
+  useMyAccounts: () => ({
+    data: { data: [{ id: 'test-account', name: 'Test Account', isCurrent: true, role: 'admin' }] },
+    isLoading: false,
+    error: null,
+  }),
+  useCurrentAccount: () => ({ id: 'test-account', name: 'Test Account', isCurrent: true, role: 'admin' }),
+  useSwitchAccount: () => ({
+    mutate: vi.fn(),
+    isPending: false,
+  }),
+}))
+
 // Import components after mocks are set up
-import { RootErrorComponent } from '../../routes/__root'
-import { AuthenticatedErrorComponent, AuthenticatedPendingComponent } from '../../routes/_authenticated'
+import { RootErrorComponent } from '@/routes/__root'
+import { AuthenticatedErrorComponent, AuthenticatedPendingComponent } from '@/routes/_authenticated'
 
 describe('RootErrorComponent', () => {
   it('renders error message with application error title', () => {

@@ -1,33 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { renderRoute } from '@tests/helpers/client-test-utils'
-
-// Mock user for authenticated tests
-const mockUser = {
-  id: 'test-user-id',
-  email: 'test@example.com',
-  name: 'Test User',
-  isSuperAdmin: false,
-  avatarUrl: null,
-}
+import { renderRoute, setupFetchMock } from '@tests/helpers/client-test-utils'
 
 describe('Integrations Page', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    // Mock fetch to return authenticated user
-    vi.spyOn(global, 'fetch').mockImplementation((url) => {
-      if (url === '/auth/me') {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ user: mockUser }),
-        } as Response)
-      }
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({}),
-      } as Response)
-    })
+    setupFetchMock()
   })
 
   describe('page rendering', () => {

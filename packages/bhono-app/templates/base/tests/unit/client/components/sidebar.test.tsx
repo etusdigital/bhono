@@ -2,7 +2,7 @@ import type { Mock } from "vitest";
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen } from "@tests/helpers/client-test-utils"
 import userEvent from "@testing-library/user-event"
-import { Sidebar } from "../sidebar"
+import { Sidebar } from "@/components/sidebar"
 
 // Mock useAuth hook
 vi.mock("@/hooks/use-auth", () => ({

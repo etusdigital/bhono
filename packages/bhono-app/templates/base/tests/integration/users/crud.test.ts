@@ -108,7 +108,7 @@ describe('Users CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Get Test User',
           userEmail: 'gettest@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         const nonExistentId = crypto.randomUUID()
@@ -132,7 +132,7 @@ describe('Users CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'First Account User',
           userEmail: 'firstaccount@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         // Create another user in a different account
@@ -143,7 +143,7 @@ describe('Users CRUD Integration', () => {
         const otherAccount = await createAccount({
           name: 'Other Account',
         })
-        await addUserToAccount(otherUser.id, otherAccount.id, 'ADMIN')
+        await addUserToAccount(otherUser.id, otherAccount.id, 'admin')
 
         // Try to get the other user from the first account
         const res = await app.request(`/api/users/${otherUser.id}`, {
@@ -165,7 +165,7 @@ describe('Users CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Get User Test',
           userEmail: 'getusertest@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
         })
 
         const res = await app.request(`/api/users/${scenario.user.id}`, {
@@ -190,7 +190,7 @@ describe('Users CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Fields Test User',
           userEmail: 'fieldstest@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         const res = await app.request(`/api/users/${scenario.user.id}`, {
@@ -263,7 +263,7 @@ describe('Users CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Update Test User',
           userEmail: 'updatetest@example.com',
-          role: 'MANAGER',
+          role: 'manager',
         })
 
         const nonExistentId = crypto.randomUUID()
@@ -307,7 +307,7 @@ describe('Users CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Validation Test User',
           userEmail: 'validationtest@example.com',
-          role: 'MANAGER',
+          role: 'manager',
         })
 
         const res = await app.request(`/api/users/${scenario.user.id}`, {
@@ -328,7 +328,7 @@ describe('Users CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Invalid Status User',
           userEmail: 'invalidstatus@example.com',
-          role: 'MANAGER',
+          role: 'manager',
         })
 
         const res = await app.request(`/api/users/${scenario.user.id}`, {
@@ -351,7 +351,7 @@ describe('Users CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Original Name',
           userEmail: 'nameupdate@example.com',
-          role: 'MANAGER',
+          role: 'manager',
         })
 
         const res = await app.request(`/api/users/${scenario.user.id}`, {
@@ -375,7 +375,7 @@ describe('Users CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Status Update User',
           userEmail: 'statusupdate@example.com',
-          role: 'MANAGER',
+          role: 'manager',
         })
 
         const res = await app.request(`/api/users/${scenario.user.id}`, {
@@ -399,7 +399,7 @@ describe('Users CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Both Fields User',
           userEmail: 'bothfields@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         const res = await app.request(`/api/users/${scenario.user.id}`, {
@@ -427,7 +427,7 @@ describe('Users CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'DB Verify User',
           userEmail: 'dbverify@example.com',
-          role: 'MANAGER',
+          role: 'manager',
         })
 
         // Update the user
@@ -502,7 +502,7 @@ describe('Users CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Delete Test User',
           userEmail: 'deletetest@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         const nonExistentId = crypto.randomUUID()
@@ -557,7 +557,7 @@ describe('Users CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Delete Success User',
           userEmail: 'deletesuccess@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         // Create a user to delete
@@ -565,7 +565,7 @@ describe('Users CRUD Integration', () => {
           email: 'tobedeleted@example.com',
           name: 'To Be Deleted',
         })
-        await addUserToAccount(userToDelete.id, scenario.account.id, 'VIEWER')
+        await addUserToAccount(userToDelete.id, scenario.account.id, 'viewer')
 
         const res = await app.request(`/api/users/${userToDelete.id}`, {
           method: 'DELETE',
@@ -583,7 +583,7 @@ describe('Users CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Soft Delete User',
           userEmail: 'softdelete@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         // Create a user to delete
@@ -591,7 +591,7 @@ describe('Users CRUD Integration', () => {
           email: 'softdeleted@example.com',
           name: 'Soft Deleted',
         })
-        await addUserToAccount(userToDelete.id, scenario.account.id, 'VIEWER')
+        await addUserToAccount(userToDelete.id, scenario.account.id, 'viewer')
 
         // Delete the user
         await app.request(`/api/users/${userToDelete.id}`, {
@@ -613,7 +613,7 @@ describe('Users CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'List After Delete User',
           userEmail: 'listafterdelete@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         // Create a user to delete
@@ -621,7 +621,7 @@ describe('Users CRUD Integration', () => {
           email: 'willnotappear@example.com',
           name: 'Will Not Appear',
         })
-        await addUserToAccount(userToDelete.id, scenario.account.id, 'VIEWER')
+        await addUserToAccount(userToDelete.id, scenario.account.id, 'viewer')
 
         // Delete the user
         await app.request(`/api/users/${userToDelete.id}`, {
@@ -665,7 +665,7 @@ describe('Users CRUD Integration', () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify([
-            { userId: crypto.randomUUID(), accountId: crypto.randomUUID(), role: 'VIEWER' },
+            { userId: crypto.randomUUID(), accountId: crypto.randomUUID(), role: 'viewer' },
           ]),
         })
 
@@ -689,7 +689,7 @@ describe('Users CRUD Integration', () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify([
-            { userId: scenario.admin.user.id, accountId: scenario.account.id, role: 'VIEWER' },
+            { userId: scenario.admin.user.id, accountId: scenario.account.id, role: 'viewer' },
           ]),
         })
 
@@ -702,7 +702,7 @@ describe('Users CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Bulk Create User',
           userEmail: 'bulkcreate@example.com',
-          role: 'MANAGER',
+          role: 'manager',
         })
 
         const res = await app.request('/api/users/accounts', {
@@ -723,7 +723,7 @@ describe('Users CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Invalid Role User',
           userEmail: 'invalidrole@example.com',
-          role: 'MANAGER',
+          role: 'manager',
         })
 
         const res = await app.request('/api/users/accounts', {
@@ -748,7 +748,7 @@ describe('Users CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Bulk Admin',
           userEmail: 'bulkadmin@example.com',
-          role: 'MANAGER',
+          role: 'manager',
         })
 
         // Create a new user to add to account
@@ -771,7 +771,7 @@ describe('Users CRUD Integration', () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify([
-            { userId: newUser.id, accountId: anotherAccount.id, role: 'VIEWER' },
+            { userId: newUser.id, accountId: anotherAccount.id, role: 'viewer' },
           ]),
         })
 
@@ -786,7 +786,7 @@ describe('Users CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Role Update Admin',
           userEmail: 'roleupdate@example.com',
-          role: 'MANAGER',
+          role: 'manager',
         })
 
         // Create a user and add to the account with VIEWER role
@@ -794,7 +794,7 @@ describe('Users CRUD Integration', () => {
           email: 'existingforroleupdaet@example.com',
           name: 'Existing For Role Update',
         })
-        await addUserToAccount(existingUser.id, scenario.account.id, 'VIEWER')
+        await addUserToAccount(existingUser.id, scenario.account.id, 'viewer')
 
         // Now update the role to EDITOR via bulk operation
         const res = await app.request('/api/users/accounts', {
@@ -806,7 +806,7 @@ describe('Users CRUD Integration', () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify([
-            { userId: existingUser.id, accountId: scenario.account.id, role: 'EDITOR' },
+            { userId: existingUser.id, accountId: scenario.account.id, role: 'user' },
           ]),
         })
 
@@ -819,14 +819,14 @@ describe('Users CRUD Integration', () => {
         // Verify role was updated in database
         const sqlite = getSqlite()
         const row = sqlite.prepare('SELECT role FROM user_accounts WHERE user_id = ? AND account_id = ?').get(existingUser.id, scenario.account.id) as { role: string }
-        expect(row.role).toBe('EDITOR')
+        expect(row.role).toBe('user')
       })
 
       it('should create multiple user-account relationships', async () => {
         const scenario = await createTestScenario({
           userName: 'Multi Bulk Admin',
           userEmail: 'multibulk@example.com',
-          role: 'MANAGER',
+          role: 'manager',
         })
 
         // Create multiple users
@@ -853,8 +853,8 @@ describe('Users CRUD Integration', () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify([
-            { userId: user1.id, accountId: newAccount.id, role: 'VIEWER' },
-            { userId: user2.id, accountId: newAccount.id, role: 'EDITOR' },
+            { userId: user1.id, accountId: newAccount.id, role: 'viewer' },
+            { userId: user2.id, accountId: newAccount.id, role: 'user' },
           ]),
         })
 
@@ -880,7 +880,7 @@ describe('Users CRUD Integration', () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify([
-            { userId: crypto.randomUUID(), accountId: crypto.randomUUID(), role: 'VIEWER' },
+            { userId: crypto.randomUUID(), accountId: crypto.randomUUID(), role: 'viewer' },
           ]),
         })
 
@@ -904,7 +904,7 @@ describe('Users CRUD Integration', () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify([
-            { userId: scenario.admin.user.id, accountId: scenario.account.id, role: 'ADMIN' },
+            { userId: scenario.admin.user.id, accountId: scenario.account.id, role: 'admin' },
           ]),
         })
 
@@ -917,7 +917,7 @@ describe('Users CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Bulk Delete User',
           userEmail: 'bulkdelete@example.com',
-          role: 'MANAGER',
+          role: 'manager',
         })
 
         const res = await app.request('/api/users/accounts', {
@@ -940,7 +940,7 @@ describe('Users CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Delete Admin',
           userEmail: 'deleteadmin@example.com',
-          role: 'MANAGER',
+          role: 'manager',
         })
 
         // Create a user and add to another account
@@ -951,7 +951,7 @@ describe('Users CRUD Integration', () => {
         const accountToRemoveFrom = await createAccount({
           name: 'Account To Remove From',
         })
-        await addUserToAccount(userToRemove.id, accountToRemoveFrom.id, 'VIEWER')
+        await addUserToAccount(userToRemove.id, accountToRemoveFrom.id, 'viewer')
 
         const res = await app.request('/api/users/accounts', {
           method: 'DELETE',
@@ -962,7 +962,7 @@ describe('Users CRUD Integration', () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify([
-            { userId: userToRemove.id, accountId: accountToRemoveFrom.id, role: 'VIEWER' },
+            { userId: userToRemove.id, accountId: accountToRemoveFrom.id, role: 'viewer' },
           ]),
         })
 
@@ -977,7 +977,7 @@ describe('Users CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Verify Delete Admin',
           userEmail: 'verifydelete@example.com',
-          role: 'MANAGER',
+          role: 'manager',
         })
 
         // Create a user and add to another account
@@ -988,7 +988,7 @@ describe('Users CRUD Integration', () => {
         const accountToCheck = await createAccount({
           name: 'Account To Check',
         })
-        await addUserToAccount(userToCheck.id, accountToCheck.id, 'EDITOR')
+        await addUserToAccount(userToCheck.id, accountToCheck.id, 'user')
 
         // Verify relationship exists
         const sqlite = getSqlite()
@@ -1005,7 +1005,7 @@ describe('Users CRUD Integration', () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify([
-            { userId: userToCheck.id, accountId: accountToCheck.id, role: 'EDITOR' },
+            { userId: userToCheck.id, accountId: accountToCheck.id, role: 'user' },
           ]),
         })
 
@@ -1018,7 +1018,7 @@ describe('Users CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Multi Delete Admin',
           userEmail: 'multidelete@example.com',
-          role: 'MANAGER',
+          role: 'manager',
         })
 
         // Create multiple users and add to an account
@@ -1033,8 +1033,8 @@ describe('Users CRUD Integration', () => {
         const accountForDelete = await createAccount({
           name: 'Account For Delete',
         })
-        await addUserToAccount(user1.id, accountForDelete.id, 'VIEWER')
-        await addUserToAccount(user2.id, accountForDelete.id, 'EDITOR')
+        await addUserToAccount(user1.id, accountForDelete.id, 'viewer')
+        await addUserToAccount(user2.id, accountForDelete.id, 'user')
 
         const res = await app.request('/api/users/accounts', {
           method: 'DELETE',
@@ -1045,8 +1045,8 @@ describe('Users CRUD Integration', () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify([
-            { userId: user1.id, accountId: accountForDelete.id, role: 'VIEWER' },
-            { userId: user2.id, accountId: accountForDelete.id, role: 'EDITOR' },
+            { userId: user1.id, accountId: accountForDelete.id, role: 'viewer' },
+            { userId: user2.id, accountId: accountForDelete.id, role: 'user' },
           ]),
         })
 
@@ -1083,7 +1083,7 @@ describe('Users CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Restore Test User',
           userEmail: 'restoretest@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         const nonExistentId = crypto.randomUUID()
@@ -1103,7 +1103,7 @@ describe('Users CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Not Deleted User',
           userEmail: 'notdeleted@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         // Try to restore a user that is not deleted
@@ -1132,7 +1132,7 @@ describe('Users CRUD Integration', () => {
           email: 'deletedformanager@example.com',
           name: 'Deleted For Manager',
         })
-        await addUserToAccount(deletedUser.id, scenario.account.id, 'VIEWER')
+        await addUserToAccount(deletedUser.id, scenario.account.id, 'viewer')
 
         // MANAGER role cannot restore users (requires ADMIN)
         const res = await app.request(`/api/users/${deletedUser.id}/restore`, {
@@ -1155,7 +1155,7 @@ describe('Users CRUD Integration', () => {
           email: 'deletedforviewer@example.com',
           name: 'Deleted For Viewer',
         })
-        await addUserToAccount(deletedUser.id, scenario.account.id, 'VIEWER')
+        await addUserToAccount(deletedUser.id, scenario.account.id, 'viewer')
 
         const res = await app.request(`/api/users/${deletedUser.id}/restore`, {
           method: 'POST',
@@ -1175,7 +1175,7 @@ describe('Users CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Restore Admin User',
           userEmail: 'restoreadmin@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         // Create a deleted user
@@ -1183,7 +1183,7 @@ describe('Users CRUD Integration', () => {
           email: 'toberestored@example.com',
           name: 'To Be Restored',
         })
-        await addUserToAccount(deletedUser.id, scenario.account.id, 'VIEWER')
+        await addUserToAccount(deletedUser.id, scenario.account.id, 'viewer')
 
         const res = await app.request(`/api/users/${deletedUser.id}/restore`, {
           method: 'POST',
@@ -1205,7 +1205,7 @@ describe('Users CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'Verify Restore User',
           userEmail: 'verifyrestore@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         // Create a deleted user
@@ -1213,7 +1213,7 @@ describe('Users CRUD Integration', () => {
           email: 'deletedatcleared@example.com',
           name: 'Deleted At Cleared',
         })
-        await addUserToAccount(deletedUser.id, scenario.account.id, 'VIEWER')
+        await addUserToAccount(deletedUser.id, scenario.account.id, 'viewer')
 
         // Restore the user
         await app.request(`/api/users/${deletedUser.id}/restore`, {
@@ -1235,7 +1235,7 @@ describe('Users CRUD Integration', () => {
         const scenario = await createTestScenario({
           userName: 'List After Restore User',
           userEmail: 'listafterrestore@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         })
 
         // Create a deleted user
@@ -1243,7 +1243,7 @@ describe('Users CRUD Integration', () => {
           email: 'willappear@example.com',
           name: 'Will Appear',
         })
-        await addUserToAccount(deletedUser.id, scenario.account.id, 'VIEWER')
+        await addUserToAccount(deletedUser.id, scenario.account.id, 'viewer')
 
         // Verify user is NOT in list before restore
         const listBefore = await app.request('/api/users', {

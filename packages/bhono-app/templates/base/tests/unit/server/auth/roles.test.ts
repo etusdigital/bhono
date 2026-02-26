@@ -1,169 +1,112 @@
-// src/auth/roles.test.ts
+// tests/unit/server/auth/roles.test.ts
 import { describe, it, expect } from 'vitest'
-import {
-  Role,
-  hasMinimumRole,
-  getRolesWithMinimumAccess,
-  isHierarchicalRole,
-  getRoleLevel,
-  getAllRoles,
-  compareRoles,
-  isRoleHigherThan,
-} from '@server/auth/roles'
+import { Role, ROLE_HIERARCHY, hasMinimumRole } from '@server/auth/roles'
 
 describe('roles', () => {
+  describe('Role constants', () => {
+    it('should define 7 roles', () => {
+      expect(Role.ADMIN).toBe('ADMIN')
+      expect(Role.MANAGER).toBe('MANAGER')
+      expect(Role.EDITOR).toBe('EDITOR')
+      expect(Role.AUTHOR).toBe('AUTHOR')
+      expect(Role.VIEWER).toBe('VIEWER')
+      expect(Role.BILLING).toBe('BILLING')
+      expect(Role.ANALYTICS).toBe('ANALYTICS')
+    })
+  })
+
+  describe('ROLE_HIERARCHY', () => {
+    it('should define hierarchy levels for all roles', () => {
+      expect(ROLE_HIERARCHY.ADMIN).toBe(0)
+      expect(ROLE_HIERARCHY.MANAGER).toBe(1)
+      expect(ROLE_HIERARCHY.EDITOR).toBe(2)
+      expect(ROLE_HIERARCHY.AUTHOR).toBe(3)
+      expect(ROLE_HIERARCHY.VIEWER).toBe(4)
+      // Non-hierarchical roles
+      expect(ROLE_HIERARCHY.BILLING).toBe(-1)
+      expect(ROLE_HIERARCHY.ANALYTICS).toBe(-1)
+    })
+  })
+
   describe('hasMinimumRole', () => {
-    it('ADMIN should have access to ADMIN-required endpoints', () => {
-      expect(hasMinimumRole('ADMIN', 'ADMIN')).toBe(true)
+    describe('hierarchical roles', () => {
+      it('ADMIN should have access to all role requirements', () => {
+        expect(hasMinimumRole('ADMIN', 'ADMIN')).toBe(true)
+        expect(hasMinimumRole('ADMIN', 'MANAGER')).toBe(true)
+        expect(hasMinimumRole('ADMIN', 'EDITOR')).toBe(true)
+        expect(hasMinimumRole('ADMIN', 'AUTHOR')).toBe(true)
+        expect(hasMinimumRole('ADMIN', 'VIEWER')).toBe(true)
+      })
+
+      it('MANAGER should have access to MANAGER and below', () => {
+        expect(hasMinimumRole('MANAGER', 'ADMIN')).toBe(false)
+        expect(hasMinimumRole('MANAGER', 'MANAGER')).toBe(true)
+        expect(hasMinimumRole('MANAGER', 'EDITOR')).toBe(true)
+        expect(hasMinimumRole('MANAGER', 'AUTHOR')).toBe(true)
+        expect(hasMinimumRole('MANAGER', 'VIEWER')).toBe(true)
+      })
+
+      it('EDITOR should have access to EDITOR and below', () => {
+        expect(hasMinimumRole('EDITOR', 'ADMIN')).toBe(false)
+        expect(hasMinimumRole('EDITOR', 'MANAGER')).toBe(false)
+        expect(hasMinimumRole('EDITOR', 'EDITOR')).toBe(true)
+        expect(hasMinimumRole('EDITOR', 'AUTHOR')).toBe(true)
+        expect(hasMinimumRole('EDITOR', 'VIEWER')).toBe(true)
+      })
+
+      it('AUTHOR should have access to AUTHOR and below', () => {
+        expect(hasMinimumRole('AUTHOR', 'ADMIN')).toBe(false)
+        expect(hasMinimumRole('AUTHOR', 'MANAGER')).toBe(false)
+        expect(hasMinimumRole('AUTHOR', 'EDITOR')).toBe(false)
+        expect(hasMinimumRole('AUTHOR', 'AUTHOR')).toBe(true)
+        expect(hasMinimumRole('AUTHOR', 'VIEWER')).toBe(true)
+      })
+
+      it('VIEWER should only have access to VIEWER', () => {
+        expect(hasMinimumRole('VIEWER', 'ADMIN')).toBe(false)
+        expect(hasMinimumRole('VIEWER', 'MANAGER')).toBe(false)
+        expect(hasMinimumRole('VIEWER', 'EDITOR')).toBe(false)
+        expect(hasMinimumRole('VIEWER', 'AUTHOR')).toBe(false)
+        expect(hasMinimumRole('VIEWER', 'VIEWER')).toBe(true)
+      })
     })
 
-    it('ADMIN should have access to VIEWER-required endpoints', () => {
-      expect(hasMinimumRole('ADMIN', 'VIEWER')).toBe(true)
+    describe('non-hierarchical roles', () => {
+      it('BILLING should only match exact BILLING requirement', () => {
+        expect(hasMinimumRole('BILLING', 'BILLING')).toBe(true)
+        expect(hasMinimumRole('BILLING', 'ADMIN')).toBe(false)
+        expect(hasMinimumRole('BILLING', 'VIEWER')).toBe(false)
+      })
+
+      it('ANALYTICS should only match exact ANALYTICS requirement', () => {
+        expect(hasMinimumRole('ANALYTICS', 'ANALYTICS')).toBe(true)
+        expect(hasMinimumRole('ANALYTICS', 'ADMIN')).toBe(false)
+        expect(hasMinimumRole('ANALYTICS', 'VIEWER')).toBe(false)
+      })
+
+      it('hierarchical roles should not have access to non-hierarchical roles', () => {
+        expect(hasMinimumRole('ADMIN', 'BILLING')).toBe(false)
+        expect(hasMinimumRole('ADMIN', 'ANALYTICS')).toBe(false)
+        expect(hasMinimumRole('MANAGER', 'BILLING')).toBe(false)
+      })
     })
 
-    it('VIEWER should NOT have access to ADMIN-required endpoints', () => {
-      expect(hasMinimumRole('VIEWER', 'ADMIN')).toBe(false)
-    })
+    describe('additionalRoles parameter', () => {
+      it('should grant access via additionalRoles even if hierarchical check fails', () => {
+        // VIEWER doesn't have ADMIN access hierarchically
+        expect(hasMinimumRole('VIEWER', 'ADMIN')).toBe(false)
+        // But can be granted via additionalRoles
+        expect(hasMinimumRole('VIEWER', 'ADMIN', ['VIEWER'])).toBe(true)
+      })
 
-    it('MANAGER should have access to EDITOR-required endpoints', () => {
-      expect(hasMinimumRole('MANAGER', 'EDITOR')).toBe(true)
-    })
+      it('should grant BILLING access to ADMIN via additionalRoles', () => {
+        expect(hasMinimumRole('ADMIN', 'BILLING')).toBe(false)
+        expect(hasMinimumRole('ADMIN', 'BILLING', ['ADMIN'])).toBe(true)
+      })
 
-    it('BILLING (non-hierarchical) should only match BILLING', () => {
-      expect(hasMinimumRole('BILLING', 'BILLING')).toBe(true)
-      expect(hasMinimumRole('BILLING', 'VIEWER')).toBe(false)
-      expect(hasMinimumRole('ADMIN', 'BILLING')).toBe(false)
-    })
-
-    it('ANALYTICS (non-hierarchical) should only match ANALYTICS', () => {
-      expect(hasMinimumRole('ANALYTICS', 'ANALYTICS')).toBe(true)
-      expect(hasMinimumRole('ANALYTICS', 'VIEWER')).toBe(false)
-    })
-
-    it('should allow access via additionalRoles', () => {
-      expect(hasMinimumRole('BILLING', 'ADMIN', ['BILLING'])).toBe(true)
-    })
-  })
-
-  describe('getRolesWithMinimumAccess', () => {
-    it('should return ADMIN, MANAGER, EDITOR for EDITOR minimum', () => {
-      const result = getRolesWithMinimumAccess('EDITOR')
-      expect(result).toContain('ADMIN')
-      expect(result).toContain('MANAGER')
-      expect(result).toContain('EDITOR')
-      expect(result).not.toContain('AUTHOR')
-      expect(result).not.toContain('VIEWER')
-    })
-
-    it('should return only ADMIN for ADMIN minimum', () => {
-      const result = getRolesWithMinimumAccess('ADMIN')
-      expect(result).toEqual(['ADMIN'])
-    })
-
-    it('should return all hierarchical roles for VIEWER minimum', () => {
-      const result = getRolesWithMinimumAccess('VIEWER')
-      expect(result).toContain('ADMIN')
-      expect(result).toContain('MANAGER')
-      expect(result).toContain('EDITOR')
-      expect(result).toContain('AUTHOR')
-      expect(result).toContain('VIEWER')
-    })
-
-    it('should include additional roles', () => {
-      const result = getRolesWithMinimumAccess('ADMIN', ['BILLING'])
-      expect(result).toContain('ADMIN')
-      expect(result).toContain('BILLING')
-    })
-
-    it('should return empty for non-hierarchical role without additionalRoles', () => {
-      const result = getRolesWithMinimumAccess('BILLING')
-      expect(result).toEqual([])
-    })
-  })
-
-  describe('isHierarchicalRole', () => {
-    it('should return true for ADMIN', () => {
-      expect(isHierarchicalRole('ADMIN')).toBe(true)
-    })
-
-    it('should return true for VIEWER', () => {
-      expect(isHierarchicalRole('VIEWER')).toBe(true)
-    })
-
-    it('should return false for BILLING', () => {
-      expect(isHierarchicalRole('BILLING')).toBe(false)
-    })
-
-    it('should return false for ANALYTICS', () => {
-      expect(isHierarchicalRole('ANALYTICS')).toBe(false)
-    })
-  })
-
-  describe('getRoleLevel', () => {
-    it('should return 0 for ADMIN', () => {
-      expect(getRoleLevel('ADMIN')).toBe(0)
-    })
-
-    it('should return 1 for MANAGER', () => {
-      expect(getRoleLevel('MANAGER')).toBe(1)
-    })
-
-    it('should return 4 for VIEWER', () => {
-      expect(getRoleLevel('VIEWER')).toBe(4)
-    })
-
-    it('should return -1 for BILLING', () => {
-      expect(getRoleLevel('BILLING')).toBe(-1)
-    })
-  })
-
-  describe('getAllRoles', () => {
-    it('should return all 7 roles', () => {
-      const roles = getAllRoles()
-      expect(roles).toHaveLength(7)
-      expect(roles).toContain('ADMIN')
-      expect(roles).toContain('BILLING')
-      expect(roles).toContain('ANALYTICS')
-    })
-  })
-
-  describe('compareRoles', () => {
-    it('should return -1 when roleA is higher than roleB', () => {
-      expect(compareRoles('ADMIN', 'VIEWER')).toBe(-1)
-    })
-
-    it('should return 1 when roleA is lower than roleB', () => {
-      expect(compareRoles('VIEWER', 'ADMIN')).toBe(1)
-    })
-
-    it('should return 0 when roles are equal', () => {
-      expect(compareRoles('MANAGER', 'MANAGER')).toBe(0)
-    })
-
-    it('should handle non-hierarchical roles', () => {
-      expect(compareRoles('BILLING', 'ANALYTICS')).toBe(0)
-    })
-  })
-
-  describe('isRoleHigherThan', () => {
-    it('should return true when ADMIN compared to VIEWER', () => {
-      expect(isRoleHigherThan('ADMIN', 'VIEWER')).toBe(true)
-    })
-
-    it('should return true when MANAGER compared to EDITOR', () => {
-      expect(isRoleHigherThan('MANAGER', 'EDITOR')).toBe(true)
-    })
-
-    it('should return false when VIEWER compared to ADMIN', () => {
-      expect(isRoleHigherThan('VIEWER', 'ADMIN')).toBe(false)
-    })
-
-    it('should return false when roles are equal', () => {
-      expect(isRoleHigherThan('MANAGER', 'MANAGER')).toBe(false)
-    })
-
-    it('should return false for non-hierarchical roles', () => {
-      expect(isRoleHigherThan('BILLING', 'VIEWER')).toBe(false)
+      it('should grant access when user role is in additionalRoles', () => {
+        expect(hasMinimumRole('ANALYTICS', 'ADMIN', ['ANALYTICS'])).toBe(true)
+      })
     })
   })
 })

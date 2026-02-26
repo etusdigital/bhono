@@ -121,7 +121,7 @@ describe('Log Sanitization', () => {
       const scenario = await createTestScenario({
         userName: 'Password Log Test',
         userEmail: 'password-log@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
       })
 
       // Make a request with password-like data in various fields
@@ -275,7 +275,7 @@ describe('Log Sanitization', () => {
       const scenario = await createTestScenario({
         userName: 'API Key Test User',
         userEmail: 'apikey-test@example.com',
-        role: 'ADMIN',
+        role: 'admin',
       })
 
       await app.request('/api/invitations', {
@@ -288,7 +288,7 @@ describe('Log Sanitization', () => {
         },
         body: JSON.stringify({
           email: 'invite@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
         }),
       })
 
@@ -324,7 +324,7 @@ describe('Log Sanitization', () => {
       const scenario = await createTestScenario({
         userName: 'Session Log Test',
         userEmail: 'session-log@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
       })
 
       await app.request('/api/users', {
@@ -367,7 +367,7 @@ describe('Log Sanitization', () => {
       const scenario = await createTestScenario({
         userName: 'Audit Token Test',
         userEmail: 'audit-token@example.com',
-        role: 'ADMIN',
+        role: 'admin',
       })
 
       // Create an invitation (which generates a token)
@@ -381,7 +381,7 @@ describe('Log Sanitization', () => {
         },
         body: JSON.stringify({
           email: 'invitee-audit@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
         }),
       })
 
@@ -409,7 +409,7 @@ describe('Log Sanitization', () => {
       const scenario = await createTestScenario({
         userName: 'Audit Email Test',
         userEmail: 'audit-email-test@example.com',
-        role: 'MANAGER',
+        role: 'manager',
       })
 
       // Update user (triggers audit)
@@ -503,7 +503,7 @@ describe('Log Sanitization', () => {
       const scenario = await createTestScenario({
         userName: 'Stack Trace Test',
         userEmail: 'stack-trace@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
       })
 
       // Access non-existent resource
@@ -557,7 +557,7 @@ describe('Log Sanitization', () => {
       const scenario = await createTestScenario({
         userName: 'Safe Fields Test',
         userEmail: 'safe-fields@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
       })
 
       await app.request('/api/users', {
@@ -609,7 +609,7 @@ describe('Log Sanitization', () => {
       const scenario = await createTestScenario({
         userName: 'User ID Log Test',
         userEmail: 'userid-log@example.com',
-        role: 'VIEWER',
+        role: 'viewer',
       })
 
       await app.request('/api/users', {

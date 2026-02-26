@@ -19,6 +19,7 @@ vi.mock('@server/services/invitations', () => ({
     create: vi.fn(),
     list: vi.fn(),
     revoke: vi.fn(),
+    resend: vi.fn(),
   },
 }))
 
@@ -54,7 +55,7 @@ describe('Invitations Routes', () => {
   })
 
   // Helper to setup authenticated app with specific role
-  function setupAuthenticatedApp(userRole = 'ADMIN', isSuperAdmin = false) {
+  function setupAuthenticatedApp(userRole = 'admin', isSuperAdmin = false) {
     const authenticatedApp = new Hono<HonoEnv>()
 
     authenticatedApp.use('*', async (c, next) => {
@@ -82,14 +83,14 @@ describe('Invitations Routes', () => {
         invitation: {
           id: TEST_INVITATION_ID,
           email: 'newuser@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
           expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
         },
       }
 
       vi.mocked(invitationsService.create).mockResolvedValue(invitationResult)
 
-      const authenticatedApp = setupAuthenticatedApp('ADMIN')
+      const authenticatedApp = setupAuthenticatedApp('admin')
 
       const res = await authenticatedApp.request('/invitations', {
         method: 'POST',
@@ -98,7 +99,7 @@ describe('Invitations Routes', () => {
         },
         body: JSON.stringify({
           email: 'newuser@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
         }),
       })
 
@@ -108,7 +109,7 @@ describe('Invitations Routes', () => {
       expect(body.invited).toBe(true)
       expect(body.invitation).toBeDefined()
       expect(body.invitation.email).toBe('newuser@example.com')
-      expect(body.invitation.role).toBe('VIEWER')
+      expect(body.invitation.role).toBe('viewer')
     })
 
     it('should return linked user when existing user is invited', async () => {
@@ -124,7 +125,7 @@ describe('Invitations Routes', () => {
 
       vi.mocked(invitationsService.create).mockResolvedValue(linkedResult)
 
-      const authenticatedApp = setupAuthenticatedApp('ADMIN')
+      const authenticatedApp = setupAuthenticatedApp('admin')
 
       const res = await authenticatedApp.request('/invitations', {
         method: 'POST',
@@ -133,7 +134,7 @@ describe('Invitations Routes', () => {
         },
         body: JSON.stringify({
           email: 'existing@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
         }),
       })
 
@@ -151,7 +152,7 @@ describe('Invitations Routes', () => {
         new ForbiddenError('Cannot assign a role higher than your own')
       )
 
-      const authenticatedApp = setupAuthenticatedApp('MANAGER')
+      const authenticatedApp = setupAuthenticatedApp('manager')
 
       const res = await authenticatedApp.request('/invitations', {
         method: 'POST',
@@ -160,7 +161,7 @@ describe('Invitations Routes', () => {
         },
         body: JSON.stringify({
           email: 'newuser@example.com',
-          role: 'ADMIN',
+          role: 'admin',
         }),
       })
 
@@ -172,7 +173,7 @@ describe('Invitations Routes', () => {
         new ConflictError('User is already a member of this account')
       )
 
-      const authenticatedApp = setupAuthenticatedApp('ADMIN')
+      const authenticatedApp = setupAuthenticatedApp('admin')
 
       const res = await authenticatedApp.request('/invitations', {
         method: 'POST',
@@ -181,7 +182,7 @@ describe('Invitations Routes', () => {
         },
         body: JSON.stringify({
           email: 'member@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
         }),
       })
 
@@ -195,12 +196,12 @@ describe('Invitations Routes', () => {
         invitation: {
           id: TEST_INVITATION_ID,
           email: 'test@example.com',
-          role: 'MANAGER',
+          role: 'manager',
           expiresAt: new Date().toISOString(),
         },
       })
 
-      const authenticatedApp = setupAuthenticatedApp('ADMIN')
+      const authenticatedApp = setupAuthenticatedApp('admin')
 
       await authenticatedApp.request('/invitations', {
         method: 'POST',
@@ -209,7 +210,7 @@ describe('Invitations Routes', () => {
         },
         body: JSON.stringify({
           email: 'test@example.com',
-          role: 'MANAGER',
+          role: 'manager',
         }),
       })
 
@@ -219,11 +220,11 @@ describe('Invitations Routes', () => {
         expect.objectContaining({
           accountId: testAccount.id,
           user: expect.objectContaining({ id: testUser.id }),
-          userRole: 'ADMIN',
+          userRole: 'admin',
         }),
         expect.objectContaining({
           email: 'test@example.com',
-          role: 'MANAGER',
+          role: 'manager',
         })
       )
     })
@@ -235,7 +236,7 @@ describe('Invitations Routes', () => {
         {
           id: TEST_INVITATION_ID,
           email: 'invited1@example.com',
-          role: 'VIEWER',
+          role: 'viewer',
           invitedBy: { id: TEST_USER_ID, name: 'Admin User' },
           expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
           createdAt: new Date().toISOString(),
@@ -243,7 +244,7 @@ describe('Invitations Routes', () => {
         {
           id: '550e8400-e29b-41d4-a716-446655440202',
           email: 'invited2@example.com',
-          role: 'MANAGER',
+          role: 'manager',
           invitedBy: { id: TEST_USER_ID, name: 'Admin User' },
           expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
           createdAt: new Date().toISOString(),
@@ -252,7 +253,7 @@ describe('Invitations Routes', () => {
 
       vi.mocked(invitationsService.list).mockResolvedValue(invitationsList)
 
-      const authenticatedApp = setupAuthenticatedApp('MANAGER')
+      const authenticatedApp = setupAuthenticatedApp('manager')
 
       const res = await authenticatedApp.request('/invitations', {
         method: 'GET',
@@ -268,7 +269,7 @@ describe('Invitations Routes', () => {
     it('should return empty list when no invitations', async () => {
       vi.mocked(invitationsService.list).mockResolvedValue([])
 
-      const authenticatedApp = setupAuthenticatedApp('MANAGER')
+      const authenticatedApp = setupAuthenticatedApp('manager')
 
       const res = await authenticatedApp.request('/invitations', {
         method: 'GET',
@@ -282,7 +283,7 @@ describe('Invitations Routes', () => {
     it('calls service with correct context', async () => {
       vi.mocked(invitationsService.list).mockResolvedValue([])
 
-      const authenticatedApp = setupAuthenticatedApp('ADMIN')
+      const authenticatedApp = setupAuthenticatedApp('admin')
 
       await authenticatedApp.request('/invitations', {
         method: 'GET',
@@ -293,7 +294,7 @@ describe('Invitations Routes', () => {
         expect.objectContaining({
           accountId: testAccount.id,
           user: expect.objectContaining({ id: testUser.id }),
-          userRole: 'ADMIN',
+          userRole: 'admin',
         })
       )
     })
@@ -303,7 +304,7 @@ describe('Invitations Routes', () => {
     it('should revoke invitation successfully', async () => {
       vi.mocked(invitationsService.revoke).mockResolvedValue()
 
-      const authenticatedApp = setupAuthenticatedApp('ADMIN')
+      const authenticatedApp = setupAuthenticatedApp('admin')
 
       const res = await authenticatedApp.request(`/invitations/${TEST_INVITATION_ID}`, {
         method: 'DELETE',
@@ -323,7 +324,7 @@ describe('Invitations Routes', () => {
     it('should throw NotFoundError for non-existent invitation', async () => {
       vi.mocked(invitationsService.revoke).mockRejectedValue(new NotFoundError('Invitation'))
 
-      const authenticatedApp = setupAuthenticatedApp('ADMIN')
+      const authenticatedApp = setupAuthenticatedApp('admin')
 
       const res = await authenticatedApp.request(`/invitations/${NON_EXISTENT_ID}`, {
         method: 'DELETE',
@@ -335,7 +336,7 @@ describe('Invitations Routes', () => {
     it('allows MANAGER role to revoke invitations', async () => {
       vi.mocked(invitationsService.revoke).mockResolvedValue()
 
-      const authenticatedApp = setupAuthenticatedApp('MANAGER')
+      const authenticatedApp = setupAuthenticatedApp('manager')
 
       const res = await authenticatedApp.request(`/invitations/${TEST_INVITATION_ID}`, {
         method: 'DELETE',
@@ -347,13 +348,74 @@ describe('Invitations Routes', () => {
     it('should throw NotFoundError when revoking already accepted invitation', async () => {
       vi.mocked(invitationsService.revoke).mockRejectedValue(new NotFoundError('Invitation'))
 
-      const authenticatedApp = setupAuthenticatedApp('ADMIN')
+      const authenticatedApp = setupAuthenticatedApp('admin')
 
       const res = await authenticatedApp.request(`/invitations/${TEST_INVITATION_ID}`, {
         method: 'DELETE',
       })
 
       expect(res.status).toBe(404)
+    })
+  })
+
+  describe('POST /invitations/:id/resend (resendInvitationHandler)', () => {
+    it('should resend invitation successfully', async () => {
+      vi.mocked(invitationsService.resend).mockResolvedValue()
+
+      const authenticatedApp = setupAuthenticatedApp('admin')
+
+      const res = await authenticatedApp.request(`/invitations/${TEST_INVITATION_ID}/resend`, {
+        method: 'POST',
+      })
+
+      expect(res.status).toBe(204)
+      expect(invitationsService.resend).toHaveBeenCalledWith(
+        mockEnv.DB,
+        mockEnv,
+        expect.objectContaining({
+          accountId: testAccount.id,
+          user: expect.objectContaining({ id: testUser.id }),
+        }),
+        TEST_INVITATION_ID
+      )
+    })
+
+    it('should throw NotFoundError for non-existent invitation', async () => {
+      vi.mocked(invitationsService.resend).mockRejectedValue(new NotFoundError('Invitation'))
+
+      const authenticatedApp = setupAuthenticatedApp('admin')
+
+      const res = await authenticatedApp.request(`/invitations/${NON_EXISTENT_ID}/resend`, {
+        method: 'POST',
+      })
+
+      expect(res.status).toBe(404)
+    })
+
+    it('should throw ConflictError for already accepted invitation', async () => {
+      vi.mocked(invitationsService.resend).mockRejectedValue(
+        new ConflictError('Invitation has already been accepted')
+      )
+
+      const authenticatedApp = setupAuthenticatedApp('admin')
+
+      const res = await authenticatedApp.request(`/invitations/${TEST_INVITATION_ID}/resend`, {
+        method: 'POST',
+      })
+
+      expect(res.status).toBe(409)
+    })
+
+    it('allows MANAGER role to resend invitations', async () => {
+      vi.mocked(invitationsService.resend).mockResolvedValue()
+
+      const authenticatedApp = setupAuthenticatedApp('manager')
+
+      const res = await authenticatedApp.request(`/invitations/${TEST_INVITATION_ID}/resend`, {
+        method: 'POST',
+      })
+
+      expect(res.status).toBe(204)
     })
   })
 
@@ -374,7 +436,7 @@ describe('Invitations Routes', () => {
         c.set('userAgent', 'TestAgent/1.0')
         c.set('user', testUser)
         c.set('accountId', testAccount.id)
-        c.set('userRole', 'ADMIN')
+        c.set('userRole', 'admin')
         await next()
       })
 
@@ -396,7 +458,7 @@ describe('Invitations Routes', () => {
         c.set('userAgent', 'TestAgent/1.0')
         c.set('user', null) // No user
         c.set('accountId', testAccount.id)
-        c.set('userRole', 'ADMIN')
+        c.set('userRole', 'admin')
         await next()
       })
 
@@ -410,7 +472,7 @@ describe('Invitations Routes', () => {
       const res = await brokenApp.request('/invitations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: 'test@example.com', role: 'VIEWER' }),
+        body: JSON.stringify({ email: 'test@example.com', role: 'viewer' }),
       })
 
       expect(res.status).toBe(500)
@@ -440,7 +502,7 @@ describe('Invitations Routes', () => {
       const res = await brokenApp.request('/invitations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: 'test@example.com', role: 'VIEWER' }),
+        body: JSON.stringify({ email: 'test@example.com', role: 'viewer' }),
       })
 
       // Auth middleware returns 401 before handler runs
@@ -465,6 +527,125 @@ describe('Invitations Routes', () => {
 
       // Auth middleware returns 401 before handler runs
       expect(res.status).toBe(401)
+    })
+
+    it('should throw 500 when db is not initialized for resend', async () => {
+      const brokenApp = setupAppWithoutDb()
+
+      const res = await brokenApp.request(`/invitations/${TEST_INVITATION_ID}/resend`, {
+        method: 'POST',
+      })
+
+      expect(res.status).toBe(500)
+    })
+
+    // Helper to setup app without accountId context
+    function setupAppWithoutAccountId() {
+      const brokenApp = new Hono<HonoEnv>()
+      const testUser = createUserFixture({ id: TEST_USER_ID })
+      const mockEnv = createMockEnv()
+
+      brokenApp.use('*', async (c, next) => {
+        ;(c as any).env = mockEnv
+        c.set('db', mockEnv.DB)
+        c.set('transactionId', 'test-transaction-id')
+        c.set('ip', '127.0.0.1')
+        c.set('userAgent', 'TestAgent/1.0')
+        c.set('user', testUser)
+        // accountId is NOT set - this should trigger the getServiceContext error
+        c.set('userRole', 'admin')
+        await next()
+      })
+
+      brokenApp.route('/invitations', invitationsRouter)
+      return brokenApp
+    }
+
+    it('should throw 500 when accountId context is missing for create', async () => {
+      const brokenApp = setupAppWithoutAccountId()
+
+      const res = await brokenApp.request('/invitations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'test@example.com', role: 'viewer' }),
+      })
+
+      expect(res.status).toBe(500)
+      const text = await res.text()
+      expect(text).toContain('Missing required context')
+    })
+
+    it('should throw 500 when accountId context is missing for list', async () => {
+      const brokenApp = setupAppWithoutAccountId()
+
+      const res = await brokenApp.request('/invitations', { method: 'GET' })
+
+      expect(res.status).toBe(500)
+      const text = await res.text()
+      expect(text).toContain('Missing required context')
+    })
+
+    it('should throw 500 when accountId context is missing for revoke', async () => {
+      const brokenApp = setupAppWithoutAccountId()
+
+      const res = await brokenApp.request(`/invitations/${TEST_INVITATION_ID}`, {
+        method: 'DELETE',
+      })
+
+      expect(res.status).toBe(500)
+      const text = await res.text()
+      expect(text).toContain('Missing required context')
+    })
+
+    it('should throw 500 when accountId context is missing for resend', async () => {
+      const brokenApp = setupAppWithoutAccountId()
+
+      const res = await brokenApp.request(`/invitations/${TEST_INVITATION_ID}/resend`, {
+        method: 'POST',
+      })
+
+      expect(res.status).toBe(500)
+      const text = await res.text()
+      expect(text).toContain('Missing required context')
+    })
+
+    // Test for fallback defaults when optional context values are missing
+    it('should use empty string defaults when transactionId, ip, and userAgent are undefined', async () => {
+      // Setup app with minimal context (no transactionId, ip, userAgent)
+      const minimalContextApp = new Hono<HonoEnv>()
+      const testUser = createUserFixture({ id: TEST_USER_ID })
+      const testAccount = createAccountFixture({ id: TEST_ACCOUNT_ID })
+      const mockEnv = createMockEnv()
+
+      minimalContextApp.use('*', async (c, next) => {
+        ;(c as any).env = mockEnv
+        c.set('db', mockEnv.DB)
+        c.set('user', testUser)
+        c.set('accountId', testAccount.id)
+        c.set('userRole', 'admin')
+        // Explicitly NOT setting transactionId, ip, userAgent
+        await next()
+      })
+
+      minimalContextApp.route('/invitations', invitationsRouter)
+
+      vi.mocked(invitationsService.list).mockResolvedValue([])
+
+      const res = await minimalContextApp.request('/invitations', { method: 'GET' })
+
+      expect(res.status).toBe(200)
+      // Verify service was called with empty string defaults
+      expect(invitationsService.list).toHaveBeenCalledWith(
+        mockEnv.DB,
+        expect.objectContaining({
+          accountId: testAccount.id,
+          user: expect.objectContaining({ id: testUser.id }),
+          userRole: 'admin',
+          transactionId: '',
+          ip: '',
+          userAgent: '',
+        })
+      )
     })
   })
 })

@@ -14,6 +14,7 @@ export interface SessionData {
   name: string
   avatarUrl?: string | null
   isSuperAdmin: boolean
+  currentAccountId?: string
   fingerprint?: {
     ip?: string
     userAgent?: string
@@ -250,6 +251,40 @@ export async function destroySession(c: Context, opts?: SessionOptions): Promise
 
   c.set('sessionId', undefined)
   c.set('sessionData', undefined)
+}
+
+/**
+ * Update session data: merges new data with existing session
+ */
+export async function updateSession(
+  c: Context,
+  updates: Partial<SessionData>,
+  opts?: SessionOptions
+): Promise<void> {
+  const {
+    ttlSeconds = 60 * 60 * 24,
+    keyPrefix = 'sid:',
+  } = opts ?? {}
+
+  const sid = c.get('sessionId') as string | undefined
+  const store = (c.env as Env).SESSIONS
+  const currentData = c.get('sessionData') as SessionData | undefined
+
+  if (!sid || !store || !currentData) {
+    throw new Error('No active session to update')
+  }
+
+  // Merge updates with existing data
+  const updatedData: SessionData = { ...currentData, ...updates }
+
+  // Store updated session
+  const key = `${keyPrefix}${sid}`
+  await store.put(key, JSON.stringify(updatedData), {
+    expirationTtl: ttlSeconds,
+  })
+
+  // Update context
+  c.set('sessionData', updatedData)
 }
 
 /**

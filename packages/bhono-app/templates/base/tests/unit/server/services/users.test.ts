@@ -47,7 +47,7 @@ function createMockContext(overrides: Partial<ServiceContext> = {}): ServiceCont
   return {
     accountId: 'account-123',
     user,
-    userRole: 'ADMIN',
+    userRole: 'admin',
     transactionId: 'tx-123',
     ip: '127.0.0.1',
     userAgent: 'TestAgent/1.0',
@@ -65,7 +65,7 @@ function createSuperAdminContext(overrides: Partial<ServiceContext> = {}): Servi
   return {
     accountId: 'account-123',
     user,
-    userRole: 'ADMIN',
+    userRole: 'admin',
     transactionId: 'tx-123',
     ip: '127.0.0.1',
     userAgent: 'TestAgent/1.0',
@@ -268,8 +268,8 @@ describe('usersService', () => {
         .mockResolvedValueOnce({ ok: 1 })
 
       ;(queryAll as Mock).mockResolvedValueOnce([
-        { accountId: 'account-1', role: 'ADMIN' },
-        { accountId: 'account-2', role: 'VIEWER' },
+        { accountId: 'account-1', role: 'admin' },
+        { accountId: 'account-2', role: 'viewer' },
       ])
 
       const result = await usersService.listUserRoles(db, ctx, user.id)
@@ -296,9 +296,9 @@ describe('usersService', () => {
           updated_at: user.updatedAt,
           deleted_at: user.deletedAt,
         })
-        .mockResolvedValueOnce({ role: 'VIEWER' })
+        .mockResolvedValueOnce({ role: 'viewer' })
 
-      await usersService.updateRole(db, superAdminCtx, user.id, 'account-1', 'ADMIN')
+      await usersService.updateRole(db, superAdminCtx, user.id, 'account-1', 'admin')
 
       expect(execute).toHaveBeenCalled()
       expect(logAudit).toHaveBeenCalled()
@@ -333,8 +333,8 @@ describe('usersService', () => {
   describe('createUserAccounts', () => {
     it('should upsert memberships and return count', async () => {
       const items = [
-        { userId: 'user-1', accountId: 'account-1', role: 'ADMIN' as const },
-        { userId: 'user-2', accountId: 'account-1', role: 'VIEWER' as const },
+        { userId: 'user-1', accountId: 'account-1', role: 'admin' as const },
+        { userId: 'user-2', accountId: 'account-1', role: 'viewer' as const },
       ]
 
       ;(queryOne as Mock).mockResolvedValue(null)
@@ -349,8 +349,8 @@ describe('usersService', () => {
   describe('deleteUserAccounts', () => {
     it('should delete memberships and return count', async () => {
       const items = [
-        { userId: 'user-1', accountId: 'account-1', role: 'ADMIN' as const },
-        { userId: 'user-2', accountId: 'account-1', role: 'VIEWER' as const },
+        { userId: 'user-1', accountId: 'account-1', role: 'admin' as const },
+        { userId: 'user-2', accountId: 'account-1', role: 'viewer' as const },
       ]
 
       const result = await usersService.deleteUserAccounts(db, superAdminCtx, items)
@@ -633,15 +633,15 @@ describe('usersService', () => {
         })
         .mockResolvedValueOnce(null)
 
-      await expect(usersService.updateRole(db, superAdminCtx, user.id, 'account-1', 'ADMIN')).rejects.toThrow('User not found in account')
+      await expect(usersService.updateRole(db, superAdminCtx, user.id, 'account-1', 'admin')).rejects.toThrow('User not found in account')
     })
   })
 
   describe('createUserAccounts edge cases', () => {
     it('should update existing membership', async () => {
-      const items = [{ userId: 'user-1', accountId: 'account-1', role: 'ADMIN' as const }]
+      const items = [{ userId: 'user-1', accountId: 'account-1', role: 'admin' as const }]
 
-      ;(queryOne as Mock).mockResolvedValueOnce({ role: 'VIEWER' })
+      ;(queryOne as Mock).mockResolvedValueOnce({ role: 'viewer' })
 
       const result = await usersService.createUserAccounts(db, superAdminCtx, items)
 
@@ -670,7 +670,7 @@ describe('usersService', () => {
         })
         .mockResolvedValueOnce({ ok: 1 })
 
-      ;(queryAll as Mock).mockResolvedValueOnce([{ account_id: 'account-1', role: 'ADMIN' }])
+      ;(queryAll as Mock).mockResolvedValueOnce([{ account_id: 'account-1', role: 'admin' }])
 
       const result = await usersService.listUserRoles(db, ctx, user.id)
 

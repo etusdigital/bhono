@@ -123,7 +123,7 @@ describe('Storage Validation Integration', () => {
       for (const { contentType, extension, description } of executableContentTypes) {
         it(`should reject upload with disallowed content type: ${description} (${contentType})`, async () => {
           const account = await createAccount({ name: `Validation ${description} Test` })
-          const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+          const { headers } = await createUserWithRole(account.id, 'user')
 
           const res = await app.request('/api/storage/upload-url', {
             method: 'POST',
@@ -150,9 +150,9 @@ describe('Storage Validation Integration', () => {
 
       it('should reject upload with application/x-executable content type on PUT endpoint', async () => {
         const account = await createAccount({ name: 'Validation Executable PUT Test' })
-        const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+        const { headers } = await createUserWithRole(account.id, 'user')
 
-        const fileKey = `malicious-${Date.now()}.exe`
+        const fileKey = `${account.id}/malicious-${Date.now()}.exe`
         const executableContent = new Uint8Array([0x4d, 0x5a, 0x90, 0x00]) // MZ header
 
         const res = await app.request(`/api/storage/upload/${encodeURIComponent(fileKey)}`, {
@@ -190,7 +190,7 @@ describe('Storage Validation Integration', () => {
       for (const { contentType, extension } of allowedContentTypes) {
         it(`should allow upload with content type: ${contentType}`, async () => {
           const account = await createAccount({ name: `Validation ${contentType} Test` })
-          const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+          const { headers } = await createUserWithRole(account.id, 'user')
 
           const res = await app.request('/api/storage/upload-url', {
             method: 'POST',
@@ -227,9 +227,9 @@ describe('Storage Validation Integration', () => {
     // TODO: Enable this test after implementing file size validation in handlers
     it.skip('should enforce maximum file size limit', async () => {
       const account = await createAccount({ name: 'Validation File Size Test' })
-      const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+      const { headers } = await createUserWithRole(account.id, 'user')
 
-      const fileKey = `large-file-${Date.now()}.txt`
+      const fileKey = `${account.id}/large-file-${Date.now()}.txt`
       // Create content larger than max size (11MB)
       const largeContent = new Uint8Array(11 * 1024 * 1024).fill(0x41) // 'A' characters
 
@@ -254,10 +254,10 @@ describe('Storage Validation Integration', () => {
 
     it('should allow files within size limit', async () => {
       const account = await createAccount({ name: 'Validation File Size OK Test' })
-      const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+      const { headers } = await createUserWithRole(account.id, 'user')
       const r2 = getR2()
 
-      const fileKey = `normal-file-${Date.now()}.txt`
+      const fileKey = `${account.id}/normal-file-${Date.now()}.txt`
       // Create content within size limit (1KB)
       const normalContent = new Uint8Array(1024).fill(0x41) // 'A' characters
 
@@ -284,10 +284,10 @@ describe('Storage Validation Integration', () => {
 
     it('should allow files at exactly the size limit', async () => {
       const account = await createAccount({ name: 'Validation Exact Size Test' })
-      const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+      const { headers } = await createUserWithRole(account.id, 'user')
       const r2 = getR2()
 
-      const fileKey = `exact-size-${Date.now()}.txt`
+      const fileKey = `${account.id}/exact-size-${Date.now()}.txt`
       // Create content exactly at size limit (10MB)
       const exactContent = new Uint8Array(MAX_FILE_SIZE).fill(0x42) // 'B' characters
 
@@ -321,9 +321,9 @@ describe('Storage Validation Integration', () => {
   describe('Empty File Validation', () => {
     it('should handle empty file upload', async () => {
       const account = await createAccount({ name: 'Validation Empty File Test' })
-      const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+      const { headers } = await createUserWithRole(account.id, 'user')
 
-      const fileKey = `empty-file-${Date.now()}.txt`
+      const fileKey = `${account.id}/empty-file-${Date.now()}.txt`
 
       const res = await app.request(`/api/storage/upload/${encodeURIComponent(fileKey)}`, {
         method: 'PUT',
@@ -345,9 +345,9 @@ describe('Storage Validation Integration', () => {
 
     it('should reject zero-byte ArrayBuffer upload', async () => {
       const account = await createAccount({ name: 'Validation Zero Byte Test' })
-      const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+      const { headers } = await createUserWithRole(account.id, 'user')
 
-      const fileKey = `zero-byte-${Date.now()}.bin`
+      const fileKey = `${account.id}/zero-byte-${Date.now()}.bin`
       const emptyBuffer = new Uint8Array(0)
 
       const res = await app.request(`/api/storage/upload/${encodeURIComponent(fileKey)}`, {
@@ -369,10 +369,10 @@ describe('Storage Validation Integration', () => {
 
     it('should allow single-byte file upload', async () => {
       const account = await createAccount({ name: 'Validation Single Byte Test' })
-      const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+      const { headers } = await createUserWithRole(account.id, 'user')
       const r2 = getR2()
 
-      const fileKey = `single-byte-${Date.now()}.bin`
+      const fileKey = `${account.id}/single-byte-${Date.now()}.bin`
       const singleByte = new Uint8Array([0x00])
 
       const res = await app.request(`/api/storage/upload/${encodeURIComponent(fileKey)}`, {
@@ -436,7 +436,7 @@ describe('Storage Validation Integration', () => {
       for (const { filename, contentType, description } of mismatchCases) {
         it(`should validate file extension matches content type: ${description}`, async () => {
         const account = await createAccount({ name: `Validation Mismatch ${filename} Test` })
-        const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+        const { headers } = await createUserWithRole(account.id, 'user')
 
         const res = await app.request('/api/storage/upload-url', {
           method: 'POST',
@@ -479,7 +479,7 @@ describe('Storage Validation Integration', () => {
       for (const { filename, contentType } of validCases) {
         it(`should accept matching extension and content type: ${filename} with ${contentType}`, async () => {
           const account = await createAccount({ name: `Validation Match ${filename} Test` })
-          const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+          const { headers } = await createUserWithRole(account.id, 'user')
 
           const res = await app.request('/api/storage/upload-url', {
             method: 'POST',
@@ -507,7 +507,7 @@ describe('Storage Validation Integration', () => {
     describe('Generic/Unknown Content Types', () => {
       it('should handle application/octet-stream with any extension', async () => {
         const account = await createAccount({ name: 'Validation Octet Stream Test' })
-        const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+        const { headers } = await createUserWithRole(account.id, 'user')
 
         const res = await app.request('/api/storage/upload-url', {
           method: 'POST',
@@ -538,10 +538,10 @@ describe('Storage Validation Integration', () => {
     // The request completes before the abort signal is processed
     it.skip('should handle aborted request gracefully', async () => {
       const account = await createAccount({ name: 'Validation Abort Test' })
-      const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+      const { headers } = await createUserWithRole(account.id, 'user')
       const r2 = getR2()
 
-      const fileKey = `aborted-${Date.now()}.txt`
+      const fileKey = `${account.id}/aborted-${Date.now()}.txt`
       const controller = new AbortController()
 
       // Abort immediately
@@ -576,10 +576,10 @@ describe('Storage Validation Integration', () => {
 
     it('should not store partial file on interrupted upload', async () => {
       const account = await createAccount({ name: 'Validation Partial Upload Test' })
-      const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+      const { headers } = await createUserWithRole(account.id, 'user')
       const r2 = getR2()
 
-      const fileKey = `partial-${Date.now()}.txt`
+      const fileKey = `${account.id}/partial-${Date.now()}.txt`
 
       // Simulate interrupted upload by sending incomplete data
       // In a real scenario, the connection would drop mid-upload
@@ -622,7 +622,7 @@ describe('Storage Validation Integration', () => {
   describe('Edge Cases', () => {
     it('should handle filename with multiple extensions', async () => {
       const account = await createAccount({ name: 'Validation Multi Extension Test' })
-      const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+      const { headers } = await createUserWithRole(account.id, 'user')
 
       const res = await app.request('/api/storage/upload-url', {
         method: 'POST',
@@ -643,7 +643,7 @@ describe('Storage Validation Integration', () => {
 
     it('should handle filename without extension', async () => {
       const account = await createAccount({ name: 'Validation No Extension Test' })
-      const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+      const { headers } = await createUserWithRole(account.id, 'user')
 
       const res = await app.request('/api/storage/upload-url', {
         method: 'POST',
@@ -665,7 +665,7 @@ describe('Storage Validation Integration', () => {
 
     it('should handle very long filename', async () => {
       const account = await createAccount({ name: 'Validation Long Filename Test' })
-      const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+      const { headers } = await createUserWithRole(account.id, 'user')
 
       const longFilename = 'a'.repeat(500) + '.txt'
 
@@ -689,7 +689,7 @@ describe('Storage Validation Integration', () => {
 
     it('should handle special characters in filename', async () => {
       const account = await createAccount({ name: 'Validation Special Chars Test' })
-      const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+      const { headers } = await createUserWithRole(account.id, 'user')
 
       const specialFilename = 'file with spaces & (special) chars!.txt'
 
@@ -715,7 +715,7 @@ describe('Storage Validation Integration', () => {
 
     it('should handle unicode filename', async () => {
       const account = await createAccount({ name: 'Validation Unicode Test' })
-      const { headers } = await createUserWithRole(account.id, 'AUTHOR')
+      const { headers } = await createUserWithRole(account.id, 'user')
 
       const res = await app.request('/api/storage/upload-url', {
         method: 'POST',
