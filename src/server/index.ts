@@ -78,10 +78,9 @@ function buildApp(env: Env): Hono<HonoEnv> {
   // Health checks (no auth) — before everything else
   app.route('/health', health)
 
-  // Dev-only test-login (non-production environments only)
-  if (env.ENVIRONMENT !== 'production') {
-    app.route('/auth/test-login', devLogin)
-  }
+  // Dev-only test-login. The route itself is always mounted; the handler
+  // returns 403 unless the request comes from localhost.
+  app.route('/auth/test-login', devLogin)
 
   // @etus/auth routes — OAuth flow, admin user management, accounts, invitations, audit
   app.route('/auth', auth.routes())

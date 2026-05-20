@@ -40,8 +40,11 @@ const CREATE_AUTH_SESSIONS = `CREATE TABLE IF NOT EXISTS auth_sessions (
 export const devLogin = new Hono<HonoEnv>()
 
 devLogin.post('/', async (c) => {
-  if (c.env.ENVIRONMENT === 'production') {
-    return c.json({ error: { message: 'Not available in production' } }, 403)
+  // Hostname-based gate: only localhost is dev. Any other host (workers.dev,
+  // custom domain) returns 403. Robust against env var misconfiguration.
+  const host = new URL(c.req.url).hostname
+  if (host !== 'localhost' && host !== '127.0.0.1') {
+    return c.json({ error: { message: 'Not available outside localhost' } }, 403)
   }
 
   const db = c.env.DB
