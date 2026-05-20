@@ -84,7 +84,7 @@ function TeamPage() {
   // Populate current user data
   const teamMembers: TeamMember[] = mockTeamMembers.map((m) =>
     m.isCurrentUser
-      ? { ...m, name: user?.name ?? 'You', email: user?.email ?? '', avatarUrl: user?.avatarUrl ?? null }
+      ? { ...m, name: user?.name ?? 'You', email: user?.email ?? '', avatarUrl: user?.picture ?? null }
       : m
   )
 

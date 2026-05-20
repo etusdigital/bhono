@@ -19,19 +19,35 @@ const mockInvitation = {
 }
 
 function AcceptInvitationPage() {
-  const { token: _token } = Route.useParams()
+  const { token } = Route.useParams()
   const [isAccepting, setIsAccepting] = useState(false)
   const [status, setStatus] = useState<'pending' | 'accepted' | 'error'>('pending')
 
   // In a real app, you'd fetch invitation details using the token
   const invitation = mockInvitation
 
+  // Accept via @etus/auth's POST /invitations/:token/accept. If the user is
+  // signed out, the package returns 401 — we redirect through the login flow
+  // with returnTo so they come back to this page authenticated.
   const handleAccept = async () => {
     setIsAccepting(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    setIsAccepting(false)
-    setStatus('accepted')
+    try {
+      const res = await fetch(`/invitations/${token}/accept`, {
+        method: 'POST',
+        credentials: 'include',
+      })
+      if (res.status === 401) {
+        window.location.href = `/auth/login?returnTo=${encodeURIComponent(`/invite/${token}`)}`
+        return
+      }
+      if (!res.ok) {
+        setStatus('error')
+        return
+      }
+      setStatus('accepted')
+    } finally {
+      setIsAccepting(false)
+    }
   }
 
   // Invalid or expired invitation
