@@ -158,6 +158,14 @@ Substituir a camada de auth custom do `boilerplate-hono` por configuração do `
 
 **Depende de**: Fase 1 + Fase 2.
 
+> ### ✅ Fase 3 (server) EXECUTADA — 2026-05-20 (commit `546647b`)
+> - **Deletados** 39 arquivos: `auth/{roles,permissions}`, `lib/{oauth,session,tokens,audit,audited-db,pagination}`, `services/*` (todos), `types/auth`, `middleware/{auth,account}`, `routes/api.ts`, `routes/{auth,accounts,invitations,users,audits}/`.
+> - **Reescritos**: `index.ts` (lazy `buildApp`), `routes/index.ts` (só `/storage`), `types/index.ts` (`HonoEnv` com vars do pacote), `env.ts` (sem JWT/Google), `middleware/{index,request-context,request-logger}`, `routes/storage/index.ts` (guards → `requirePermission`), `auth/guards.ts` (standalone).
+> - **Criados**: `routes/dev-login.ts` (test-login dev — U3.6).
+> - **Verde**: `pnpm typecheck` (0 erros — AC1 resolvido), `pnpm build`, `pnpm lint` (após ignorar `worker-configuration.d.ts`, agora gitignored).
+> - **FALTA na Fase 3**: U3.5 (guard interceptor de ownership em `PATCH /accounts/:id/members/:userId` — R8c) — não feito, pendente.
+> - **Não verificado ainda**: runtime real (login E2E). Os tests antigos (`tests/unit/server/auth/*` exceto matrix, `tests/integration/*`) ainda importam código deletado — quebram até a Fase 6 limpar.
+
 ### U3.0 — Mapa de dependências (executado 2026-05-20 — ver ESCOPO REVISTO acima)
 
 **Arquivos VIVOS (ficam) que importam de código a deletar — precisam adaptação:**
