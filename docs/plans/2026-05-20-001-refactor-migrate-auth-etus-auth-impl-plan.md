@@ -2,7 +2,7 @@
 title: Implementation Plan — Migrate Auth to @etus/auth
 type: refactor
 date: 2026-05-20
-status: confirmed
+status: mostly-executed
 source_requirements: docs/ets/brainstorms/2026-05-19-migrate-auth-etus-auth-requirements.md
 multi_review: docs/ets/state/reports/multi-review-migrate-auth-etus-auth.md
 supersedes_branch: feat/migrate-auth-to-etus-auth (hybrid approach, @etus/auth@0.1.0 — obsoleta)
@@ -12,6 +12,30 @@ package_target: "@etus/auth@^0.3.0"
 # Implementation Plan — Migrate Auth to `@etus/auth`
 
 Plano tático de implementação derivado do requirements doc (já fechado via brainstorm + multi-review). 7 fases ordenadas, unidades de trabalho nomeadas, Fase 0 de spikes como gate bloqueante.
+
+## Status final (2026-05-20)
+
+| Fase | Estado | Commit |
+|---|---|---|
+| 0 — spikes de de-risking | ✅ | (docs) |
+| 1 — install + `createAuth` config | ✅ | `ea6dc57` |
+| 2 — matriz RBAC + test | ✅ (222/222 verdes) | `e75523e` |
+| 3 — adopt @etus/auth data model | ✅ (server compila e builda) | `546647b` |
+| 4 — frontend | ✅ (AuthUser alinhado, invite returnTo) | `06fd748` |
+| 5 — SendGrid invitation email | ❌ não feita — diferida (skill auth-extend documenta o pattern) |
+| 6 — tests + docs cleanup | ✅ (CLAUDE.md + 60+ tests legados removidos) | `df42559` |
+| **U3.5** — guard interceptor de ownership | ❌ não feito — polimento, R8c |
+
+**Checkpoints verdes**: `pnpm typecheck` (0 erros — AC1 resolvido), `pnpm build`, `pnpm lint`, `pnpm test:unit:server` (222/222).
+
+**Não verificado**: runtime real (`pnpm dev` + login OAuth via gateway). A app compila e builda mas não foi exercida em request real.
+
+**Out of scope desta migração** (documentado pra follow-up):
+- Reescrita dos tests de features vivas (storage, schemas, middlewares) sob o novo modelo de context vars (vars `user`/`userRole`/`accountId` antigos não existem mais — testes precisam usar `authUser`/`authPermissions` etc).
+- SendGrid hook pra email de invite (Fase 5).
+- Guard interceptor de ownership em `PATCH /accounts/:id/members/:userId` (U3.5).
+- Skill `.claude/skills/auth-extend/` (R23 deferida).
+- README seção "Auth — extending" (R24 deferida).
 
 ## Objetivo
 
