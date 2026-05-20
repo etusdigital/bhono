@@ -119,7 +119,19 @@ Substituir a camada de auth custom do `boilerplate-hono` por configuração do `
 
 ---
 
-## Fase 3 — Big delete + rewire
+## Fase 3 — Adaptar + rewire + delete
+
+> **RE-SEQUENCIADA 2026-05-20 (ver AC8)** — a ordem original (big delete primeiro) foi revertida. `Role` propaga de `types/index.ts` por toda a camada server. Nova ordem obrigatória:
+> 1. **U3.0 (novo) — Mapear + adaptar tipos**: `grep` completo de quem importa `auth/roles`, `auth/guards`, `auth/permissions`, `lib/{oauth,session,tokens}`, `services/auth`, `services/accounts`, `types/auth`, `middleware/auth`. Reescrever `types/index.ts` (`Role` passa a vir de `auth/matrix.ts`; remover `export type * from './auth'`; ajustar `SessionData`/`HonoEnv`/`ServiceContext`). Criar `auth/guards.ts` novo (guards standalone).
+> 2. **U3.6** — `routes/dev-login.ts` (test-login).
+> 3. **U3.2** — reescrever `index.ts` (lazy-mount) + `routes/index.ts`.
+> 4. **U3.3** — rewire guards em `users`/`audits`/`storage` (+ adaptar os handlers e services que usam `ServiceContext`/`Role`/`hasMinimumRole`).
+> 5. **U3.5** — interceptor de ownership.
+> 6. **U3.7** — invite `returnTo` no client.
+> 7. **U3.1 — deletes POR ÚLTIMO**: só depois que nenhum arquivo vivo importa os antigos.
+> 8. **U3.4** — confirmar invitations.
+>
+> **Estimativa real**: ~25-30 arquivos tocados. É a fase mais pesada do plano — recomenda-se sessão dedicada, com o passo U3.0 (mapeamento) feito logo no início.
 
 **Objetivo**: remover código antigo, montar rotas do pacote, reconectar guards. Após esta fase a app volta a compilar.
 
@@ -151,6 +163,26 @@ Substituir a camada de auth custom do `boilerplate-hono` por configuração do `
 - Deletar `src/server/routes/invitations/*`. Fluxo passa pra `auth.invitationRoutes()` + `auth.accountRoutes()`.
 - Cobre: R19.
 - **Verde**: nenhuma referência a `invitationsService` local.
+
+### U3.6 — Endpoint dev `test-login` (decisão AC6)
+- Novo `src/server/routes/dev-login.ts`. Montado em `/auth/test-login` **só** quando `ENVIRONMENT≠production` (manter a URL — dezenas de testes E2E/integration chamam `/auth/test-login`).
+- **Internals do pacote a replicar** (lidos de `oauth-gateway/packages/auth/src/session.ts` em 2026-05-20):
+  - KV key: `auth_sid:{sessionId}` (prefixo `SESSION_PREFIX = "auth_sid:"`)
+  - Cookie: `__Host-auth_sid` em HTTPS, `auth_sid` em HTTP (`getSessionCookieName`)
+  - Shape `AuthSession` (JSON no KV): `{ id, userId, expiresAt, createdAt, fingerprint? }` — `expiresAt`/`createdAt` em ms epoch
+  - User deve existir em `auth_users` (tabela do pacote — **não** `users`); session opcionalmente em `auth_sessions` (D1)
+  - **Verificar** o schema exato de `auth_users`/`auth_sessions` no `dist/index.d.ts` ou no source do pacote antes de escrever os INSERTs
+- Passos do handler: upsert user em `auth_users` (status `active`, role conforme body) → gerar `sessionId` → `kv.put('auth_sid:'+id, JSON)` → setar cookie. Opcional: criar account + membership pra testes multi-tenant.
+- Cobre: AC6. **Frágil por design** (acopla a internals); dev-only.
+- **Verde**: `pnpm test:e2e` autentica via `/auth/test-login`.
+
+### U3.7 — Invite cold-click via `returnTo` (decisão AC7)
+- Ajustar `src/client/routes/invite.$token.tsx`: ao clicar "Accept", chamar `POST /invitations/:token/accept`; se resposta 401, redirecionar pra `/auth/login?returnTo=/invite/:token`. Após login o user volta à página e o accept funciona.
+- **Sem** middleware `pending-invitation` — o `returnTo` (suportado por `auth.routes()`) resolve.
+- Cobre: R19 (cold-click), AC7.
+- **Verde**: `tests/e2e/invitations/invite-flow.unauth.spec.ts` passa.
+
+**Ordem de execução sugerida da Fase 3**: U3.1 (delete) → U3.6 (test-login, pra E2E não ficar órfão) → U3.2 (mount, padrão lazy-wrapper da branch antiga) → criar `auth/guards.ts` novo (guards standalone usando `hasPermission`/`isRoleAtLeast` + context vars `authUser`/`authPermissions`) → U3.3 (rewire guards) → U3.5 (interceptor ownership) → U3.4 (invitations) → U3.7.
 
 **Checkpoint Fase 3**: `pnpm typecheck` + `pnpm build` passam. App compila inteira.
 
@@ -274,6 +306,10 @@ Fase 2 pode iniciar assim que U1.3 existir (paralela ao resto da Fase 1).
 - **AC2 (Fase 1)** — `@etus/auth` publicado no npm vai até **0.3.0** (`latest`); 0.4.x existe só no source local do `oauth-gateway`. Plano fixado em `^0.3.0`.
 - **AC3 (Fase 1)** — `SessionConfig.maxAge` é valor único global → R30 (TTL por-role) rebaixado a limitação documentada.
 - **AC4 (Fase 1)** — callbacks `onNewUser`/`onLogin` não recebem `Context` → R5 (audit custom) dropado; usa-se o audit built-in.
+- **AC5 (Fase 3 pre-flight)** — `src/server/routes/api.ts` é **código morto** (ninguém importa; `server/index.ts` usa `routes/index.ts`). Deletar em U3.1, sem cerimônia.
+- **AC6 (Fase 3) — RESOLVIDO 2026-05-20** — `/auth/test-login` quebraria toda a E2E. **Decisão**: recriar como endpoint dev `routes/dev-login.ts`, montado em `/auth/test-login` só quando `ENVIRONMENT≠production`, escrevendo `AuthSession` no KV + user em `auth_users` no formato do pacote. Aceita-se o acoplamento ao schema interno (dev-only, frágil em upgrade). Vira **U3.6**.
+- **AC7 (Fase 3) — RESOLVIDO 2026-05-20** — fluxo invite cold-click. **Decisão**: abordagem `returnTo` — página `/invite/:token` → accept → se 401, `/auth/login?returnTo=/invite/:token` → volta logado → `POST /invitations/:token/accept`. Sem middleware `pending-invitation`. Vira **U3.7** (ajuste em `src/client/routes/invite.$token.tsx`).
+- **AC8 (Fase 3) — CRÍTICO, re-sequenciamento necessário (2026-05-20)** — a Fase 3 NÃO é um "16-file delete + 4 reescritas" isolado. O tipo `Role` mora em `src/server/types/index.ts` e propaga: `HonoEnv.Variables.userRole: Role` (tipo de TODA rota Hono), `ServiceContext.userRole: Role` (passado a todo service), `UserAccount.role: Role`. Os services `users.ts`/`audits.ts`/`invitations.ts` importam `hasMinimumRole`/`Role` de `auth/roles`; handlers usam `ServiceContext`; `types/index.ts` faz `export type * from './auth'`. **Deletar `auth/roles.ts` primeiro quebra a compilação de ~25-30 arquivos de uma vez.** Tentativa de big-delete-first em 2026-05-20 foi revertida (working tree voltou ao estado da Fase 2). **A Fase 3 precisa ser re-sequenciada: (1) mapear a teia de dependências, (2) adaptar tipos+consumidores primeiro — `Role` passa a vir de `auth/matrix.ts`, `types/index.ts` reescrito —, (3) deletar os arquivos antigos por último.** Big delete deixa de ser o passo 1.
 
 ## Assumptions
 
