@@ -137,6 +137,36 @@ Substituir a camada de auth custom do `boilerplate-hono` por configuração do `
 
 **Depende de**: Fase 1 + Fase 2.
 
+### U3.0 — Mapa de dependências (executado 2026-05-20)
+
+**Arquivos VIVOS (ficam) que importam de código a deletar — precisam adaptação:**
+
+| Arquivo vivo | Importa de | O que adaptar |
+|---|---|---|
+| `types/index.ts` | `auth/roles` (`Role`), `./auth` | `Role` ← `auth/matrix`; remover `export type * from './auth'`; reescrever `HonoEnv.Variables` (vars do pacote `authUser`/`authPermissions`/`authAccount`/`authMembership` + adapter `user`/`accountId`/`userRole`); remover `SessionData` |
+| `middleware/account.ts` | `auth/roles`, `c.get('user')` | Substituir por `auth.accountMiddleware()` do pacote + adapter; ou deletar e usar só o do pacote |
+| `middleware/index.ts` | `./auth` (`jwtAuth`, `sessionAuth`) | Remover esses exports |
+| `services/users.ts` | `auth/roles` (`Role`, `hasMinimumRole`) | `Role` ← matrix; lógica `hasMinimumRole` → repensar (modelo 7→4 roles) |
+| `services/invitations.ts` | `auth/roles` | idem |
+| `services/index.ts` | `./auth`, `./accounts` | Remover re-export de `authService` e `accountsService` |
+| `routes/audits/index.ts` | `auth/guards` | guard → `requirePermission('audit:read')` |
+| `routes/storage/index.ts` | `auth/guards` | guards → `requirePermission('resources:create')` (upload), `requirePermission('resources:delete')` (delete) |
+| `routes/users/index.ts` | `auth/guards` | guards → `requirePermission('members:role')` (bulk/update), `requirePermission('members:remove')` (delete/restore) |
+| `index.ts` (entry) | `lib/session`, `routes/auth` | Reescrever — lazy-mount do pacote |
+| `routes/index.ts` | `middleware` (`sessionAuth`, `accountMiddleware`) | Trocar pelos middlewares do pacote |
+
+**Mapa de guards (role antigo → permission nova):**
+- `audits` list: `requireRole('ADMIN', ['ANALYTICS'])` → `requirePermission('audit:read')`
+- `storage` upload-url + upload: `requireRole('AUTHOR')` → `requirePermission('resources:create')`
+- `storage` delete `/:key`: `requireRole('EDITOR')` → `requirePermission('resources:delete')`
+- `users` bulk user-accounts + update: `requireRole('MANAGER')` → `requirePermission('members:role')`
+- `users` delete + restore: `requireRole('ADMIN')` → `requirePermission('members:remove')`
+- `users` list + get: sem guard (qualquer autenticado) — mantém
+
+**Decisão de arquitetura confirmada**: usar uma **camada adaptadora** — após `auth.middleware()` + `auth.accountMiddleware()`, um middleware copia `authUser`→`user`, `authAccount.id`→`accountId`, `authMembership.role`→`userRole`. Mantém handlers/services com mudança mínima. `User` (local) é derivado de `AuthUser` (pacote): `isSuperAdmin` ← `role==='admin'`, `googleId` ← `gatewayUserId`, `providerIds` ← `[]`.
+
+**Tamanho real confirmado**: ~11 arquivos vivos adaptados + 2 criados (`auth/guards.ts` reescrito, `routes/dev-login.ts`) + `index.ts`/`routes/index.ts` reescritos + 24 deletados. Refatoração atômica — typecheck/build só voltam a passar no fim.
+
 ### U3.1 — Deletar código antigo
 - Deletar: `src/server/auth/{roles,permissions,guards,index}.ts` (`matrix.ts`/`setup.ts` permanecem), `src/server/lib/{oauth,session,tokens}.ts`, `src/server/services/auth.ts`, `src/server/routes/auth/{handlers,routes,schemas,test-login,index}.ts`, `src/server/types/auth.ts`, `src/server/middleware/auth.ts`.
 - **+ Opção A (2026-05-20)**: deletar `src/server/routes/accounts/*` + `src/server/services/accounts.ts` + remover re-export de `accountsService` em `src/server/services/index.ts`. Elimina os 28 erros AC1.
