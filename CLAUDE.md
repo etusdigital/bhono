@@ -120,12 +120,21 @@ Defined in `tsconfig.json`:
 
 Users belong to multiple Accounts (workspaces). Each user-account relationship has a Role: `ADMIN`, `EDITOR`, `VIEWER`. Permissions checked via guards in `src/server/auth/guards.ts`.
 
-### Authentication Flow
+### Authentication & Identity
 
-1. `/auth/login` → Redirects to Google OAuth
-2. `/auth/callback` → Handles OAuth response, creates session in KV
-3. Session cookie (`__Host-sid`) sent with all requests
-4. `sessionAuth` middleware validates session on protected routes
+Auth, users, accounts, memberships, invitations and audit logging are owned by the internal package **`@etus/auth`** (gateway-backed OAuth via `ag.etus.io`). The boilerplate configures it in `src/server/auth/setup.ts` (`getAuth(env)` lazy singleton) and mounts the package routes from `src/server/index.ts`:
+
+- `/auth/*` — OAuth flow (`login`, `callback`, `logout`, `me`)
+- `/auth/admin/*` — admin user management (admin-only)
+- `/accounts/*` — accounts + memberships (multi-tenant)
+- `/invitations/*` — accept pending invites
+- `/audit/*` — audit log queries (admin-only)
+- `/auth/test-login` — dev-only endpoint (`routes/dev-login.ts`); writes a session directly to KV/D1 for E2E
+- `/api/*` — boilerplate's own API (currently only `/storage`); protected by `auth.middleware()`
+
+The RBAC matrix (4 roles: `owner > admin > member > guest`) and the permission catalog live in `src/server/auth/matrix.ts`. App routes guard with `requirePermission(...)` from `src/server/auth/guards.ts`, which reads the permissions resolved by the package's pipeline.
+
+Staff cross-product access is configured via `ETUS_ADMIN_EMAILS` (CSV) — listed emails receive `role='admin'` automatically on the OAuth callback.
 
 ### Request Context
 
@@ -133,7 +142,7 @@ Every request gets a `transactionId` for tracing across logs. See `src/server/mi
 
 ### Audit Logging
 
-All state changes logged to `audit_logs` table. See `src/server/lib/audit.ts`.
+Login, user lifecycle, account changes and invitations are logged automatically by `@etus/auth` (`audit.enabled=true` in `setup.ts`). Query programmatically via `auth.getAuditLogger().query(...)`.
 
 ## Key Files
 
