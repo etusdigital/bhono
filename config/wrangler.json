@@ -33,7 +33,14 @@
     "binding": "ASSETS",
     "run_worker_first": [
       "/api/*",
-      "/auth/*"
+      "/auth/*",
+      "/accounts",
+      "/accounts/*",
+      "/invitations",
+      "/invitations/*",
+      "/audit",
+      "/audit/*",
+      "/health"
     ]
   },
   "vars": {

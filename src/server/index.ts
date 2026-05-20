@@ -79,8 +79,16 @@ function buildApp(env: Env): Hono<HonoEnv> {
   app.route('/health', health)
 
   // Dev-only test-login. The route itself is always mounted; the handler
-  // returns 403 unless the request comes from localhost.
+  // returns 403 unless the request comes from localhost. Mounted BEFORE
+  // optionalMiddleware so it can create the very first session.
   app.route('/auth/test-login', devLogin)
+
+  // Populate authUser/authPermissions/authAccount when a session exists, but
+  // never block. The package's admin/account/audit/invitation routers all
+  // expect c.get('authUser') to be set before their role/permission checks
+  // run, and auth.routes() handles /login/callback/logout/me with its own
+  // session reads.
+  app.use('*', auth.optionalMiddleware())
 
   // @etus/auth routes — OAuth flow, admin user management, accounts, invitations, audit
   app.route('/auth', auth.routes())
