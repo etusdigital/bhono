@@ -1,57 +1,5 @@
-import type { Role } from '../auth/roles'
+import type { AuthUser, Account as AuthAccount, Membership } from '@etus/auth'
 import type { Env } from '../env'
-
-export interface User {
-  id: string
-  email: string
-  name: string
-  avatarUrl?: string | null
-  status: 'active' | 'inactive'
-  providerIds: string[]
-  isSuperAdmin: boolean
-  createdAt: string
-  updatedAt: string
-  deletedAt: string | null
-}
-
-export interface Account {
-  id: string
-  name: string
-  description: string | null
-  domain: string | null
-  createdAt: string
-  updatedAt: string
-  deletedAt: string | null
-}
-
-export interface UserAccount {
-  userId: string
-  accountId: string
-  role: Role
-}
-
-export interface AuditLog {
-  id: string
-  transactionId: string
-  accountId: string | null
-  userId: string | null
-  entity: string
-  entityId: string
-  action: 'INSERT' | 'UPDATE' | 'DELETE'
-  changes: Record<string, unknown> | null
-  ipAddress: string | null
-  userAgent: string | null
-  timestamp: string
-}
-
-export interface ServiceContext {
-  accountId: string
-  user: User
-  userRole?: Role | null
-  transactionId?: string
-  ip?: string
-  userAgent?: string
-}
 
 export interface PaginationQuery {
   page: number
@@ -75,22 +23,11 @@ export interface PaginatedResponse<T> {
   meta: PaginationMeta
 }
 
-// Session data type (matches lib/session.ts)
-export interface SessionData {
-  userId: string
-  email: string
-  name: string
-  avatarUrl?: string | null
-  isSuperAdmin: boolean
-  fingerprint?: {
-    ip?: string
-    userAgent?: string
-  }
-}
-
-// Hono Environment type
-// Note: Many variables are optional because they're set by different middlewares
-// at different points in the request lifecycle
+// Hono Environment type.
+// Identity/tenancy is owned by @etus/auth — its middleware populates the
+// auth* variables. The legacy user/accountId variables are kept optional
+// only so the pre-auth middlewares (request-context, request-logger) keep
+// compiling; they are no longer the source of truth.
 export interface HonoEnv {
   Bindings: Env
   Variables: {
@@ -98,19 +35,13 @@ export interface HonoEnv {
     transactionId?: string
     ip?: string
     userAgent?: string
-    // Set by auth middleware
-    user: User | null
-    // Set by account middleware
-    accountId?: string
-    userRole: Role | null
-    isSystemAdminAccess: boolean
-    // Set by database middleware (may be undefined before middleware runs or in health checks)
+    // Set by @etus/auth middleware
+    authUser?: AuthUser | null
+    authSessionId?: string | null
+    authPermissions?: string[]
+    authAccount?: AuthAccount | null
+    authMembership?: Membership | null
+    // Set by the database middleware
     db?: D1Database
-    // Session variables (set by session middleware)
-    sessionId?: string
-    sessionData?: SessionData
-    sessionCookies?: string[]
   }
 }
-
-export type * from './auth'

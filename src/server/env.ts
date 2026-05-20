@@ -26,60 +26,33 @@ export interface Env {
   ETUS_ALLOWED_DOMAINS: string
   ETUS_ADMIN_EMAILS: string
 
-  // JWT — DEPRECATED, removed in Phase 3 (big delete)
-  JWT_SECRET: string
-  JWT_EXPIRY_MINUTES: string
-
-  // Google OAuth — DEPRECATED, removed in Phase 3 (big delete)
-  GOOGLE_CLIENT_ID: string
-  GOOGLE_CLIENT_SECRET: string
-  GOOGLE_REDIRECT_URI: string
-
-  // Refresh Token — DEPRECATED, removed in Phase 3 (big delete)
-  REFRESH_TOKEN_EXPIRY_DAYS: string
-
-  // SendGrid
+  // SendGrid (invitations)
   SENDGRID_API_KEY: string
   SENDGRID_FROM_EMAIL: string
 
   // CORS
   CORS_ORIGINS?: string
-
-  // Super Admin emails (comma-separated)
-  SUPER_ADMIN_EMAILS?: string
 }
 
-// Helper to get env with defaults
+// Helper to get env with derived values
 export function getEnv(env: Env) {
   return {
     ...env,
-    JWT_EXPIRY_MINUTES: Number.parseInt(env.JWT_EXPIRY_MINUTES || '15', 10),
-    REFRESH_TOKEN_EXPIRY_DAYS: Number.parseInt(env.REFRESH_TOKEN_EXPIRY_DAYS || '30', 10),
     CORS_ORIGINS_LIST: env.CORS_ORIGINS
       ? env.CORS_ORIGINS.split(',').map((o) => o.trim())
-      : [],
-    SUPER_ADMIN_EMAILS_LIST: env.SUPER_ADMIN_EMAILS
-      ? env.SUPER_ADMIN_EMAILS.split(',').map((e) => e.trim().toLowerCase())
       : [],
   }
 }
 
-// Check if email is a super admin
-export function isSuperAdminEmail(env: Env, email: string): boolean {
-  const { SUPER_ADMIN_EMAILS_LIST } = getEnv(env)
-  return SUPER_ADMIN_EMAILS_LIST.includes(email.toLowerCase())
-}
-
-// Minimum required length for JWT_SECRET (security requirement)
-export const JWT_SECRET_MIN_LENGTH = 32
-
 /**
- * Validate environment variables at startup
- * Throws an error if validation fails
+ * Validate environment variables at startup.
+ * Throws an error if the auth gateway configuration is missing.
  */
 export function validateEnv(env: Env): void {
-  // JWT_SECRET must be at least 32 characters for security
-  if (!env.JWT_SECRET || env.JWT_SECRET.length < JWT_SECRET_MIN_LENGTH) {
-    throw new Error(`JWT_SECRET must be at least ${String(JWT_SECRET_MIN_LENGTH)} characters`)
+  if (!env.ETUS_GATEWAY) {
+    throw new Error('ETUS_GATEWAY is required')
+  }
+  if (!env.ETUS_CLIENT_ID) {
+    throw new Error('ETUS_CLIENT_ID is required')
   }
 }

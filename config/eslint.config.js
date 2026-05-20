@@ -25,6 +25,7 @@ export default tseslint.config(
       "**/node_modules/**",
       "**/.next/**",
       "**/coverage/**",
+      "**/worker-configuration.d.ts",
       "**/*.config.js",
       "**/*.config.ts",
       "**/vitest.*.ts",

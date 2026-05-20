@@ -2,10 +2,11 @@
 import { Hono } from 'hono'
 import { secureHeaders } from 'hono/secure-headers'
 import type { HonoEnv } from './types'
-import { createDb } from './db/client'
-import { auth } from './routes/auth'
+import type { Env } from './env'
+import { getAuth } from './auth/setup'
 import { api } from './routes'
 import { health } from './routes/health'
+import { devLogin } from './routes/dev-login'
 import {
   errorHandler,
   requestLogger,
@@ -14,84 +15,97 @@ import {
   rateLimit,
   authRateLimit,
 } from './middleware'
-import { sessionMiddleware } from './lib/session'
 import { validateEnv } from './env'
 
-// Hono app with bindings and variables
-const app = new Hono<HonoEnv>()
+// The app is built lazily on the first request: @etus/auth needs the ETUS_*
+// config vars, which only exist at request time in Cloudflare Workers. The
+// built app is cached for the isolate's lifetime (env is stable per deploy).
+let appInstance: Hono<HonoEnv> | undefined
 
-// 1. Global error handler
-app.onError(errorHandler)
+function buildApp(env: Env): Hono<HonoEnv> {
+  const auth = getAuth(env)
+  const app = new Hono<HonoEnv>()
 
-// 2. Request context (transactionId, IP, userAgent) - must be first for logging
-app.use('*', requestContext)
+  // 1. Global error handler
+  app.onError(errorHandler)
 
-// 3. Environment validation - fail fast if misconfigured
-app.use('*', async (c, next) => {
-  validateEnv(c.env)
-  await next()
-})
+  // 2. Request context (transactionId, IP, userAgent)
+  app.use('*', requestContext)
 
-// 4. Request logger (uses transactionId from context)
-app.use('*', requestLogger())
+  // 3. Environment validation
+  app.use('*', async (c, next) => {
+    validateEnv(c.env)
+    await next()
+  })
 
-// 5. Configurable CORS
-app.use('*', async (c, next) => {
-  const env = c.env
-  const corsOrigins = env.CORS_ORIGINS
-    ? env.CORS_ORIGINS.split(',').map((o) => o.trim())
-    : []
-  return configurableCors({
-    corsOrigins,
-    appUrl: env.APP_URL,
+  // 4. Request logger
+  app.use('*', requestLogger())
+
+  // 5. Configurable CORS
+  app.use('*', async (c, next) => {
+    const corsOrigins = c.env.CORS_ORIGINS
+      ? c.env.CORS_ORIGINS.split(',').map((o) => o.trim())
+      : []
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Hono wildcard route typing
-  })(c, next)
-})
+    return configurableCors({ corsOrigins, appUrl: c.env.APP_URL })(c, next)
+  })
 
-// 6. Security headers
-app.use('*', secureHeaders())
+  // 6. Security headers
+  app.use('*', secureHeaders())
 
-// 7. Rate limiting - global limit of 100 requests per minute
-app.use('*', rateLimit())
+  // 7. Global rate limiting
+  app.use('*', rateLimit())
 
-// 8. Stricter rate limiting for auth LOGIN endpoints only (10 requests per minute)
-// These are the endpoints vulnerable to brute force attacks
-// Note: /auth/me, /auth/refresh, /auth/logout use the global rate limit (100 req/min)
-// because they are session verification/maintenance, not login attempts
-// Create auth rate limiter instance once (not per-request)
-const loginRateLimiter = authRateLimit()
+  // 8. Stricter rate limiting for login endpoints (brute-force protection)
+  const loginRateLimiter = authRateLimit()
+  app.use('/auth/*', async (c, next) => {
+    const path = c.req.path
+    if (path === '/auth/login' || path === '/auth/callback') {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Hono wildcard route typing
+      return loginRateLimiter(c, next)
+    }
+    return next()
+  })
 
-app.use('/auth/*', async (c, next) => {
-  const path = c.req.path
-  // Only apply strict rate limit to login-related endpoints (brute force protection)
-  if (path === '/auth/login' || path === '/auth/callback') {
+  // 9. Database binding into context (per request)
+  app.use('*', async (c, next) => {
+    if (c.env.DB) {
+      c.set('db', c.env.DB)
+    }
+    await next()
+  })
+
+  // Health checks (no auth) — before everything else
+  app.route('/health', health)
+
+  // Dev-only test-login (non-production environments only)
+  if (env.ENVIRONMENT !== 'production') {
+    app.route('/auth/test-login', devLogin)
+  }
+
+  // @etus/auth routes — OAuth flow, admin user management, accounts, invitations, audit
+  app.route('/auth', auth.routes())
+  app.route('/auth/admin', auth.adminRoutes())
+  app.route('/audit', auth.auditRoutes())
+  app.route('/accounts', auth.accountRoutes())
+  app.route('/invitations', auth.invitationRoutes())
+
+  // Protected application API — requires authentication (docs are public)
+  app.use('/api/*', async (c, next) => {
+    if (c.req.path === '/api/doc' || c.req.path === '/api/swagger') {
+      return next()
+    }
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Hono wildcard route typing
-    return loginRateLimiter(c, next)
-  }
-  // Other auth endpoints (/auth/me, /auth/refresh, /auth/logout) use global rate limit
-  return next()
-})
+    return auth.middleware()(c, next)
+  })
+  app.route('/api', api)
 
-// 9. Database middleware - create db instance per request
-app.use('*', async (c, next) => {
-  if (c.env.DB) {
-    const db = createDb(c.env.DB)
-    c.set('db', db)
-  }
-  await next()
-})
+  return app
+}
 
-// 10. Session middleware - read session from KV
-app.use('*', sessionMiddleware())
-
-// Mount routes
-// Health checks (no auth required) - must be before /api
-app.route('/health', health)
-
-// Auth routes
-app.route('/auth', auth)
-
-// API routes (with auth)
-app.route('/api', api)
-
-export default app
+export default {
+  fetch(request: Request, env: Env, ctx: ExecutionContext): Response | Promise<Response> {
+    appInstance ??= buildApp(env)
+    return appInstance.fetch(request, env, ctx)
+  },
+}
