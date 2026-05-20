@@ -133,11 +133,32 @@ Substituir a camada de auth custom do `boilerplate-hono` por configuração do `
 >
 > **Estimativa real**: ~25-30 arquivos tocados. É a fase mais pesada do plano — recomenda-se sessão dedicada, com o passo U3.0 (mapeamento) feito logo no início.
 
-**Objetivo**: remover código antigo, montar rotas do pacote, reconectar guards. Após esta fase a app volta a compilar.
+> ## ⚠️ ESCOPO REVISTO 2026-05-20 (decisão AC9) — "adotar o modelo de dados do @etus/auth"
+>
+> A Fase 3 deixa de ser "migrar auth + manter as rotas locais" e passa a ser **substituir a camada de identidade+tenancy local pelos built-ins do pacote**. O usuário decidiu: adotar o modelo do pacote.
+>
+> **DELETAR (camadas locais substituídas pelos built-ins):**
+> - `routes/{auth,accounts,invitations,users,audits}/` — substituídas por `auth.routes()`, `auth.adminRoutes()`, `auth.accountRoutes()`, `auth.invitationRoutes()`, `auth.auditRoutes()`
+> - `services/{auth,accounts,users,invitations,audits}.ts` + `services/index.ts`
+> - `auth/{roles,permissions,guards}.ts`, `lib/{oauth,session,tokens}.ts`, `middleware/{auth,account}.ts`, `types/auth.ts`, `routes/api.ts`
+> - `lib/{audit,audited-db,pagination}.ts` se ficarem órfãos após os deletes (verificar; `password.ts`/`providers.ts` provavelmente já órfãos)
+> - Tabelas locais `users`/`accounts`/`user_accounts`/`invitations`/`audit_logs` ficam legadas (não dropar agora; o pacote cria `auth_*` à parte)
+>
+> **MANTER:** `routes/{health,storage}/`, `middleware/{request-context,cors,error-handler,request-logger,rate-limit}.ts`, `auth/{matrix,setup}.ts`, `lib/{email,errors,r2-storage,transaction}.ts`, `db/`
+>
+> **CRIAR:** `auth/guards.ts` (novo — guards standalone só pra `storage`), `middleware/auth-adapter.ts` (popula `user`/`accountId`/`userRole` pra `storage`), `routes/dev-login.ts` (U3.6)
+>
+> **REESCREVER:** `index.ts` (lazy-mount do pacote), `routes/index.ts`, `types/index.ts`, `middleware/index.ts`, `routes/storage/index.ts` (guards → `requirePermission`), handlers de `storage` (adaptar ao `ServiceContext` derivado)
+>
+> **Consequência pra Fases 4-6 (PRECISAM REVISÃO):** o frontend (`team.tsx`, `account.tsx`, `settings.tsx`, página de users) consumia as APIs locais que somem — precisa re-apontar pras rotas do pacote ou ser removido. Os E2E de `users`/`team`/`audits`/`invitations` mudam. A Fase 4 cresceu; Fases 5-6 precisam re-leitura sob o novo escopo.
+>
+> **Recomendação:** executar numa sessão dedicada. O mapa U3.0 abaixo é parcialmente superseded — só as linhas de `storage`, `index.ts`, `routes/index.ts`, `types/index.ts`, `middleware/index.ts` continuam relevantes; as de `users`/`accounts`/`audits`/`invitations` viram deletes.
+
+**Objetivo**: substituir a camada local de identidade/tenancy pelos built-ins do `@etus/auth`. Após esta fase a app volta a compilar com `routes/{health,storage}` + rotas do pacote.
 
 **Depende de**: Fase 1 + Fase 2.
 
-### U3.0 — Mapa de dependências (executado 2026-05-20)
+### U3.0 — Mapa de dependências (executado 2026-05-20 — ver ESCOPO REVISTO acima)
 
 **Arquivos VIVOS (ficam) que importam de código a deletar — precisam adaptação:**
 
