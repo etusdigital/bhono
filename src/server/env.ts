@@ -19,16 +19,23 @@ export interface Env {
   // App URL
   APP_URL: string
 
-  // JWT
+  // ETUS Auth (OAuth Gateway — @etus/auth)
+  ETUS_GATEWAY: string
+  ETUS_CLIENT_ID: string
+  ETUS_CLIENT_SECRET: string
+  ETUS_ALLOWED_DOMAINS: string
+  ETUS_ADMIN_EMAILS: string
+
+  // JWT — DEPRECATED, removed in Phase 3 (big delete)
   JWT_SECRET: string
   JWT_EXPIRY_MINUTES: string
 
-  // Google OAuth
+  // Google OAuth — DEPRECATED, removed in Phase 3 (big delete)
   GOOGLE_CLIENT_ID: string
   GOOGLE_CLIENT_SECRET: string
   GOOGLE_REDIRECT_URI: string
 
-  // Refresh Token
+  // Refresh Token — DEPRECATED, removed in Phase 3 (big delete)
   REFRESH_TOKEN_EXPIRY_DAYS: string
 
   // SendGrid
