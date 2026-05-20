@@ -42,6 +42,12 @@ export function getAuth(env: Env): AuthInstance {
     multiTenant: { enabled: true },
     audit: { enabled: true, retentionDays: 90 },
     session: { fingerprint: true, fingerprintMode: 'reauth' },
+    redirects: {
+      // Local SPA routes. afterLogout must NOT be /auth/login — that
+      // path is the package's OAuth entry and would re-trigger a login.
+      afterLogin: '/',
+      afterLogout: '/login',
+    },
   })
 
   return cached
