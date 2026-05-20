@@ -98,29 +98,24 @@ Substituir a camada de auth custom do `boilerplate-hono` por configuração do `
 
 ---
 
-## Fase 2 — RBAC matriz + guards
+## Fase 2 — RBAC matriz: test de type-safety
 
-**Objetivo**: matriz role→permissions, hierarchy, guards custom. Pode rodar parcialmente em paralelo à Fase 1.
+**Objetivo**: garantir que a matriz role→permissions cobre todas as roles.
 
-**Depende de**: U1.3 (precisa do `createAuth` pra passar a matriz).
+**Depende de**: U1.3.
 
-### U2.1 — Matriz role→permissions
-- Novo `src/server/auth/matrix.ts`: matriz R7 (`owner: ['*']`, `admin: [...]`, `member: [...]`, `guest: [...]`), passada a `createAuth({ permissions })`.
-- Catálogo R8 (sem `resources:publish`).
+### U2.1 — Matriz role→permissions ✅ (concluída na U1.3, 2026-05-20)
+- `src/server/auth/matrix.ts` criado: `PERMISSIONS_MATRIX`, `PERMISSION_CATALOG` (sem `resources:publish`), `ROLE_HIERARCHY`, `ROLES`.
 - Cobre: R6, R7, R8.
-- **Verde**: matriz tipada, importada por `auth.ts`.
 
-### U2.2 — Test de type-safety da matriz
-- Helper `defineMatrix<Roles>()` ou test unitário que assegura: toda role em `access.roles` tem entrada em `permissions`.
+### U2.2 — Test de type-safety da matriz ✅ (concluída 2026-05-20)
+- `tests/unit/server/auth/matrix.test.ts` — 4 testes: toda role em `ROLES` tem entrada não-vazia em `PERMISSIONS_MATRIX`; matriz não tem role fora de `ROLES`; `ROLE_HIERARCHY` cobre exatamente as roles declaradas; toda permission não-wildcard existe em `PERMISSION_CATALOG`.
 - Cobre: R8b.
-- **Verde**: test passa; remover uma role da matriz faz o test falhar (verifica intent).
+- **Verde**: 4 testes passam (`vitest run`). ✅
 
-### U2.3 — Guard de ownership
-- Guard adicional em `PATCH /accounts/:id/members/:userId`: rejeita se `targetUserId === account.ownerId` e requester não é o owner.
-- Cobre: R8c.
-- **Verde**: test cobre admin tentando rebaixar owner → 403.
+~~### U2.3 — Guard de ownership~~ — **MOVIDO pra Fase 3 (U3.5)**. Com a Opção A, `PATCH /accounts/:id/members/:userId` é rota do pacote; o guard de ownership vira middleware interceptor montado junto com `auth.accountRoutes()` (Fase 3).
 
-**Checkpoint Fase 2**: `pnpm test:unit:server` nos arquivos novos de auth passa.
+**Checkpoint Fase 2**: `pnpm test:unit:server` passa no `matrix.test.ts` novo. ✅
 
 ---
 
@@ -131,9 +126,15 @@ Substituir a camada de auth custom do `boilerplate-hono` por configuração do `
 **Depende de**: Fase 1 + Fase 2.
 
 ### U3.1 — Deletar código antigo
-- Deletar: `src/server/auth/{roles,permissions,guards,index}.ts`, `src/server/lib/{oauth,session,tokens}.ts`, `src/server/services/auth.ts`, `src/server/routes/auth/{handlers,routes,schemas,test-login,index}.ts`, `src/server/types/auth.ts`, `src/server/middleware/auth.ts`.
+- Deletar: `src/server/auth/{roles,permissions,guards,index}.ts` (`matrix.ts`/`setup.ts` permanecem), `src/server/lib/{oauth,session,tokens}.ts`, `src/server/services/auth.ts`, `src/server/routes/auth/{handlers,routes,schemas,test-login,index}.ts`, `src/server/types/auth.ts`, `src/server/middleware/auth.ts`.
+- **+ Opção A (2026-05-20)**: deletar `src/server/routes/accounts/*` + `src/server/services/accounts.ts` + remover re-export de `accountsService` em `src/server/services/index.ts`. Elimina os 28 erros AC1.
 - Cobre: R20.
 - **Verde**: `grep -rE "jwtAuth|sessionMiddleware|hasMinimumRole" src/` vazio.
+
+### U3.5 — Guard de ownership (movido da Fase 2)
+- `PATCH /accounts/:id/members/:userId` agora é rota do **pacote** (`auth.accountRoutes()`). O guard de ownership (R8c) vira **middleware interceptor** montado antes de `auth.accountRoutes()`: rejeita se `targetUserId === account.ownerId` e requester não é o owner.
+- Cobre: R8c.
+- **Verde**: test cobre admin tentando rebaixar owner → 403.
 
 ### U3.2 — Mount das rotas do pacote
 - `src/server/index.ts`: montar `auth.routes()`, `auth.adminRoutes()`, `auth.accountRoutes()`, `auth.invitationRoutes()`, `auth.middleware()`, `auth.accountMiddleware()`.
@@ -269,7 +270,7 @@ Fase 2 pode iniciar assim que U1.3 existir (paralela ao resto da Fase 1).
 
 ## Achados durante a implementação
 
-- **AC1 (Fase 1)** — `master` já tem `pnpm typecheck` quebrado: **28 erros pré-existentes** em `src/server/routes/accounts/handlers.ts` e `src/server/services/accounts.ts` (`MembershipRole` não exportado, `myAccountsRoute`/`switchAccountRoute` inexistentes, `slug/timezone/language` fora dos schemas, `currentAccountId` fora de `SessionData`). **Não relacionado a `@etus/auth`** — é dívida pré-existente. Parte pode ser resolvida naturalmente no rewire de `accounts` (Fase 3); o resto precisa de decisão separada. **Afeta o DoD "typecheck verde"** — ou corrige na Fase 3, ou o DoD precisa ser ajustado pra "typecheck sem erros novos".
+- **AC1 (Fase 1) — RESOLVIDO via Opção A (2026-05-20)** — `master` tinha `pnpm typecheck` quebrado: 28 erros pré-existentes em `routes/accounts/handlers.ts` + `services/accounts.ts`. Investigação confirmou que `routes/accounts/` duplica `auth.accountRoutes()` do pacote e não tem consumidor externo. **Resolução**: U3.1 deleta `routes/accounts/*` + `services/accounts.ts` — os 28 erros somem junto. DoD "typecheck verde" volta a ser alcançável.
 - **AC2 (Fase 1)** — `@etus/auth` publicado no npm vai até **0.3.0** (`latest`); 0.4.x existe só no source local do `oauth-gateway`. Plano fixado em `^0.3.0`.
 - **AC3 (Fase 1)** — `SessionConfig.maxAge` é valor único global → R30 (TTL por-role) rebaixado a limitação documentada.
 - **AC4 (Fase 1)** — callbacks `onNewUser`/`onLogin` não recebem `Context` → R5 (audit custom) dropado; usa-se o audit built-in.

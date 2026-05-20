@@ -127,13 +127,14 @@ Como o boilerplate **não tem usuários reais em produção**, a migração é u
 ### Funcionais — Cleanup
 
 - **R20**: Os seguintes arquivos **devem** ser deletados:
-  - `src/server/auth/{roles,permissions,guards,index}.ts`
+  - `src/server/auth/{roles,permissions,guards,index}.ts` (`matrix.ts`/`setup.ts` novos permanecem)
   - `src/server/lib/{oauth,session,tokens}.ts`
   - `src/server/services/auth.ts`
   - `src/server/routes/auth/{handlers,routes,schemas,test-login,index}.ts`
   - `src/server/types/auth.ts`
   - `src/server/routes/invitations/*` (substituído por `auth.invitationRoutes()`)
-  - Tests: `tests/unit/server/auth/*`, `tests/unit/server/lib/oauth.test.ts`, `tests/unit/server/services/auth.test.ts`, `tests/integration/auth/*`, `tests/integration/lib/oauth.test.ts`
+  - `src/server/routes/accounts/*` + `src/server/services/accounts.ts` — **adicionado 2026-05-20**: duplicam `auth.accountRoutes()` do pacote e carregam 28 erros de typecheck pré-existentes (AC1). Sem consumidor externo. Perda aceita: `restoreAccountRoute` (soft-delete restore).
+  - Tests: `tests/unit/server/auth/*` (exceto `matrix.test.ts` novo), `tests/unit/server/lib/oauth.test.ts`, `tests/unit/server/services/auth.test.ts`, `tests/integration/auth/*`, `tests/integration/lib/oauth.test.ts`, e quaisquer tests de `accounts`
 - **R21**: As variáveis de ambiente `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, `JWT_SECRET`, `JWT_EXPIRY_MINUTES`, `REFRESH_TOKEN_EXPIRY_DAYS` **devem** ser removidas de `.env.example` e `wrangler.json`.
 
 ### Funcionais — Documentação
