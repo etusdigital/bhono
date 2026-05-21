@@ -8,7 +8,6 @@ dist/
 .wrangler/
 .dev.vars
 docs/openapi.json
-worker-configuration.d.ts
 
 # Test outputs
 .test-output/

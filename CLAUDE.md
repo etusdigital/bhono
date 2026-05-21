@@ -134,7 +134,9 @@ Auth, users, accounts, memberships, invitations and audit logging are owned by t
 
 The RBAC matrix (4 roles: `owner > admin > member > guest`) and the permission catalog live in `src/server/auth/matrix.ts`. App routes guard with `requirePermission(...)` from `src/server/auth/guards.ts`, which reads the permissions resolved by the package's pipeline.
 
-Staff cross-product access is configured via `ETUS_ADMIN_EMAILS` (CSV) — listed emails receive `role='admin'` automatically on the OAuth callback.
+Staff cross-product access is configured via `ETUS_ADMIN_EMAILS` (CSV) — listed emails receive `role='admin'` automatically on the OAuth callback. `@etus/auth` requires at least one; the template ships a generic placeholder (`admin@etus.com.br`) that each product must replace with its real admins.
+
+Post-auth redirects are set in `src/server/auth/setup.ts` (`redirects.afterLogin: '/'`, `afterLogout: '/login'`) — both point at local SPA routes. `afterLogout` must NOT be `/auth/login` (the package's OAuth entry). Products with different route names adjust them there.
 
 ### Request Context
 

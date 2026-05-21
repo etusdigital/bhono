@@ -65,10 +65,13 @@ export default defineConfig({
         "src/server/__integration__/fixtures/**",
       ],
       thresholds: {
-        // Lowered post-@etus/auth migration: the package now owns auth/users/
-        // accounts/invitations/audit, so the local test surface shrank with
-        // the deleted code. Raise these back as tests for storage/middlewares/
-        // schemas are rewritten under the new model.
+        // TEMPORARY — lowered from 85/80/85/85 by the @etus/auth migration.
+        // The package now owns auth/users/accounts/invitations/audit, so 60+
+        // legacy tests for deleted code were removed. The remaining live
+        // features (storage, middlewares, shared schemas) still need tests
+        // rewritten under the new context-var model — tracked as a follow-up
+        // in docs/plans/2026-05-20-001-refactor-migrate-auth-etus-auth-impl-plan.md
+        // ("Out of scope" section). Restore to 85/80/85/85 once those land.
         statements: 60,
         branches: 55,
         functions: 60,

@@ -37,13 +37,22 @@ const CREATE_AUTH_SESSIONS = `CREATE TABLE IF NOT EXISTS auth_sessions (
   created_at INTEGER NOT NULL
 )`
 
+// Loopback hosts that count as local development. Covers IPv4, IPv6 (with
+// and without brackets, since URL.hostname strips them inconsistently across
+// runtimes), and the hostname alias.
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]'])
+
+// The package-managed tables only need to be ensured once per isolate.
+let schemaEnsured = false
+
 export const devLogin = new Hono<HonoEnv>()
 
 devLogin.post('/', async (c) => {
-  // Hostname-based gate: only localhost is dev. Any other host (workers.dev,
-  // custom domain) returns 403. Robust against env var misconfiguration.
+  // Hostname-based gate: only loopback hosts are dev. Any other host
+  // (workers.dev, custom domain) returns 403. Robust against env var
+  // misconfiguration.
   const host = new URL(c.req.url).hostname
-  if (host !== 'localhost' && host !== '127.0.0.1') {
+  if (!LOCAL_HOSTS.has(host)) {
     return c.json({ error: { message: 'Not available outside localhost' } }, 403)
   }
 
@@ -65,8 +74,12 @@ devLogin.post('/', async (c) => {
 
   // Ensure the package-managed tables exist (the package's ensureSchema is
   // not exported; test-login may run before any package middleware does).
-  await db.prepare(CREATE_AUTH_USERS).run()
-  await db.prepare(CREATE_AUTH_SESSIONS).run()
+  // Memoized — runs at most once per isolate.
+  if (!schemaEnsured) {
+    await db.prepare(CREATE_AUTH_USERS).run()
+    await db.prepare(CREATE_AUTH_SESSIONS).run()
+    schemaEnsured = true
+  }
 
   // Upsert the user in auth_users
   const existing = await db

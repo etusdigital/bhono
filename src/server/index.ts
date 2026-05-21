@@ -56,11 +56,11 @@ function buildApp(env: Env): Hono<HonoEnv> {
   // 7. Global rate limiting
   app.use('*', rateLimit())
 
-  // 8. Stricter rate limiting for login endpoints (brute-force protection)
+  // 8. Stricter rate limiting for credential endpoints (brute-force protection)
   const loginRateLimiter = authRateLimit()
+  const rateLimitedAuthPaths = new Set(['/auth/login', '/auth/callback', '/auth/test-login'])
   app.use('/auth/*', async (c, next) => {
-    const path = c.req.path
-    if (path === '/auth/login' || path === '/auth/callback') {
+    if (rateLimitedAuthPaths.has(c.req.path)) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Hono wildcard route typing
       return loginRateLimiter(c, next)
     }
@@ -84,11 +84,22 @@ function buildApp(env: Env): Hono<HonoEnv> {
   app.route('/auth/test-login', devLogin)
 
   // Populate authUser/authPermissions/authAccount when a session exists, but
-  // never block. The package's admin/account/audit/invitation routers all
-  // expect c.get('authUser') to be set before their role/permission checks
-  // run, and auth.routes() handles /login/callback/logout/me with its own
-  // session reads.
-  app.use('*', auth.optionalMiddleware())
+  // never block. Scoped to the package's admin/account/audit/invitation
+  // routers — they expect c.get('authUser') to be set before their own
+  // role/permission checks run. auth.routes() handles /login/callback/
+  // logout/me with its own session reads, and /api/* uses auth.middleware().
+  const withAuthContext = auth.optionalMiddleware()
+  for (const path of [
+    '/auth/admin/*',
+    '/audit',
+    '/audit/*',
+    '/accounts',
+    '/accounts/*',
+    '/invitations',
+    '/invitations/*',
+  ]) {
+    app.use(path, withAuthContext)
+  }
 
   // @etus/auth routes — OAuth flow, admin user management, accounts, invitations, audit
   app.route('/auth', auth.routes())
