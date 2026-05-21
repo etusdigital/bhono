@@ -101,7 +101,6 @@ export default tseslint.config(
       // REACT 19 - NO FORWARDREF + MODERN PATTERNS
       // ==============================================
       "@eslint-react/no-forward-ref": "error",
-      "@eslint-react/no-useless-forward-ref": "error",
       "@eslint-react/no-context-provider": "warn", // Use <Context> instead of <Context.Provider>
       "@eslint-react/no-use-context": "warn", // Use use() instead of useContext()
 
@@ -125,13 +124,6 @@ export default tseslint.config(
       // ==============================================
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
-
-      // ==============================================
-      // REACT HOOKS EXTRA (@eslint-react)
-      // Docs: https://eslint-react.xyz/docs/rules/overview
-      // ==============================================
-      "@eslint-react/hooks-extra/no-direct-set-state-in-use-effect": "warn",
-      "@eslint-react/prefer-use-state-lazy-initialization": "warn",
 
       // ==============================================
       // TANSTACK QUERY - ENHANCED RULES
@@ -159,18 +151,6 @@ export default tseslint.config(
             },
           ],
         },
-      ],
-
-      // ==============================================
-      // REACT NAMING CONVENTIONS
-      // ==============================================
-      "@eslint-react/naming-convention/component-name": [
-        "error",
-        { rule: "PascalCase" },
-      ],
-      "@eslint-react/naming-convention/filename": [
-        "error",
-        { rule: "kebab-case" },
       ],
 
       // ==============================================
@@ -236,17 +216,17 @@ export default tseslint.config(
       // MODULE BOUNDARIES
       // Docs: https://github.com/javierbrea/eslint-plugin-boundaries
       // ==============================================
-      "boundaries/element-types": [
+      "boundaries/dependencies": [
         "error",
         {
           default: "disallow",
           rules: [
             // shared cannot import from server or client
-            { from: "shared", allow: [] },
+            { from: { type: "shared" }, allow: [] },
             // server can import from shared
-            { from: "server", allow: ["shared"] },
+            { from: { type: "server" }, allow: [{ to: { type: "shared" } }] },
             // client can import from shared
-            { from: "client", allow: ["shared"] },
+            { from: { type: "client" }, allow: [{ to: { type: "shared" } }] },
           ],
         },
       ],

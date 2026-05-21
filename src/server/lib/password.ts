@@ -27,18 +27,14 @@ const MAX_CONSECUTIVE_REPEATS = 2
 export function generateStrongPassword(length: number = DEFAULT_LENGTH): string {
   const targetLength = Math.max(length, MIN_LENGTH)
 
-  let password = ''
-  let attempts = 0
   const maxAttempts = 100
 
-  while (attempts < maxAttempts) {
-    password = generateRandomPassword(targetLength)
+  for (let attempts = 0; attempts < maxAttempts; attempts++) {
+    const password = generateRandomPassword(targetLength)
 
     if (isStrongPassword(password)) {
       return password
     }
-
-    attempts++
   }
 
   // Fallback: construct a guaranteed valid password
