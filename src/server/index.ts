@@ -4,6 +4,7 @@ import { secureHeaders } from 'hono/secure-headers'
 import type { HonoEnv } from './types'
 import type { Env } from './env'
 import { getAuth } from './auth/setup'
+import { protectAccountOwner } from './auth/guards'
 import { api } from './routes'
 import { health } from './routes/health'
 import { devLogin } from './routes/dev-login'
@@ -100,6 +101,10 @@ function buildApp(env: Env): Hono<HonoEnv> {
   ]) {
     app.use(path, withAuthContext)
   }
+
+  // Protect the account owner from being demoted by an admin — runs before
+  // accountRoutes handles PATCH /accounts/:id/members/:userId.
+  app.use('/accounts/:id/members/:userId', protectAccountOwner())
 
   // @etus/auth routes — OAuth flow, admin user management, accounts, invitations, audit
   app.route('/auth', auth.routes())
