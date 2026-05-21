@@ -10,13 +10,13 @@ importers:
     dependencies:
       '@etus/auth':
         specifier: ^0.3.0
-        version: 0.3.0(hono@4.11.3)
+        version: 0.3.0(hono@4.12.21)
       '@hono/swagger-ui':
         specifier: ^0.5.3
-        version: 0.5.3(hono@4.11.3)
+        version: 0.5.3(hono@4.12.21)
       '@hono/zod-openapi':
         specifier: ^1.2.0
-        version: 1.2.0(hono@4.11.3)(zod@4.3.5)
+        version: 1.2.0(hono@4.12.21)(zod@4.3.5)
       '@hookform/resolvers':
         specifier: ^5.2.2
         version: 5.2.2(react-hook-form@7.70.0(react@19.2.3))
@@ -39,8 +39,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       hono:
-        specifier: ^4.11.3
-        version: 4.11.3
+        specifier: ^4.12.21
+        version: 4.12.21
       lucide-react:
         specifier: ^0.562.0
         version: 0.562.0(react@19.2.3)
@@ -3163,8 +3163,8 @@ packages:
   hermes-parser@0.25.1:
     resolution: {integrity: sha512-6pEjquH3rqaI6cYAXYPcz9MS4rY6R4ngRgrgfDshRptUZIc3lw0MCIJIGDj9++mfySOuPTHB4nrSW99BCvOPIA==}
 
-  hono@4.11.3:
-    resolution: {integrity: sha512-PmQi306+M/ct/m5s66Hrg+adPnkD5jiO6IjA7WhWw0gSBSo1EcRegwuI1deZ+wd5pzCGynCcn2DprnE4/yEV4w==}
+  hono@4.12.21:
+    resolution: {integrity: sha512-uV63apnb0kyPtAUwoWgaGh9HyIFcv8lgmzPZSiTBQAFOFGIzka5EZ1dZocmGnn0XdX0+XTqJ6Tqv7selMuGLRQ==}
     engines: {node: '>=16.9.0'}
 
   html-encoding-sniffer@6.0.0:
@@ -5728,11 +5728,11 @@ snapshots:
       '@eslint/core': 0.17.0
       levn: 0.4.1
 
-  '@etus/auth@0.3.0(hono@4.11.3)':
+  '@etus/auth@0.3.0(hono@4.12.21)':
     dependencies:
       '@clack/prompts': 1.4.0
       commander: 12.1.0
-      hono: 4.11.3
+      hono: 4.12.21
 
   '@etus/bhono-app@0.1.5':
     dependencies:
@@ -5744,21 +5744,21 @@ snapshots:
 
   '@exodus/bytes@1.8.0': {}
 
-  '@hono/swagger-ui@0.5.3(hono@4.11.3)':
+  '@hono/swagger-ui@0.5.3(hono@4.12.21)':
     dependencies:
-      hono: 4.11.3
+      hono: 4.12.21
 
-  '@hono/zod-openapi@1.2.0(hono@4.11.3)(zod@4.3.5)':
+  '@hono/zod-openapi@1.2.0(hono@4.12.21)(zod@4.3.5)':
     dependencies:
       '@asteasolutions/zod-to-openapi': 8.2.0(zod@4.3.5)
-      '@hono/zod-validator': 0.7.6(hono@4.11.3)(zod@4.3.5)
-      hono: 4.11.3
+      '@hono/zod-validator': 0.7.6(hono@4.12.21)(zod@4.3.5)
+      hono: 4.12.21
       openapi3-ts: 4.5.0
       zod: 4.3.5
 
-  '@hono/zod-validator@0.7.6(hono@4.11.3)(zod@4.3.5)':
+  '@hono/zod-validator@0.7.6(hono@4.12.21)(zod@4.3.5)':
     dependencies:
-      hono: 4.11.3
+      hono: 4.12.21
       zod: 4.3.5
 
   '@hookform/resolvers@5.2.2(react-hook-form@7.70.0(react@19.2.3))':
@@ -7926,7 +7926,7 @@ snapshots:
     dependencies:
       hermes-estree: 0.25.1
 
-  hono@4.11.3: {}
+  hono@4.12.21: {}
 
   html-encoding-sniffer@6.0.0:
     dependencies:
