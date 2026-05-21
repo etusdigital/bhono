@@ -33,7 +33,14 @@
     "binding": "ASSETS",
     "run_worker_first": [
       "/api/*",
-      "/auth/*"
+      "/auth/*",
+      "/accounts",
+      "/accounts/*",
+      "/invitations",
+      "/invitations/*",
+      "/audit",
+      "/audit/*",
+      "/health"
     ]
   },
   "vars": {
@@ -41,7 +48,9 @@
     "APP_URL": "https://hono-boilerplate.a3s.workers.dev",
     "R2_PUBLIC_URL": "https://pub-your-bucket-id.r2.dev",
     "ETUS_GATEWAY": "https://ag.etus.io",
-    "ETUS_CLIENT_ID": "cl_ml750fiz_Dv62zSC_Ld-5d6TYbXcAfA"
+    "ETUS_CLIENT_ID": "boilerplate-hono",
+    "ETUS_ALLOWED_DOMAINS": "brius.com.br,etus.com.br",
+    "ETUS_ADMIN_EMAILS": "admin@etus.com.br"
   },
   "env": {
     "staging": {
@@ -70,7 +79,9 @@
         "APP_URL": "https://hono-boilerplate-staging.a3s.workers.dev",
         "R2_PUBLIC_URL": "https://pub-your-bucket-id.r2.dev",
         "ETUS_GATEWAY": "https://ag.etus.io",
-        "ETUS_CLIENT_ID": "cl_ml750fiz_Dv62zSC_Ld-5d6TYbXcAfA"
+        "ETUS_CLIENT_ID": "boilerplate-hono",
+        "ETUS_ALLOWED_DOMAINS": "brius.com.br,etus.com.br",
+        "ETUS_ADMIN_EMAILS": "admin@etus.com.br"
       }
     }
   }

@@ -1,15 +1,12 @@
 // src/server/index.ts
 import { Hono } from 'hono'
 import { secureHeaders } from 'hono/secure-headers'
-import { createAuth } from '@etus/auth'
 import type { HonoEnv } from './types'
 import type { Env } from './env'
-import { createDb } from './db/client'
+import { getAuth } from './auth/setup'
 import { api } from './routes'
 import { health } from './routes/health'
-import { inviteRouter } from './routes/invite'
-import { devRouter } from './routes/dev/test-login'
-import { pendingInvitationMiddleware } from './middleware/pending-invitation'
+import { devLogin } from './routes/dev-login'
 import {
   errorHandler,
   requestLogger,
@@ -18,163 +15,115 @@ import {
   rateLimit,
   authRateLimit,
 } from './middleware'
-import { sessionMiddleware } from './lib/session'
 import { validateEnv } from './env'
 
-// @etus/auth factory - creates auth instance with environment config
-// Called lazily on first request to access env vars (Cloudflare Workers pattern)
-function createEtusAuth(env: Env) {
-  // Parse comma-separated lists from environment
-  const allowedDomains = env.ETUS_ALLOWED_DOMAINS
-    ? env.ETUS_ALLOWED_DOMAINS.split(',').map((d) => d.trim())
-    : []
-  const adminEmails = env.ETUS_ADMIN_EMAILS
-    ? env.ETUS_ADMIN_EMAILS.split(',').map((e) => e.trim().toLowerCase())
-    : []
+// The app is built lazily on the first request: @etus/auth needs the ETUS_*
+// config vars, which only exist at request time in Cloudflare Workers. The
+// built app is cached for the isolate's lifetime (env is stable per deploy).
+let appInstance: Hono<HonoEnv> | undefined
 
-  return createAuth({
-    gateway: env.ETUS_GATEWAY ?? 'https://ag.etus.io',
-    clientId: env.ETUS_CLIENT_ID ?? 'boilerplate-hono',
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- Required by @etus/auth, validated in middleware
-    db: (e) => (e as Env).DB!,
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- Required by @etus/auth, validated in middleware
-    sessions: (e) => (e as Env).SESSIONS!,
-    access: {
-      mode: 'open',
-      allowedDomains,
-      admins: adminEmails,
-      // Use uppercase roles to match local RBAC system
-      roles: ['ADMIN', 'EDITOR', 'VIEWER', 'BILLING'],
-      defaultRole: 'VIEWER',
-    },
-    session: {
-      maxAge: 30 * 24 * 60 * 60, // 30 days
-      sliding: true,
-    },
-    redirects: {
-      afterLogin: '/',
-      afterLogout: '/login',
-    },
-    // eslint-disable-next-line @typescript-eslint/require-await -- Required by @etus/auth callback signature
-    onNewUser: async (user) => {
-      console.log('[AUTH] New user provisioned:', user.id)
-    },
-    // eslint-disable-next-line @typescript-eslint/require-await -- Required by @etus/auth callback signature
-    onLogin: async (user) => {
-      console.log('[AUTH] User logged in:', user.id)
-    },
+function buildApp(env: Env): Hono<HonoEnv> {
+  const auth = getAuth(env)
+  const app = new Hono<HonoEnv>()
+
+  // 1. Global error handler
+  app.onError(errorHandler)
+
+  // 2. Request context (transactionId, IP, userAgent)
+  app.use('*', requestContext)
+
+  // 3. Environment validation
+  app.use('*', async (c, next) => {
+    validateEnv(c.env)
+    await next()
   })
+
+  // 4. Request logger
+  app.use('*', requestLogger())
+
+  // 5. Configurable CORS
+  app.use('*', async (c, next) => {
+    const corsOrigins = c.env.CORS_ORIGINS
+      ? c.env.CORS_ORIGINS.split(',').map((o) => o.trim())
+      : []
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Hono wildcard route typing
+    return configurableCors({ corsOrigins, appUrl: c.env.APP_URL })(c, next)
+  })
+
+  // 6. Security headers
+  app.use('*', secureHeaders())
+
+  // 7. Global rate limiting
+  app.use('*', rateLimit())
+
+  // 8. Stricter rate limiting for credential endpoints (brute-force protection)
+  const loginRateLimiter = authRateLimit()
+  const rateLimitedAuthPaths = new Set(['/auth/login', '/auth/callback', '/auth/test-login'])
+  app.use('/auth/*', async (c, next) => {
+    if (rateLimitedAuthPaths.has(c.req.path)) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Hono wildcard route typing
+      return loginRateLimiter(c, next)
+    }
+    return next()
+  })
+
+  // 9. Database binding into context (per request)
+  app.use('*', async (c, next) => {
+    if (c.env.DB) {
+      c.set('db', c.env.DB)
+    }
+    await next()
+  })
+
+  // Health checks (no auth) — before everything else
+  app.route('/health', health)
+
+  // Dev-only test-login. The route itself is always mounted; the handler
+  // returns 403 unless the request comes from localhost. Mounted BEFORE
+  // optionalMiddleware so it can create the very first session.
+  app.route('/auth/test-login', devLogin)
+
+  // Populate authUser/authPermissions/authAccount when a session exists, but
+  // never block. Scoped to the package's admin/account/audit/invitation
+  // routers — they expect c.get('authUser') to be set before their own
+  // role/permission checks run. auth.routes() handles /login/callback/
+  // logout/me with its own session reads, and /api/* uses auth.middleware().
+  const withAuthContext = auth.optionalMiddleware()
+  for (const path of [
+    '/auth/admin/*',
+    '/audit',
+    '/audit/*',
+    '/accounts',
+    '/accounts/*',
+    '/invitations',
+    '/invitations/*',
+  ]) {
+    app.use(path, withAuthContext)
+  }
+
+  // @etus/auth routes — OAuth flow, admin user management, accounts, invitations, audit
+  app.route('/auth', auth.routes())
+  app.route('/auth/admin', auth.adminRoutes())
+  app.route('/audit', auth.auditRoutes())
+  app.route('/accounts', auth.accountRoutes())
+  app.route('/invitations', auth.invitationRoutes())
+
+  // Protected application API — requires authentication (docs are public)
+  app.use('/api/*', async (c, next) => {
+    if (c.req.path === '/api/doc' || c.req.path === '/api/swagger') {
+      return next()
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Hono wildcard route typing
+    return auth.middleware()(c, next)
+  })
+  app.route('/api', api)
+
+  return app
 }
 
-// Lazy-initialized auth instance (created on first request with env)
-let etusAuth: ReturnType<typeof createAuth> | null = null
-
-// Get or create @etus/auth instance (singleton per Worker instance)
-function getEtusAuth(env: Env): ReturnType<typeof createAuth> {
-  etusAuth ??= createEtusAuth(env)
-  return etusAuth
+export default {
+  fetch(request: Request, env: Env, ctx: ExecutionContext): Response | Promise<Response> {
+    appInstance ??= buildApp(env)
+    return appInstance.fetch(request, env, ctx)
+  },
 }
-
-// Hono app with bindings and variables
-const app = new Hono<HonoEnv>()
-
-// 1. Global error handler
-app.onError(errorHandler)
-
-// 2. Request context (transactionId, IP, userAgent) - must be first for logging
-app.use('*', requestContext)
-
-// 3. Environment validation - fail fast if misconfigured
-app.use('*', async (c, next) => {
-  validateEnv(c.env)
-  await next()
-})
-
-// 4. Request logger (uses transactionId from context)
-app.use('*', requestLogger())
-
-// 5. Configurable CORS
-app.use('*', async (c, next) => {
-  const env = c.env
-  const corsOrigins = env.CORS_ORIGINS
-    ? env.CORS_ORIGINS.split(',').map((o) => o.trim())
-    : []
-  return configurableCors({
-    corsOrigins,
-    appUrl: env.APP_URL,
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Hono wildcard route typing
-  })(c, next)
-})
-
-// 6. Security headers
-app.use('*', secureHeaders())
-
-// 7. Rate limiting - global limit of 100 requests per minute
-app.use('*', rateLimit())
-
-// 8. Stricter rate limiting for auth LOGIN endpoints only (10 requests per minute)
-// These are the endpoints vulnerable to brute force attacks
-// Note: /auth/me, /auth/refresh, /auth/logout use the global rate limit (100 req/min)
-// because they are session verification/maintenance, not login attempts
-// Create auth rate limiter instance once (not per-request)
-const loginRateLimiter = authRateLimit()
-
-app.use('/auth/*', async (c, next) => {
-  const path = c.req.path
-  // Only apply strict rate limit to login-related endpoints (brute force protection)
-  if (path === '/auth/login' || path === '/auth/callback') {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Hono wildcard route typing
-    return loginRateLimiter(c, next)
-  }
-  // Other auth endpoints (/auth/me, /auth/refresh, /auth/logout) use global rate limit
-  return next()
-})
-
-// 9. Database middleware - create db instance per request
-app.use('*', async (c, next) => {
-  if (c.env.DB) {
-    const db = createDb(c.env.DB)
-    c.set('db', db)
-  }
-  await next()
-})
-
-// 10. Session middleware - read session from KV
-app.use('*', sessionMiddleware())
-
-// 11. Pending invitation middleware - auto-accept invitations after login
-app.use('*', pendingInvitationMiddleware)
-
-// Mount routes
-// Health checks (no auth required) - must be before /api
-app.route('/health', health)
-
-// @etus/auth routes (OAuth flow via gateway)
-// Uses middleware pattern for lazy initialization with env vars
-// Handles: /auth/login, /auth/callback, /auth/logout, /auth/me
-app.use('/auth/*', async (c, _next) => {
-  const auth = getEtusAuth(c.env)
-  const authApp = new Hono<HonoEnv>()
-  authApp.route('/', auth.routes())
-  authApp.route('/admin', auth.adminRoutes())
-  return authApp.fetch(c.req.raw, c.env, c.executionCtx)
-})
-
-// Public invite acceptance route
-app.route('/invite', inviteRouter)
-
-// Development routes (test-login for E2E tests)
-// Only mounted in non-production environments for security
-app.use('/dev/*', async (c, _next) => {
-  if (c.env.ENVIRONMENT === 'production') {
-    return c.json({ error: { message: 'Not found' } }, 404)
-  }
-  const devApp = new Hono<HonoEnv>()
-  devApp.route('/', devRouter)
-  return devApp.fetch(c.req.raw, c.env, c.executionCtx)
-})
-
-// API routes (with auth)
-app.route('/api', api)
-
-export default app

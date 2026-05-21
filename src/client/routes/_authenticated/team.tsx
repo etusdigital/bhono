@@ -39,7 +39,7 @@ const mockTeamMembers: {
   name: string
   email: string
   role: string
-  avatarUrl: string | null
+  picture: string | null
   joinedAt: string
   isCurrentUser: boolean
 }[] = [
@@ -48,7 +48,7 @@ const mockTeamMembers: {
     name: 'You',
     email: '',
     role: 'owner',
-    avatarUrl: null,
+    picture: null,
     joinedAt: new Date().toISOString(),
     isCurrentUser: true,
   },
@@ -84,7 +84,7 @@ function TeamPage() {
   // Populate current user data
   const teamMembers: TeamMember[] = mockTeamMembers.map((m) =>
     m.isCurrentUser
-      ? { ...m, name: user?.name ?? 'You', email: user?.email ?? '', avatarUrl: user?.avatarUrl ?? null }
+      ? { ...m, name: user?.name ?? 'You', email: user?.email ?? '', picture: user?.picture ?? null }
       : m
   )
 
@@ -286,7 +286,7 @@ function TeamMemberRow({ member }: { member: TeamMember }) {
     <div className="flex items-center justify-between py-4 first:pt-0 last:pb-0">
       <div className="flex items-center gap-4">
         <Avatar>
-          <AvatarImage src={member.avatarUrl ?? undefined} alt={member.name} />
+          <AvatarImage src={member.picture ?? undefined} alt={member.name} />
           <AvatarFallback>{initials}</AvatarFallback>
         </Avatar>
         <div>
