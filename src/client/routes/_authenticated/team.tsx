@@ -318,8 +318,11 @@ function InvitationRow({ invitation }: { invitation: Invitation }) {
   const [isRevoking, setIsRevoking] = useState(false)
   const [isResending, setIsResending] = useState(false)
 
-  const daysUntilExpiry = Math.ceil(
-    (new Date(invitation.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+  // Computed once on mount — Date.now() must not run during render.
+  const [daysUntilExpiry] = useState(() =>
+    Math.ceil(
+      (new Date(invitation.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+    ),
   )
 
   const handleRevoke = async () => {
