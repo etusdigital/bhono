@@ -142,6 +142,8 @@ export async function generateProject(
     const wrangler = await fs.readJson(wranglerPath)
     if (wrangler && typeof wrangler === 'object') {
       delete wrangler.account_id
+      // Name the Worker after the generated project
+      wrangler.name = options.projectName
       if (Array.isArray(wrangler.d1_databases)) {
         wrangler.d1_databases = wrangler.d1_databases.map((db: Record<string, unknown>) => ({
           ...db,
@@ -158,6 +160,9 @@ export async function generateProject(
         for (const envName of Object.keys(wrangler.env)) {
           const envConfig = wrangler.env[envName]
           if (!envConfig || typeof envConfig !== 'object') continue
+          if (typeof envConfig.name === 'string') {
+            envConfig.name = `${options.projectName}-${envName}`
+          }
           if (Array.isArray(envConfig.d1_databases)) {
             envConfig.d1_databases = envConfig.d1_databases.map((db: Record<string, unknown>) => ({
               ...db,
