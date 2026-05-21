@@ -1,9 +1,47 @@
 import { describe, it, expect } from 'vitest'
 import { Hono } from 'hono'
 import type { AuthUser } from '@etus/auth'
-import { protectAccountOwner } from '@server/auth/guards'
+import { protectAccountOwner, requirePermission } from '@server/auth/guards'
 import type { HonoEnv } from '@server/types'
 import { createMockD1AsD1Database, setMockQueryResult } from '@tests/mocks/db'
+
+describe('requirePermission', () => {
+  function makeApp(permissions: string[], required: string) {
+    const app = new Hono<HonoEnv>()
+    app.use('/x', async (c, next) => {
+      c.set('authPermissions', permissions)
+      await next()
+    })
+    app.use('/x', requirePermission(required))
+    app.get('/x', (c) => c.json({ ok: true }))
+    return app
+  }
+
+  it('allows a request that holds the exact permission', async () => {
+    const res = await makeApp(['resources:read'], 'resources:read').request('/x')
+    expect(res.status).toBe(200)
+  })
+
+  it('rejects a request missing the permission with 403', async () => {
+    const res = await makeApp(['resources:read'], 'resources:delete').request('/x')
+    expect(res.status).toBe(403)
+  })
+
+  it('honors the full wildcard *', async () => {
+    const res = await makeApp(['*'], 'resources:delete').request('/x')
+    expect(res.status).toBe(200)
+  })
+
+  it('honors a resource wildcard (resources:*)', async () => {
+    const res = await makeApp(['resources:*'], 'resources:delete').request('/x')
+    expect(res.status).toBe(200)
+  })
+
+  it('rejects when the permission set is empty', async () => {
+    const res = await makeApp([], 'resources:read').request('/x')
+    expect(res.status).toBe(403)
+  })
+})
 
 // Builds a minimal app: a stand-in for optionalMiddleware sets authUser,
 // then the guard runs, then a handler that 200s if the guard let it through.

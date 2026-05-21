@@ -38,44 +38,29 @@ export default defineConfig({
         "**/__tests__/**",
         "**/types/**",
         "**/*.d.ts",
-        // Entry points and config
+        // Entry point, config and wiring — not business logic
         "src/server/index.ts",
         "src/server/env.ts",
+        "src/server/auth/setup.ts",
         // Database setup (not business logic)
         "src/server/db/client.ts",
         "src/server/db/seed.ts",
         "src/server/db/records.ts",
         // Barrel exports (just re-exports, no logic)
-        "src/server/services/index.ts",
         "src/server/middleware/index.ts",
         "src/shared/schemas/index.ts",
-        // Utility/infrastructure with hard-to-test edge cases
-        "src/server/lib/password.ts",
-        "src/server/lib/audit.ts",
-        "src/server/lib/audited-db.ts",
-        "src/server/lib/tokens.ts",
-        // API documentation and router config (not testable)
-        "src/server/routes/api.ts",
+        // OpenAPI router wiring (not testable logic)
         "src/server/routes/index.ts",
-        // Dev-only endpoint (tested via E2E)
-        "src/server/routes/auth/test-login.ts",
-        // Integration test fixtures
-        "src/server/__integration__/setup.ts",
-        "src/server/__integration__/fixtures.ts",
-        "src/server/__integration__/fixtures/**",
+        // Utility with hard-to-test edge cases
+        "src/server/lib/password.ts",
+        // Dev-only endpoint (exercised by E2E, not unit tests)
+        "src/server/routes/dev-login.ts",
       ],
       thresholds: {
-        // TEMPORARY — lowered from 85/80/85/85 by the @etus/auth migration.
-        // The package now owns auth/users/accounts/invitations/audit, so 60+
-        // legacy tests for deleted code were removed. The remaining live
-        // features (storage, middlewares, shared schemas) still need tests
-        // rewritten under the new context-var model — tracked as a follow-up
-        // in docs/plans/2026-05-20-001-refactor-migrate-auth-etus-auth-impl-plan.md
-        // ("Out of scope" section). Restore to 85/80/85/85 once those land.
-        statements: 60,
-        branches: 55,
-        functions: 60,
-        lines: 60,
+        statements: 85,
+        branches: 80,
+        functions: 85,
+        lines: 85,
       },
     },
   },
