@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { getEnv, validateEnv, type Env } from '@server/env'
 
 // Note: The old process.env-based tests were removed as the env module
@@ -106,9 +106,38 @@ describe('validateEnv', () => {
   })
 
   it('allows wildcard CORS only outside production for local debugging', () => {
-    expect(() => {
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      expect(() => {
+        validateEnv({ ...validEnv, ENVIRONMENT: 'development', CORS_ORIGINS: '*' })
+      }).not.toThrow()
+    } finally {
+      spy.mockRestore()
+    }
+  })
+
+  it('warns when CORS_ORIGINS contains * outside production so operators know csrf drops it', () => {
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
       validateEnv({ ...validEnv, ENVIRONMENT: 'development', CORS_ORIGINS: '*' })
-    }).not.toThrow()
+      expect(spy).toHaveBeenCalledWith(expect.stringMatching(/wildcard is ignored/i))
+    } finally {
+      spy.mockRestore()
+    }
+  })
+
+  it('does not warn when CORS_ORIGINS is a concrete list', () => {
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      validateEnv({
+        ...validEnv,
+        ENVIRONMENT: 'development',
+        CORS_ORIGINS: 'http://localhost:5173',
+      })
+      expect(spy).not.toHaveBeenCalled()
+    } finally {
+      spy.mockRestore()
+    }
   })
 
   it('rejects missing ETUS client secret outside local/test environments', () => {

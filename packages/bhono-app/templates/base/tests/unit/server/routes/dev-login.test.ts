@@ -74,4 +74,27 @@ describe('devLogin', () => {
       error: { message: 'invalid role: viewer' },
     })
   })
+
+  it('sets the session cookie with SameSite=Lax so an accidental downgrade to None is caught', async () => {
+    // The CSRF strategy this boilerplate ships with (Origin + Referer check,
+    // no token) relies on the browser refusing to send the session cookie on
+    // cross-site state-changing requests. SameSite=None would silently undo
+    // that, leaving auth open to CSRF. This test fails fast if someone flips
+    // it without rethinking the protection model.
+    const env = createMockEnv()
+    const res = await devLogin.request(
+      'http://localhost/',
+      {
+        method: 'POST',
+        body: JSON.stringify({ email: 'e2e@example.com' }),
+        headers: { 'Content-Type': 'application/json' },
+      },
+      env,
+    )
+
+    expect(res.status).toBe(200)
+    const cookie = res.headers.get('set-cookie') ?? ''
+    expect(cookie).toMatch(/SameSite=(Lax|Strict)/i)
+    expect(cookie).not.toMatch(/SameSite=None/i)
+  })
 })

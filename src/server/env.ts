@@ -73,4 +73,12 @@ export function validateEnv(env: Env, options: { allowMissingClientSecret?: bool
   if (env.ENVIRONMENT === 'production' && parseList(env.CORS_ORIGINS).includes('*')) {
     throw new Error('CORS_ORIGINS must not contain * in production')
   }
+  if (env.ENVIRONMENT !== 'production' && parseList(env.CORS_ORIGINS).includes('*')) {
+    // csrfProtection requires exact-origin matches; '*' is silently dropped by
+    // the normalizer. Surface this so dev/staging operators don't lose hours
+    // debugging cross-origin requests that were rejected for a stripped wildcard.
+    console.warn(
+      "CORS_ORIGINS includes '*' but csrfProtection requires exact origin matches — the wildcard is ignored. List each origin explicitly.",
+    )
+  }
 }
