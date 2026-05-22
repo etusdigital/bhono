@@ -97,10 +97,10 @@ describe('configurableCors', () => {
 
     const allowedHeaders = res.headers.get('Access-Control-Allow-Headers')
     expect(allowedHeaders).toContain('Content-Type')
-    expect(allowedHeaders).toContain('X-CSRF-Token')
-    expect(allowedHeaders).toContain('X-Requested-With')
     expect(allowedHeaders).toContain('X-Account-ID')
     expect(allowedHeaders).toContain('Account-ID')
+    expect(allowedHeaders).not.toContain('X-CSRF-Token')
+    expect(allowedHeaders).not.toContain('X-Requested-With')
     expect(allowedHeaders).not.toContain('Authorization')
   })
 })

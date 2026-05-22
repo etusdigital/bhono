@@ -66,13 +66,12 @@ describe('frontend security guardrails', () => {
     expect(violations).toEqual([])
   })
 
-  it('marks cookie-authenticated mutations as intentional browser requests', () => {
-    const mutatingMethodPattern = /method:\s*['"`](POST|PUT|PATCH|DELETE)['"`]/
-
+  it('does not send decorative CSRF request headers from the client bundle', () => {
     const violations = readClientFiles().flatMap(({ relativePath, source }) => {
-      if (!source.includes('fetch(') || !mutatingMethodPattern.test(source)) return []
-      if (source.includes('X-CSRF-Token') || source.includes('X-Requested-With')) return []
-      return [relativePath]
+      const forbidden = ['X-CSRF-Token', 'X-Requested-With']
+      return forbidden
+        .filter((header) => source.includes(header))
+        .map((header) => `${relativePath}: ${header}`)
     })
 
     expect(violations).toEqual([])

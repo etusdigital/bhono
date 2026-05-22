@@ -117,7 +117,7 @@
 | **Authorization** | Product RBAC (`owner > admin > member > guest`) + account membership roles | HIGH |
 | **Session Management** | KV-backed, httpOnly cookies | HIGH |
 | **Token Security** | OAuth/session internals owned by `@etus/auth`; no browser bearer tokens | HIGH |
-| **CSRF Protection** | SameSite cookies + Origin/Referer + explicit request header | HIGH |
+| **CSRF Protection** | SameSite cookies + Origin/Referer + JSON-only mutation gate | HIGH |
 | **Rate Limiting** | In-memory with lazy cleanup | HIGH |
 | **Audit Logging** | Package-owned auth/account/invitation events logged by `@etus/auth` | HIGH |
 | **Soft Delete** | Product-specific; package account routes currently hard-delete | MEDIUM |

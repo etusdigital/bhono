@@ -168,7 +168,6 @@ describe("useAuth", () => {
         credentials: "include",
         headers: {
           Accept: "application/json",
-          "X-CSRF-Token": "1",
         },
       })
     })

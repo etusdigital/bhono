@@ -77,7 +77,6 @@ async function mutateJson<T>(url: string, method: 'POST' | 'DELETE', data?: unkn
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',
-      'X-CSRF-Token': '1',
     },
     ...(data === undefined ? {} : { body: JSON.stringify(data) }),
   })

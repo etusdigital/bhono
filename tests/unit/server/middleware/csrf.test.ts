@@ -31,7 +31,6 @@ describe('csrfProtection', () => {
         body: JSON.stringify({ ok: true }),
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': '1',
         },
       },
       createMockEnv(),
@@ -52,33 +51,12 @@ describe('csrfProtection', () => {
         headers: {
           Origin: 'https://evil.example',
           'Content-Type': 'application/json',
-          'X-CSRF-Token': '1',
         },
       },
       createMockEnv(),
     )
 
     expect(res.status).toBe(403)
-  })
-
-  it('rejects a state-changing request missing the intentional CSRF header', async () => {
-    const res = await makeApp().request(
-      '/api/resource',
-      {
-        method: 'POST',
-        body: JSON.stringify({ ok: true }),
-        headers: {
-          Origin: 'http://localhost:8787',
-          'Content-Type': 'application/json',
-        },
-      },
-      createMockEnv(),
-    )
-
-    expect(res.status).toBe(403)
-    await expect(res.json()).resolves.toMatchObject({
-      error: { message: 'Missing CSRF protection header' },
-    })
   })
 
   it('rejects JSON endpoints posted as a simple form content type', async () => {
@@ -90,7 +68,6 @@ describe('csrfProtection', () => {
         headers: {
           Origin: 'http://localhost:8787',
           'Content-Type': 'application/x-www-form-urlencoded',
-          'X-CSRF-Token': '1',
         },
       },
       createMockEnv(),
@@ -99,7 +76,7 @@ describe('csrfProtection', () => {
     expect(res.status).toBe(415)
   })
 
-  it('allows trusted JSON mutations with the CSRF header', async () => {
+  it('allows trusted JSON mutations without a decorative CSRF token header', async () => {
     const res = await makeApp().request(
       '/api/resource',
       {
@@ -108,7 +85,6 @@ describe('csrfProtection', () => {
         headers: {
           Origin: 'http://localhost:8787',
           'Content-Type': 'application/json',
-          'X-CSRF-Token': '1',
         },
       },
       createMockEnv(),
@@ -117,14 +93,13 @@ describe('csrfProtection', () => {
     expect(res.status).toBe(200)
   })
 
-  it('allows empty-body logout requests with the CSRF header', async () => {
+  it('allows empty-body logout requests from trusted origins', async () => {
     const res = await makeApp().request(
       '/auth/logout',
       {
         method: 'POST',
         headers: {
           Origin: 'http://localhost:8787',
-          'X-CSRF-Token': '1',
         },
       },
       createMockEnv(),
@@ -133,7 +108,7 @@ describe('csrfProtection', () => {
     expect(res.status).toBe(200)
   })
 
-  it('allows storage upload content types while keeping origin and CSRF checks', async () => {
+  it('allows storage upload content types while keeping origin checks', async () => {
     const res = await makeApp().request(
       '/api/storage/upload/file.txt',
       {
@@ -142,7 +117,6 @@ describe('csrfProtection', () => {
         headers: {
           Origin: 'http://localhost:8787',
           'Content-Type': 'text/plain',
-          'X-CSRF-Token': '1',
         },
       },
       createMockEnv(),

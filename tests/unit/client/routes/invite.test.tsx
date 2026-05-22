@@ -76,7 +76,6 @@ describe('Invite Token Page', () => {
       expect(global.fetch).toHaveBeenCalledWith('/invitations/test-token-123/accept', {
         method: 'POST',
         credentials: 'include',
-        headers: { 'X-CSRF-Token': '1' },
       })
       await waitFor(() => {
         expect(screen.getByText('Invitation accepted')).toBeInTheDocument()

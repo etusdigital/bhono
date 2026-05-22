@@ -351,7 +351,6 @@ test.describe('UI Features Gap Tests @ui @features @pages', () => {
         },
         headers: {
           Origin: new URL(page.url()).origin,
-          'X-CSRF-Token': '1',
         },
         failOnStatusCode: false,
       })

@@ -23,7 +23,7 @@ export const configurableCors = (config: CorsConfig) => {
       return allowedOrigins.has(origin) ? origin : null
     },
     credentials: true,
-    allowHeaders: ['Content-Type', 'X-CSRF-Token', 'X-Requested-With', 'X-Account-ID', 'Account-ID'],
+    allowHeaders: ['Content-Type', 'X-Account-ID', 'Account-ID'],
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   })
 }

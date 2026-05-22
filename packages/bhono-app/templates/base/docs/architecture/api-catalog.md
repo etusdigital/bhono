@@ -21,9 +21,9 @@ Package-owned routes are not re-declared under `/api/*`. The boilerplate keeps
 code should call package routes with `credentials: 'include'`; it should not
 store tokens in `localStorage` or `sessionStorage`.
 
-State-changing browser requests must include a trusted `Origin`/`Referer`, an
-intentional request header (`X-CSRF-Token` or `X-Requested-With`), and JSON
-content type for JSON endpoints.
+State-changing browser requests must include a trusted `Origin`/`Referer`; JSON
+endpoints must also use JSON content type. The boilerplate intentionally does
+not send a decorative CSRF token header.
 
 ## Auth Routes
 

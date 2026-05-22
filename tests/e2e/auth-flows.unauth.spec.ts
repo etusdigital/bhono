@@ -108,7 +108,6 @@ test.describe('Auth Flows @auth', () => {
       const response = await request.post(`${baseURL}/auth/logout`, {
         headers: {
           Origin: new URL(baseURL ?? 'http://localhost:8787').origin,
-          'X-CSRF-Token': '1',
         },
         failOnStatusCode: false,
       })

@@ -46,13 +46,6 @@ function requestOrigin(c: Context<HonoEnv>): string | null {
   return referer ? normalizeOrigin(referer) : null
 }
 
-function hasCsrfHeader(c: Context<HonoEnv>): boolean {
-  const csrfToken = c.req.header('X-CSRF-Token')
-  if (csrfToken?.trim()) return true
-
-  return c.req.header('X-Requested-With') === 'XMLHttpRequest'
-}
-
 function isStorageUpload(path: string): boolean {
   return path.startsWith('/api/storage/upload/')
 }
@@ -80,10 +73,6 @@ export function csrfProtection() {
     const origin = requestOrigin(c)
     if (!origin || !allowedOrigins(c).has(origin)) {
       throw new HTTPException(403, { message: 'Untrusted request origin' })
-    }
-
-    if (!hasCsrfHeader(c)) {
-      throw new HTTPException(403, { message: 'Missing CSRF protection header' })
     }
 
     if (!hasRequiredContentType(c)) {

@@ -29,6 +29,8 @@ describe('securityHeaders', () => {
     expect(csp).toContain("frame-ancestors 'none'")
     expect(csp).toContain("object-src 'none'")
     expect(csp).toContain("script-src 'self' 'nonce-")
+    expect(csp).toContain("style-src 'self'")
+    expect(csp).not.toContain("'unsafe-inline'")
     expect(await res.text()).toContain('script nonce="')
   })
 

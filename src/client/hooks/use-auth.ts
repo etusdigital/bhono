@@ -19,7 +19,6 @@ async function logout(): Promise<void> {
     credentials: 'include',
     headers: {
       Accept: 'application/json',
-      'X-CSRF-Token': '1',
     },
   })
   if (!res.ok) {

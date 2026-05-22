@@ -34,13 +34,15 @@ own every security decision. Frontend checks are only UX.
 ## Browser Request Protections
 
 - Mutating browser requests must pass `csrfProtection()`:
-  trusted `Origin`/`Referer`, an intentional request header
-  (`X-CSRF-Token` or `X-Requested-With`), and JSON content type for JSON
-  endpoints.
+  trusted `Origin`/`Referer` and JSON content type for JSON endpoints. The
+  boilerplate does not send a decorative CSRF token header; if `@etus/auth`
+  exposes a session-bound token later, it should be validated as data, not just
+  checked for presence.
 - Credentialed CORS is allowlist-only. `CORS_ORIGINS=*` is rejected in
   production by `validateEnv()`.
-- JSON request bodies are capped by `requestBodyLimit()` before route parsing.
-  Direct R2 upload routes are intentionally exempt from the JSON API cap.
+- Request bodies are capped by `requestBodyLimit()` before route parsing.
+  Direct R2 upload routes use an explicit larger upload cap instead of
+  bypassing size checks.
 
 ## Frontend Protections
 

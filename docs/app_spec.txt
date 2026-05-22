@@ -122,7 +122,8 @@
   <security>
     <csrf>
       State-changing browser requests require trusted Origin/Referer,
-      `X-CSRF-Token` or `X-Requested-With`, and JSON content type for JSON APIs.
+      and JSON content type for JSON APIs. The boilerplate intentionally does
+      not send a decorative CSRF token header.
     </csrf>
     <headers>
       CSP, Trusted Types, HSTS, frame denial, nosniff, referrer policy, and

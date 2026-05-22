@@ -656,13 +656,13 @@ import { createUser } from '@server/services/users'  // Server
 ### Built-in Protections
 
 - **Session Auth**: `@etus/auth` issues HTTP-only cookies backed by KV sessions and D1 session references
-- **CSRF**: mutating requests require a trusted `Origin`/`Referer` plus `X-CSRF-Token` or `X-Requested-With`
+- **CSRF**: mutating requests require a trusted `Origin`/`Referer`; JSON endpoints must use JSON content type
 - **CORS**: credentialed CORS uses explicit origins from `APP_URL` and `CORS_ORIGINS`; wildcard origins are rejected in production
 - **XSS**: React escaping, no client-side raw HTML sinks, CSP with nonced scripts, `frame-ancestors 'none'`, `nosniff`, and referrer policy
 - **Session Hijacking**: secure cookie flags on HTTPS and session fingerprint validation
 - **SQL Injection**: Parameterized queries via SQL helpers
 - **Rate Limiting**: In-memory store with configurable limits per route
-- **Payload DoS**: JSON API bodies are capped before route parsing while direct R2 uploads stay route-scoped
+- **Payload DoS**: request bodies are capped before route parsing; direct R2 uploads use a larger explicit cap
 - **Frontend Secrets**: client guardrails reject auth token storage, dangerous DOM sinks, and non-public env exposure
 
 ### Audit Logging

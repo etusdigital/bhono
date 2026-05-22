@@ -139,7 +139,7 @@ export const test = base.extend<CustomFixtures>({
   api: async ({ request, accountId, baseURL }, use) => {
     const origin = new URL(baseURL ?? 'http://localhost:8787').origin
     const headers = accountId ? { 'account-id': accountId } : {}
-    const mutationHeaders = { ...headers, Origin: origin, 'X-CSRF-Token': '1' }
+    const mutationHeaders = { ...headers, Origin: origin }
 
     await use({
       get: (url: string) => request.get(url, { headers }),
@@ -266,7 +266,6 @@ export async function apiRequest(
   }
   if (method !== 'get') {
     headers.Origin ??= origin
-    headers['X-CSRF-Token'] ??= '1'
   }
 
   return page.request[method](url, {
