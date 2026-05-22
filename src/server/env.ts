@@ -32,6 +32,25 @@ export interface Env {
 
   // CORS
   CORS_ORIGINS?: string
+
+  // Max body size for direct R2 uploads (PUT /api/storage/upload/*).
+  // Accepts a positive integer in bytes. Defaults to 25 MiB when unset.
+  MAX_UPLOAD_BYTES?: string
+}
+
+const DEFAULT_UPLOAD_BYTES = 25 * 1024 * 1024
+
+/**
+ * Parse MAX_UPLOAD_BYTES env var into a positive integer.
+ * Returns the default (25 MiB) when unset; throws when set to garbage.
+ */
+export function parseUploadBytes(raw: string | undefined): number {
+  if (raw === undefined || raw === '') return DEFAULT_UPLOAD_BYTES
+  const parsed = Number(raw)
+  if (!Number.isFinite(parsed) || parsed <= 0 || !Number.isInteger(parsed)) {
+    throw new Error(`MAX_UPLOAD_BYTES must be a positive integer in bytes, got: ${raw}`)
+  }
+  return parsed
 }
 
 // Helper to get env with derived values
@@ -73,4 +92,7 @@ export function validateEnv(env: Env, options: { allowMissingClientSecret?: bool
   if (env.ENVIRONMENT === 'production' && parseList(env.CORS_ORIGINS).includes('*')) {
     throw new Error('CORS_ORIGINS must not contain * in production')
   }
+  // Validate MAX_UPLOAD_BYTES eagerly so we fail at first request with a clear
+  // message instead of falling back to the default silently.
+  parseUploadBytes(env.MAX_UPLOAD_BYTES)
 }
