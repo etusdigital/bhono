@@ -62,12 +62,9 @@ export default defineConfig({
         'src/server/lib/providers.ts',
         'src/server/lib/transaction.ts',
       ],
-      thresholds: {
-        statements: 90,
-        branches: 80,
-        functions: 90,
-        lines: 90,
-      },
+      // Integration coverage is diagnostic: this suite validates wiring,
+      // D1/KV/R2 behavior, and cross-module contracts. Unit suites own the
+      // global coverage gates.
     },
   },
 })

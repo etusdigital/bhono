@@ -31,6 +31,7 @@ rm -rf "$TEMPLATE_DIR/.husky" \
        "$TEMPLATE_DIR/.test-output" \
        "$TEMPLATE_DIR/.github" \
        "$TEMPLATE_DIR/docs/plans" \
+       "$TEMPLATE_DIR/docs/ets" \
        "$TEMPLATE_DIR/docs/openapi.json" \
        "$TEMPLATE_DIR/tests/e2e/.auth" \
        "$TEMPLATE_DIR/commitlint.config.js" \
@@ -60,7 +61,11 @@ rsync -av --checksum --delete \
   --exclude='.changeset/' \
   --exclude='.github/' \
   --exclude='docs/plans/' \
+  --exclude='docs/ets/' \
   --exclude='.claude/settings.local.json' \
+  --exclude='.agents/' \
+  --exclude='.codex/' \
+  --exclude='AGENTS.md' \
   --exclude='coverage/' \
   --exclude='test-results/' \
   --exclude='playwright-report/' \

@@ -18,7 +18,7 @@ test.describe('Cross-Browser Compatibility @compatibility @cross-browser', () =>
 
       // Core elements should be visible
       await expect(page.getByText('Welcome back')).toBeVisible()
-      await expect(page.getByRole('button', { name: /continue with google/i })).toBeVisible()
+      await expect(page.getByRole('button', { name: /continue with etus/i })).toBeVisible()
 
       // Verify page structure
       await expect(page.locator('body')).toBeVisible()

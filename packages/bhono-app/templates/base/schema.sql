@@ -1,84 +1,150 @@
 -- schema.sql
 -- Source of truth for the D1 (SQLite) schema.
 -- Apply locally:
---   wrangler --config config/wrangler.json d1 execute <db-name> --local --file=schema.sql
+--   pnpm db:schema:local
 -- Apply remotely:
---   wrangler --config config/wrangler.json d1 execute <db-name> --remote --file=schema.sql
+--   pnpm db:schema:remote
+--
+-- Auth, users, accounts, memberships, invitations, sessions and audit logs
+-- are owned by @etus/auth. Keep this schema aligned with the installed
+-- package plus this product's role catalog: owner, admin, member, guest.
 
 PRAGMA foreign_keys = ON;
 
--- Users table
-CREATE TABLE IF NOT EXISTS users (
+CREATE TABLE IF NOT EXISTS auth_users (
   id TEXT PRIMARY KEY,
-  google_id TEXT NOT NULL UNIQUE,
-  email TEXT NOT NULL,
-  name TEXT NOT NULL,
-  avatar_url TEXT,
-  status TEXT DEFAULT 'active' NOT NULL CHECK (status IN ('active', 'inactive')),
-  provider_ids TEXT DEFAULT '[]',
-  is_super_admin INTEGER DEFAULT 0 NOT NULL,
-  created_at TEXT DEFAULT (datetime('now')) NOT NULL,
-  updated_at TEXT DEFAULT (datetime('now')) NOT NULL,
-  deleted_at TEXT,
-  created_by_id TEXT REFERENCES users(id),
-  updated_by_id TEXT REFERENCES users(id),
-  deleted_by_id TEXT REFERENCES users(id)
+  gateway_user_id TEXT,
+  email TEXT NOT NULL UNIQUE,
+  name TEXT,
+  picture TEXT,
+  role TEXT NOT NULL DEFAULT 'guest',
+  status TEXT NOT NULL DEFAULT 'pending',
+  invited_by TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  last_login_at TEXT
 );
 
--- Accounts table
-CREATE TABLE IF NOT EXISTS accounts (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  description TEXT,
-  domain TEXT UNIQUE,
-  created_at TEXT DEFAULT (datetime('now')) NOT NULL,
-  updated_at TEXT DEFAULT (datetime('now')) NOT NULL,
-  deleted_at TEXT
-);
+CREATE INDEX IF NOT EXISTS idx_auth_users_email ON auth_users(email);
+CREATE INDEX IF NOT EXISTS idx_auth_users_gateway_id ON auth_users(gateway_user_id);
+CREATE INDEX IF NOT EXISTS idx_auth_users_status ON auth_users(status);
 
--- User-Accounts junction table
-CREATE TABLE IF NOT EXISTS user_accounts (
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
-  role TEXT NOT NULL CHECK (role IN ('ADMIN', 'MANAGER', 'EDITOR', 'AUTHOR', 'VIEWER', 'BILLING', 'ANALYTICS')),
-  PRIMARY KEY (user_id, account_id)
-);
-
--- Refresh tokens table
-CREATE TABLE IF NOT EXISTS refresh_tokens (
+CREATE TABLE IF NOT EXISTS auth_sessions (
   id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  token_hash TEXT NOT NULL,
+  user_id TEXT NOT NULL REFERENCES auth_users(id) ON DELETE CASCADE,
+  ip TEXT,
+  user_agent TEXT,
+  last_active_at INTEGER,
   expires_at INTEGER NOT NULL,
-  created_at INTEGER DEFAULT (unixepoch()) NOT NULL,
-  revoked_at INTEGER
+  created_at INTEGER NOT NULL
 );
 
--- Invitations table
-CREATE TABLE IF NOT EXISTS invitations (
+CREATE INDEX IF NOT EXISTS idx_auth_sessions_user ON auth_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_auth_sessions_expires ON auth_sessions(expires_at);
+
+CREATE TABLE IF NOT EXISTS auth_audit_logs (
   id TEXT PRIMARY KEY,
-  account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  event_type TEXT NOT NULL,
+  actor_id TEXT,
+  actor_email TEXT,
+  target_id TEXT,
+  target_type TEXT,
+  account_id TEXT,
+  ip TEXT,
+  user_agent TEXT,
+  metadata TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_actor ON auth_audit_logs(actor_id);
+CREATE INDEX IF NOT EXISTS idx_audit_event ON auth_audit_logs(event_type);
+CREATE INDEX IF NOT EXISTS idx_audit_account ON auth_audit_logs(account_id);
+CREATE INDEX IF NOT EXISTS idx_audit_created ON auth_audit_logs(created_at);
+
+CREATE TABLE IF NOT EXISTS auth_accounts (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  slug TEXT UNIQUE,
+  owner_id TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_accounts_owner ON auth_accounts(owner_id);
+CREATE INDEX IF NOT EXISTS idx_accounts_slug ON auth_accounts(slug);
+
+CREATE TABLE IF NOT EXISTS auth_memberships (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'guest',
+  status TEXT NOT NULL DEFAULT 'active',
+  invited_by TEXT,
+  invited_at TEXT,
+  joined_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(account_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_memberships_account ON auth_memberships(account_id);
+CREATE INDEX IF NOT EXISTS idx_memberships_user ON auth_memberships(user_id);
+CREATE INDEX IF NOT EXISTS idx_memberships_status ON auth_memberships(status);
+
+CREATE TABLE IF NOT EXISTS auth_invitations (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
   email TEXT NOT NULL,
-  role TEXT NOT NULL CHECK (role IN ('ADMIN', 'MANAGER', 'EDITOR', 'AUTHOR', 'VIEWER', 'BILLING', 'ANALYTICS')),
+  role TEXT NOT NULL DEFAULT 'guest',
+  invited_by TEXT NOT NULL,
   token TEXT NOT NULL UNIQUE,
-  invited_by_id TEXT NOT NULL REFERENCES users(id),
   expires_at TEXT NOT NULL,
   accepted_at TEXT,
-  created_at TEXT DEFAULT (datetime('now')) NOT NULL
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
-CREATE UNIQUE INDEX IF NOT EXISTS account_email_idx ON invitations(account_id, email);
 
--- Audit logs table
-CREATE TABLE IF NOT EXISTS audit_logs (
+CREATE INDEX IF NOT EXISTS idx_invitations_account ON auth_invitations(account_id);
+CREATE INDEX IF NOT EXISTS idx_invitations_email ON auth_invitations(email);
+CREATE INDEX IF NOT EXISTS idx_invitations_token ON auth_invitations(token);
+
+CREATE TABLE IF NOT EXISTS auth_user_permissions (
   id TEXT PRIMARY KEY,
-  transaction_id TEXT NOT NULL,
-  account_id TEXT REFERENCES accounts(id),
-  user_id TEXT REFERENCES users(id),
-  entity TEXT NOT NULL,
-  entity_id TEXT NOT NULL,
-  action TEXT NOT NULL CHECK (action IN ('INSERT', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'SIGNUP', 'TOKEN_REFRESH', 'LOGIN_FAILED')),
-  changes TEXT,
-  ip_address TEXT,
-  user_agent TEXT,
-  timestamp TEXT DEFAULT (datetime('now')) NOT NULL
+  user_id TEXT NOT NULL,
+  permission TEXT NOT NULL,
+  account_id TEXT,
+  granted_by TEXT,
+  expires_at INTEGER,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (user_id) REFERENCES auth_users(id) ON DELETE CASCADE
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_user_perms_unique
+  ON auth_user_permissions(user_id, permission, COALESCE(account_id, '__global__'));
+CREATE INDEX IF NOT EXISTS idx_user_perms_user ON auth_user_permissions(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_perms_account ON auth_user_permissions(account_id);
+CREATE INDEX IF NOT EXISTS idx_user_perms_expires ON auth_user_permissions(expires_at);
+
+CREATE TABLE IF NOT EXISTS auth_resource_permissions (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  resource_type TEXT NOT NULL,
+  resource_id TEXT NOT NULL,
+  permission TEXT NOT NULL,
+  account_id TEXT,
+  granted_by TEXT,
+  expires_at INTEGER,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (user_id) REFERENCES auth_users(id) ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_res_perms_unique
+  ON auth_resource_permissions(
+    user_id,
+    resource_type,
+    resource_id,
+    permission,
+    COALESCE(account_id, '__global__')
+  );
+CREATE INDEX IF NOT EXISTS idx_res_perms_user ON auth_resource_permissions(user_id);
+CREATE INDEX IF NOT EXISTS idx_res_perms_resource ON auth_resource_permissions(resource_type, resource_id);
+CREATE INDEX IF NOT EXISTS idx_res_perms_lookup
+  ON auth_resource_permissions(user_id, resource_type, resource_id);
+CREATE INDEX IF NOT EXISTS idx_res_perms_account ON auth_resource_permissions(account_id);

@@ -1,5 +1,5 @@
 import { OpenAPIHono } from '@hono/zod-openapi'
-import { swaggerUI } from '@hono/swagger-ui'
+import { NONCE } from 'hono/secure-headers'
 import type { HonoEnv } from '../types'
 import { storage } from './storage'
 import { openApiConfig } from './openapi'
@@ -20,7 +20,33 @@ api.openAPIRegistry.registerComponent('securitySchemes', 'SessionCookie', {
 })
 
 api.doc('/doc', openApiConfig)
-api.get('/swagger', swaggerUI({ url: '/api/doc' }))
+api.get('/swagger', (c) => {
+  const cspNonce = NONCE(c, 'script-src')
+  const nonce = cspNonce.slice("'nonce-".length, -1)
+
+  return c.html(`<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="SwaggerUI" />
+    <title>Hono Boilerplate API</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist/swagger-ui.css" />
+  </head>
+  <body>
+    <div id="swagger-ui"></div>
+    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist/swagger-ui-bundle.js" crossorigin="anonymous"></script>
+    <script nonce="${nonce}">
+      window.onload = () => {
+        window.ui = SwaggerUIBundle({
+          dom_id: '#swagger-ui',
+          url: '/api/doc',
+        })
+      }
+    </script>
+  </body>
+</html>`)
+})
 
 export { api }
 export { storage } from './storage'

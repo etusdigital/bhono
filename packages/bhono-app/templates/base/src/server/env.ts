@@ -19,60 +19,58 @@ export interface Env {
   // App URL
   APP_URL: string
 
-  // JWT
-  JWT_SECRET: string
-  JWT_EXPIRY_MINUTES: string
+  // ETUS Auth (OAuth Gateway — @etus/auth)
+  ETUS_GATEWAY: string
+  ETUS_CLIENT_ID: string
+  ETUS_CLIENT_SECRET?: string
+  ETUS_ALLOWED_DOMAINS: string
+  ETUS_ADMIN_EMAILS: string
 
-  // Google OAuth
-  GOOGLE_CLIENT_ID: string
-  GOOGLE_CLIENT_SECRET: string
-  GOOGLE_REDIRECT_URI: string
-
-  // Refresh Token
-  REFRESH_TOKEN_EXPIRY_DAYS: string
-
-  // SendGrid
+  // SendGrid (invitations)
   SENDGRID_API_KEY: string
   SENDGRID_FROM_EMAIL: string
 
   // CORS
   CORS_ORIGINS?: string
-
-  // Super Admin emails (comma-separated)
-  SUPER_ADMIN_EMAILS?: string
 }
 
-// Helper to get env with defaults
+// Helper to get env with derived values
 export function getEnv(env: Env) {
   return {
     ...env,
-    JWT_EXPIRY_MINUTES: Number.parseInt(env.JWT_EXPIRY_MINUTES || '15', 10),
-    REFRESH_TOKEN_EXPIRY_DAYS: Number.parseInt(env.REFRESH_TOKEN_EXPIRY_DAYS || '30', 10),
-    CORS_ORIGINS_LIST: env.CORS_ORIGINS
-      ? env.CORS_ORIGINS.split(',').map((o) => o.trim())
-      : [],
-    SUPER_ADMIN_EMAILS_LIST: env.SUPER_ADMIN_EMAILS
-      ? env.SUPER_ADMIN_EMAILS.split(',').map((e) => e.trim().toLowerCase())
-      : [],
+    CORS_ORIGINS_LIST: parseList(env.CORS_ORIGINS),
   }
 }
 
-// Check if email is a super admin
-export function isSuperAdminEmail(env: Env, email: string): boolean {
-  const { SUPER_ADMIN_EMAILS_LIST } = getEnv(env)
-  return SUPER_ADMIN_EMAILS_LIST.includes(email.toLowerCase())
+function parseList(csv: string | undefined): string[] {
+  return (csv ?? '')
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean)
 }
 
-// Minimum required length for JWT_SECRET (security requirement)
-export const JWT_SECRET_MIN_LENGTH = 32
-
 /**
- * Validate environment variables at startup
- * Throws an error if validation fails
+ * Validate environment variables at startup.
+ * Throws an error if the auth gateway configuration is missing.
  */
-export function validateEnv(env: Env): void {
-  // JWT_SECRET must be at least 32 characters for security
-  if (!env.JWT_SECRET || env.JWT_SECRET.length < JWT_SECRET_MIN_LENGTH) {
-    throw new Error(`JWT_SECRET must be at least ${String(JWT_SECRET_MIN_LENGTH)} characters`)
+export function validateEnv(env: Env, options: { allowMissingClientSecret?: boolean } = {}): void {
+  if (!env.ETUS_GATEWAY) {
+    throw new Error('ETUS_GATEWAY is required')
+  }
+  if (!env.ETUS_CLIENT_ID) {
+    throw new Error('ETUS_CLIENT_ID is required')
+  }
+  const requiresGatewaySecret = env.ENVIRONMENT === 'production' || env.ENVIRONMENT === 'staging'
+  if (requiresGatewaySecret && !env.ETUS_CLIENT_SECRET && !options.allowMissingClientSecret) {
+    throw new Error('ETUS_CLIENT_SECRET is required')
+  }
+  if (parseList(env.ETUS_ALLOWED_DOMAINS).length === 0) {
+    throw new Error('ETUS_ALLOWED_DOMAINS must include at least one domain')
+  }
+  if (parseList(env.ETUS_ADMIN_EMAILS).length === 0) {
+    throw new Error('ETUS_ADMIN_EMAILS must include at least one admin email')
+  }
+  if (env.ENVIRONMENT === 'production' && parseList(env.CORS_ORIGINS).includes('*')) {
+    throw new Error('CORS_ORIGINS must not contain * in production')
   }
 }

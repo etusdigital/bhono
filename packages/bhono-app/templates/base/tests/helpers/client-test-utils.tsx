@@ -9,6 +9,141 @@ import {
 import { routeTree } from "@/routeTree.gen"
 import { ThemeProvider } from "@/hooks/use-theme"
 import type { ReactElement, ReactNode } from "react"
+import { vi } from "vitest"
+
+// Standard mock data for tests
+export const mockUser = {
+  id: "test-user-id",
+  email: "test@example.com",
+  name: "Test User",
+  picture: null,
+  role: "admin",
+}
+
+export const mockAccount = {
+  id: "test-account-id",
+  name: "Test Account",
+  slug: "test-account",
+  ownerId: "test-user-id",
+  createdAt: new Date().toISOString(),
+  updatedAt: null,
+  status: "active" as const,
+  role: "admin" as const,
+  isCurrent: true,
+}
+
+export const mockMember = {
+  id: "test-membership-id",
+  accountId: mockAccount.id,
+  userId: mockUser.id,
+  role: "admin" as const,
+  status: "active" as const,
+  joinedAt: new Date().toISOString(),
+  createdAt: new Date().toISOString(),
+  user: mockUser,
+}
+
+export const mockInvitation = {
+  id: "test-invitation-id",
+  accountId: mockAccount.id,
+  email: "pending@example.com",
+  role: "member" as const,
+  invitedBy: mockUser.id,
+  expiresAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+  acceptedAt: null,
+  createdAt: new Date().toISOString(),
+}
+
+/**
+ * Creates a mock fetch implementation that handles common API endpoints.
+ * Override specific endpoints by providing custom handlers.
+ */
+export function createMockFetch(overrides?: Record<string, () => Promise<Response>>) {
+  return vi.fn().mockImplementation((input: RequestInfo | URL) => {
+    const url = typeof input === "string" ? input : input.toString()
+
+    // Check for overrides first
+    if (overrides) {
+      for (const [pattern, handler] of Object.entries(overrides)) {
+        if (url === pattern || url.endsWith(pattern)) {
+          return handler()
+        }
+      }
+    }
+
+    // Mock /auth/me
+    if (url === "/auth/me" || url.endsWith("/auth/me")) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ user: mockUser }),
+      } as Response)
+    }
+
+    // Mock /api/accounts/my
+    if (url === "/api/accounts/my" || url.endsWith("/api/accounts/my")) {
+      return Promise.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            data: [mockAccount],
+            currentAccountId: mockAccount.id,
+          }),
+      } as Response)
+    }
+
+    if (url === "/accounts" || url.endsWith("/accounts")) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ accounts: [mockAccount] }),
+      } as Response)
+    }
+
+    if (url === `/accounts/${mockAccount.id}/members` || url.endsWith(`/accounts/${mockAccount.id}/members`)) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ members: [mockMember] }),
+      } as Response)
+    }
+
+    if (url === `/accounts/${mockAccount.id}/invitations` || url.endsWith(`/accounts/${mockAccount.id}/invitations`)) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ invitations: [mockInvitation] }),
+      } as Response)
+    }
+
+    if (url === `/accounts/${mockAccount.id}/members/invite` || url.endsWith(`/accounts/${mockAccount.id}/members/invite`)) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ invitation: mockInvitation }),
+      } as Response)
+    }
+
+    if (
+      url === `/accounts/${mockAccount.id}/invitations/${mockInvitation.id}` ||
+      url.endsWith(`/accounts/${mockAccount.id}/invitations/${mockInvitation.id}`)
+    ) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ success: true }),
+      } as Response)
+    }
+
+    // Default mock for other URLs
+    return Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({}),
+    } as Response)
+  })
+}
+
+/**
+ * Setup fetch mock with standard endpoints.
+ * Call this in beforeEach to ensure consistent mocking.
+ */
+export function setupFetchMock(overrides?: Record<string, () => Promise<Response>>) {
+  vi.spyOn(global, "fetch").mockImplementation(createMockFetch(overrides) as typeof fetch)
+}
 
 // Create a fresh QueryClient for each test
 export function createTestQueryClient() {

@@ -23,7 +23,7 @@ vi.mock('@tanstack/react-router', () => ({
 // Mock useAuth for Sidebar component
 vi.mock('@/hooks/use-auth', () => ({
   useAuth: () => ({
-    user: { id: '1', email: 'test@example.com', name: 'Test User', avatarUrl: null },
+    user: { id: '1', email: 'test@example.com', name: 'Test User', picture: null, role: 'admin' },
     logout: vi.fn(),
     isLoggingOut: false,
     isAuthenticated: true,
@@ -40,9 +40,23 @@ vi.mock('@/hooks/use-theme', () => ({
   }),
 }))
 
+// Mock useAccounts hooks for Sidebar component (AccountSwitcher)
+vi.mock('@/hooks/use-accounts', () => ({
+  useMyAccounts: () => ({
+    data: { data: [{ id: 'test-account', name: 'Test Account', isCurrent: true, role: 'admin' }] },
+    isLoading: false,
+    error: null,
+  }),
+  useCurrentAccount: () => ({ id: 'test-account', name: 'Test Account', isCurrent: true, role: 'admin' }),
+  useSwitchAccount: () => ({
+    mutate: vi.fn(),
+    isPending: false,
+  }),
+}))
+
 // Import components after mocks are set up
-import { RootErrorComponent } from '../../routes/__root'
-import { AuthenticatedErrorComponent, AuthenticatedPendingComponent } from '../../routes/_authenticated'
+import { RootErrorComponent } from '@/routes/__root'
+import { AuthenticatedErrorComponent, AuthenticatedPendingComponent } from '@/routes/_authenticated'
 
 describe('RootErrorComponent', () => {
   it('renders error message with application error title', () => {

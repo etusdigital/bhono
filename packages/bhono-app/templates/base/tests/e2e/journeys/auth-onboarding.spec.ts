@@ -17,10 +17,10 @@ test.describe('Authentication & Onboarding Journeys @critical @journey @auth', (
       // Verify login page loads with welcome message
       await expect(page.getByText('Welcome back')).toBeVisible()
 
-      // Verify Google OAuth button is present and properly styled
-      const googleOAuthButton = page.getByRole('button', { name: /continue with google/i })
-      await expect(googleOAuthButton).toBeVisible()
-      await expect(googleOAuthButton).toBeEnabled()
+      // Verify ETUS Auth button is present and properly styled
+      const authButton = page.getByRole('button', { name: /continue with etus/i })
+      await expect(authButton).toBeVisible()
+      await expect(authButton).toBeEnabled()
 
       // Verify the button has the expected structure (icon + text)
       await expect(page.locator('body')).toBeVisible()
@@ -29,12 +29,12 @@ test.describe('Authentication & Onboarding Journeys @critical @journey @auth', (
     test('should show OAuth consent flow elements', async ({ page }) => {
       await page.goto('/login')
 
-      // Verify the Google OAuth button initiates the OAuth flow
-      const googleOAuthButton = page.getByRole('button', { name: /continue with google/i })
-      await expect(googleOAuthButton).toBeVisible()
+      // Verify the ETUS Auth button initiates the OAuth flow
+      const authButton = page.getByRole('button', { name: /continue with etus/i })
+      await expect(authButton).toBeVisible()
 
       // Click the button and verify navigation to OAuth provider or auth endpoint
-      await googleOAuthButton.click()
+      await authButton.click()
 
       // Wait for URL to change from login page (navigates to OAuth provider or auth callback)
       await expect(page).not.toHaveURL('/login', { timeout: 10000 })

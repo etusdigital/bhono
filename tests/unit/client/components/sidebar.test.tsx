@@ -30,7 +30,8 @@ const mockUser = {
   id: "1",
   email: "john@example.com",
   name: "John Doe",
-  avatarUrl: null,
+  picture: null,
+  role: "admin",
 }
 
 describe("Sidebar", () => {
@@ -233,9 +234,9 @@ describe("Sidebar", () => {
     expect(logoutButton).toBeDisabled()
   })
 
-  it("shows avatar image when user has avatarUrl", () => {
+  it("shows avatar image when user has picture", () => {
     ;(useAuth as Mock).mockReturnValue({
-      user: { ...mockUser, avatarUrl: "https://example.com/avatar.jpg" },
+      user: { ...mockUser, picture: "https://example.com/avatar.jpg" },
       logout: vi.fn(),
       isLoggingOut: false,
       isAuthenticated: true,
@@ -266,7 +267,7 @@ describe("Sidebar", () => {
 
   it("shows question mark when user has no name or email", () => {
     ;(useAuth as Mock).mockReturnValue({
-      user: { id: "1", email: null, name: null, avatarUrl: null },
+      user: { id: "1", email: null, name: null, picture: null, role: "admin" },
       logout: vi.fn(),
       isLoggingOut: false,
       isAuthenticated: true,

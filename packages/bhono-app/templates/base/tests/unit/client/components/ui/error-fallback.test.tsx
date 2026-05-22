@@ -1,7 +1,7 @@
 // src/client/components/ui/__tests__/error-fallback.test.tsx
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { ErrorFallback, NotFound, Unauthorized } from '../error-fallback'
+import { ErrorFallback, NotFound, Unauthorized } from '@/components/ui/error-fallback'
 
 describe('ErrorFallback', () => {
   it('renders with default props', () => {

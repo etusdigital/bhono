@@ -11,10 +11,10 @@ O script `init.sh` foi atualizado para resolver automaticamente todos os problem
 npm init bhono-app@latest meu-projeto -- --yes
 cd meu-projeto
 
-# Setup completo com credenciais Google
+# Setup completo com credenciais do ETUS Auth Gateway
 ./scripts/init.sh --port 8787 \
-  --google-id "seu-client-id.apps.googleusercontent.com" \
-  --google-secret "GOCSPX-xxx"
+  --auth-client-id "seu-client-id" \
+  --auth-secret "seu-secret"
 
 # Ou setup básico (configure credenciais depois)
 ./scripts/init.sh --port 8787
@@ -25,8 +25,8 @@ cd meu-projeto
 ```bash
 # Setup completo
 ./scripts/init.sh --port 8787 \
-  --google-id "seu-client-id" \
-  --google-secret "seu-secret"
+  --auth-client-id "seu-client-id" \
+  --auth-secret "seu-secret"
 
 # Setup sem provisionar recursos Cloudflare
 ./scripts/init.sh --no-provision --port 8787
@@ -134,24 +134,21 @@ cloudflare({
 ENVIRONMENT=development
 APP_URL=http://localhost:8787
 
-# JWT Configuration
-JWT_SECRET=super-secret-jwt-key-with-at-least-32-characters-for-security
-JWT_EXPIRY_MINUTES=15
-
-# Google OAuth
-GOOGLE_CLIENT_ID=seu-client-id
-GOOGLE_CLIENT_SECRET=seu-client-secret
-GOOGLE_REDIRECT_URI=http://localhost:8787/auth/callback
-
-# Refresh Token
-REFRESH_TOKEN_EXPIRY_DAYS=30
+# ETUS Auth Gateway
+ETUS_GATEWAY=https://ag.etus.io
+ETUS_CLIENT_ID=seu-client-id
+ETUS_CLIENT_SECRET=seu-client-secret
+ETUS_ALLOWED_DOMAINS=seudominio.com
+ETUS_ADMIN_EMAILS=admin@seudominio.com
 
 # SendGrid
 SENDGRID_API_KEY=your-sendgrid-api-key
 SENDGRID_FROM_EMAIL=noreply@example.com
 ```
 
-**Importante:** `JWT_SECRET` deve ter pelo menos 32 caracteres.
+**Importante:** `ETUS_ADMIN_EMAILS` deve ter pelo menos um email. Esses emails
+recebem `role='admin'` no callback OAuth e conseguem acessar `/auth/admin/*`
+e `/audit/logs`.
 
 ---
 
@@ -248,7 +245,7 @@ Com o `init.sh` atualizado, a maioria destes itens são automáticos:
 - [x] ~~Executar `pnpm db:push` e `pnpm db:seed`~~ (**automático via init.sh**)
 - [x] ~~Sincronizar bancos sqlite~~ (**automático via init.sh**)
 - [x] ~~Aumentar rate limit de auth~~ (**automático via init.sh**)
-- [ ] **Configurar Google OAuth redirect URI no console** (manual)
+- [ ] **Criar/configurar client no ETUS Auth Gateway** (manual)
 
 ---
 
@@ -258,29 +255,32 @@ Com o `init.sh` atualizado, a maioria destes itens são automáticos:
 |----------|-----------|-------------|
 | `ENVIRONMENT` | development/staging/production | Sim |
 | `APP_URL` | URL da aplicação | Sim |
-| `JWT_SECRET` | Chave para tokens (min 32 chars) | Sim |
-| `JWT_EXPIRY_MINUTES` | Expiração do JWT | Sim |
-| `GOOGLE_CLIENT_ID` | ID do OAuth Google | Sim |
-| `GOOGLE_CLIENT_SECRET` | Secret do OAuth Google | Sim |
-| `GOOGLE_REDIRECT_URI` | URI de callback | Sim |
-| `REFRESH_TOKEN_EXPIRY_DAYS` | Dias para refresh token | Sim |
+| `ETUS_GATEWAY` | URL do gateway OAuth ETUS | Sim |
+| `ETUS_CLIENT_ID` | Client ID registrado no gateway | Sim |
+| `ETUS_CLIENT_SECRET` | Client secret registrado no gateway | Sim* |
+| `ETUS_ALLOWED_DOMAINS` | Domínios permitidos para usuários | Sim |
+| `ETUS_ADMIN_EMAILS` | Admins iniciais do produto | Sim |
 | `SENDGRID_API_KEY` | API key do SendGrid | Opcional* |
 | `SENDGRID_FROM_EMAIL` | Email remetente | Opcional* |
 
-*Necessário para envio de convites por email.
+`ETUS_CLIENT_SECRET` pode ficar vazio apenas em desenvolvimento local quando o
+host é loopback. Em produção/staging ele é obrigatório.
+
+SendGrid é necessário quando o produto decidir enviar emails de convite. O
+`@etus/auth` atual persiste o convite, mas o envio do email ainda é
+responsabilidade do boilerplate/produto.
 
 ---
 
-## Google OAuth Setup
+## ETUS Auth Gateway Setup
 
-1. Acesse [Google Cloud Console](https://console.cloud.google.com/)
-2. Crie um novo projeto ou selecione existente
-3. Vá em APIs & Services > Credentials
-4. Crie OAuth 2.0 Client ID (Web application)
-5. Adicione os URIs de redirecionamento autorizados:
+1. Registre o produto no gateway ETUS (`ag.etus.io`).
+2. Configure os redirects do produto no gateway:
    - `http://localhost:8787/auth/callback` (desenvolvimento)
    - `https://seu-app.workers.dev/auth/callback` (produção)
-6. Copie Client ID e Client Secret para `.dev.vars`
+3. Copie `ETUS_CLIENT_ID` e `ETUS_CLIENT_SECRET` para `config/.dev.vars`.
+4. Defina `ETUS_ALLOWED_DOMAINS` com os domínios que podem autenticar.
+5. Defina `ETUS_ADMIN_EMAILS` com pelo menos um admin real do produto.
 
 ---
 
@@ -297,7 +297,7 @@ Com o `init.sh` atualizado, a maioria destes itens são automáticos:
   "domain": "nome-do-projeto.com",
   "modules": [],
   "providers": {
-    "auth": "google",
+    "auth": "etus-auth",
     "email": "sendgrid"
   }
 }
@@ -451,9 +451,7 @@ Após criar os recursos, atualize `config/wrangler.json` com os IDs retornados.
 
 ```bash
 # Configurar variáveis secretas
-pnpm exec wrangler secret put JWT_SECRET --config config/wrangler.json
-pnpm exec wrangler secret put GOOGLE_CLIENT_ID --config config/wrangler.json
-pnpm exec wrangler secret put GOOGLE_CLIENT_SECRET --config config/wrangler.json
+pnpm exec wrangler secret put ETUS_CLIENT_SECRET --config config/wrangler.json
 pnpm exec wrangler secret put SENDGRID_API_KEY --config config/wrangler.json
 ```
 
@@ -481,11 +479,17 @@ pnpm run deploy
 
 **Causas possíveis:**
 
-1. **JWT_SECRET muito curto**
-   - O JWT_SECRET deve ter pelo menos 32 caracteres
+1. **Configuração do ETUS Auth incompleta**
+   - `ETUS_GATEWAY`, `ETUS_CLIENT_ID`, `ETUS_ALLOWED_DOMAINS` e
+     `ETUS_ADMIN_EMAILS` são obrigatórios
+   - Em produção/staging, `ETUS_CLIENT_SECRET` também é obrigatório
    - Verifique `config/.dev.vars`:
    ```env
-   JWT_SECRET=super-secret-jwt-key-with-at-least-32-characters-for-security
+   ETUS_GATEWAY=https://ag.etus.io
+   ETUS_CLIENT_ID=seu-client-id
+   ETUS_CLIENT_SECRET=seu-client-secret
+   ETUS_ALLOWED_DOMAINS=seudominio.com
+   ETUS_ADMIN_EMAILS=admin@seudominio.com
    ```
 
 2. **Variáveis de ambiente não carregadas**
@@ -523,8 +527,9 @@ find .wrangler -name "*.sqlite" -exec sqlite3 {} ".tables" \;
 - Verifique se o drizzle.config.ts aponta para o banco correto
 - Copie o banco com dados para o arquivo que o plugin usa
 
-### Erro: "JWT_SECRET must be at least 32 characters"
-- Atualize `JWT_SECRET` no `config/.dev.vars` com pelo menos 32 caracteres
+### Erro: "ETUS_ADMIN_EMAILS must include at least one admin email"
+- Atualize `ETUS_ADMIN_EMAILS` no `config/.dev.vars` com pelo menos um email
+  real do produto
 
 ### Erro: "Rate limit exceeded"
 - Reinicie o servidor para limpar o rate limiter
@@ -550,8 +555,8 @@ Usage: ./scripts/init.sh [OPTIONS]
 
 Options:
   --port PORT           Set dev server port (default: 8787)
-  --google-id ID        Set Google OAuth Client ID
-  --google-secret SEC   Set Google OAuth Client Secret
+  --auth-client-id ID   Set ETUS Auth client ID
+  --auth-secret SEC     Set ETUS Auth client secret
   --no-provision        Skip Cloudflare resource provisioning
   --skip-dev            Don't start dev server after setup
   --skip-seed           Skip database seeding
@@ -561,6 +566,6 @@ Options:
 Examples:
   ./scripts/init.sh
   ./scripts/init.sh --port 3000
-  ./scripts/init.sh --port 8787 --google-id 'xxx.apps.googleusercontent.com' --google-secret 'GOCSPX-xxx'
+  ./scripts/init.sh --port 8787 --auth-client-id 'produto' --auth-secret 'secret'
   CLOUDFLARE_ACCOUNT_ID=xxx ./scripts/init.sh
 ```

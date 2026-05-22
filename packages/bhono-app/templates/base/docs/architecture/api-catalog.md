@@ -1,457 +1,151 @@
 # API Catalog - BHono Platform
 
-> Complete REST API endpoint documentation with OpenAPI 3.0 support.
+> Current API surface after the `@etus/auth` integration.
 
 ## Overview
 
-| Attribute | Value | Confidence |
-|-----------|-------|------------|
-| **Base URL** | `/api` (authenticated), `/auth` (public) | HIGH |
-| **Format** | REST/JSON | HIGH |
-| **Documentation** | OpenAPI 3.0 at `/api/doc` | HIGH |
-| **Swagger UI** | Available at `/api/swagger` | HIGH |
-| **Total Endpoints** | 30 | HIGH |
+| Attribute | Value |
+|-----------|-------|
+| Auth owner | `@etus/auth` |
+| App-owned API base | `/api` |
+| Package-owned bases | `/auth`, `/auth/admin`, `/accounts`, `/invitations`, `/audit` |
+| OpenAPI JSON | `/api/doc` |
+| Swagger UI | `/api/swagger` |
+
+Package-owned routes are not re-declared under `/api/*`. The boilerplate keeps
+`/api/*` for product-specific endpoints such as storage.
 
 ## Authentication
 
-All `/api/*` endpoints require authentication via session cookie (`__Host-sid`).
+`@etus/auth` issues an HTTP-only session cookie backed by KV and D1. Browser
+code should call package routes with `credentials: 'include'`; it should not
+store tokens in `localStorage` or `sessionStorage`.
 
-| Header/Cookie | Purpose |
-|---------------|---------|
-| `Cookie: __Host-sid=<session_id>` | Session authentication |
-| `X-Account-Id` | Multi-tenant account context |
+State-changing browser requests must include a trusted `Origin`/`Referer`, an
+intentional request header (`X-CSRF-Token` or `X-Requested-With`), and JSON
+content type for JSON endpoints.
 
----
-
-## Auth Endpoints [HIGH]
+## Auth Routes
 
 Base path: `/auth`
 
-| Method | Path | Description | Auth Required |
-|--------|------|-------------|---------------|
-| `GET` | `/auth/login` | Initiate Google OAuth flow | No |
-| `GET` | `/auth/callback` | OAuth callback handler | No |
-| `POST` | `/auth/logout` | Destroy session | Yes |
-| `GET` | `/auth/me` | Get current user info | Yes |
-| `POST` | `/auth/refresh` | Refresh session token | Yes |
-| `GET` | `/auth/invite/{token}` | Get invitation details | No |
+| Method | Path | Description | Auth |
+|--------|------|-------------|------|
+| `GET` | `/auth/login` | Start ETUS gateway OAuth flow | No |
+| `GET` | `/auth/callback` | OAuth callback; creates/updates user session | No |
+| `POST` | `/auth/logout` | Destroy session and clear cookie | Yes |
+| `GET` | `/auth/me` | Return `{ user }` with package user shape | Yes |
+| `POST` | `/auth/test-login` | Localhost-only E2E/dev session helper | Loopback only |
 
-### GET /auth/login
+`/auth/me` response:
 
-Initiates Google OAuth 2.0 authorization flow.
-
-**Response**: Redirect to Google OAuth consent screen
-
-```
-302 Found
-Location: https://accounts.google.com/o/oauth2/v2/auth?...
-```
-
-### GET /auth/callback
-
-Handles OAuth callback from Google.
-
-**Query Parameters**:
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `code` | string | Authorization code from Google |
-| `state` | string | CSRF state token |
-
-**Response**: Redirect to dashboard with session cookie set
-
-### POST /auth/logout
-
-Destroys the current session.
-
-**Response**:
 ```json
 {
-  "success": true
-}
-```
-
-### GET /auth/me
-
-Returns current authenticated user information.
-
-**Response**:
-```json
-{
-  "id": "01234567-89ab-cdef-0123-456789abcdef",
-  "email": "user@example.com",
-  "name": "John Doe",
-  "avatarUrl": "https://...",
-  "isSuperAdmin": false,
-  "accounts": [
-    {
-      "id": "account-uuid",
-      "name": "My Workspace",
-      "role": "ADMIN"
-    }
-  ]
-}
-```
-
-### POST /auth/refresh
-
-Refreshes the session token.
-
-**Response**:
-```json
-{
-  "success": true,
-  "expiresAt": "2025-01-15T12:00:00Z"
-}
-```
-
-### GET /auth/invite/{token}
-
-Gets invitation details for acceptance page.
-
-**Path Parameters**:
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `token` | string | Invitation token |
-
-**Response**:
-```json
-{
-  "id": "invitation-uuid",
-  "email": "invitee@example.com",
-  "accountName": "Workspace Name",
-  "inviterName": "John Doe",
-  "role": "EDITOR",
-  "expiresAt": "2025-01-20T12:00:00Z"
-}
-```
-
----
-
-## Users Endpoints [HIGH]
-
-Base path: `/api/users`
-
-| Method | Path | Description | Auth | Permission |
-|--------|------|-------------|------|------------|
-| `GET` | `/api/users` | List users (paginated) | Yes | VIEWER+ |
-| `GET` | `/api/users/{id}` | Get user by ID | Yes | VIEWER+ |
-| `POST` | `/api/users` | Create user | Yes | ADMIN |
-| `PATCH` | `/api/users/{id}` | Update user | Yes | ADMIN |
-| `DELETE` | `/api/users/{id}` | Soft delete user | Yes | ADMIN |
-| `POST` | `/api/users/{id}/restore` | Restore deleted user | Yes | ADMIN |
-| `GET` | `/api/users/{id}/accounts` | Get user's accounts | Yes | VIEWER+ |
-| `POST` | `/api/users/bulk/accounts` | Bulk add to accounts | Yes | ADMIN |
-
-### GET /api/users
-
-List users with pagination.
-
-**Query Parameters**:
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `page` | integer | 1 | Page number |
-| `limit` | integer | 20 | Items per page (max 100) |
-| `search` | string | - | Search by name/email |
-| `status` | string | - | Filter by status |
-
-**Response**:
-```json
-{
-  "data": [
-    {
-      "id": "user-uuid",
-      "email": "user@example.com",
-      "name": "John Doe",
-      "status": "active",
-      "createdAt": "2025-01-01T00:00:00Z"
-    }
-  ],
-  "pagination": {
-    "page": 1,
-    "limit": 20,
-    "total": 100,
-    "totalPages": 5
+  "user": {
+    "id": "user-id",
+    "email": "user@example.com",
+    "name": "User Name",
+    "picture": null,
+    "role": "admin"
   }
 }
 ```
 
-### POST /api/users
+## Admin User Routes
 
-Create a new user.
+Base path: `/auth/admin`
 
-**Request Body**:
-```json
-{
-  "email": "newuser@example.com",
-  "name": "New User",
-  "role": "EDITOR"
-}
+These routes require `auth_users.role === "admin"` in the current
+`@etus/auth@0.3.0` package implementation.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/auth/admin/users` | List users; returns `{ users, total }` |
+| `GET` | `/auth/admin/users/:id` | Get a user |
+| `POST` | `/auth/admin/users/invite` | Create pending product user |
+| `POST` | `/auth/admin/users/:id/approve` | Approve pending user |
+| `POST` | `/auth/admin/users/:id/deny` | Deny pending user |
+| `PATCH` | `/auth/admin/users/:id` | Update role/status |
+| `DELETE` | `/auth/admin/users/:id` | Delete user and invalidate sessions |
+
+## Account Routes
+
+Base path: `/accounts`
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/accounts` | List current user's accounts; returns `{ accounts }` |
+| `POST` | `/accounts` | Create account; creator membership role is `admin` |
+| `GET` | `/accounts/:id` | Return `{ account, membership }` |
+| `PATCH` | `/accounts/:id` | Update account; owner only |
+| `DELETE` | `/accounts/:id` | Delete account; owner only |
+| `GET` | `/accounts/:id/members` | List active members; returns `{ members }` |
+| `POST` | `/accounts/:id/members/invite` | Create pending invitation |
+| `PATCH` | `/accounts/:id/members/:userId` | Update membership role |
+| `DELETE` | `/accounts/:id/members/:userId` | Remove member |
+| `GET` | `/accounts/:id/invitations` | List pending invitations |
+| `DELETE` | `/accounts/:id/invitations/:invitationId` | Revoke invitation |
+
+Account membership roles accepted by the boilerplate are:
+
+```txt
+admin | member | guest
 ```
 
-**Response**: `201 Created`
-```json
-{
-  "id": "new-user-uuid",
-  "email": "newuser@example.com",
-  "name": "New User",
-  "status": "active",
-  "createdAt": "2025-01-01T00:00:00Z"
-}
-```
+`owner` is a product-level role, not an account membership role. The
+compatibility guard in `src/server/auth/package-compat.ts` enforces this before
+the package route runs.
 
-### PATCH /api/users/{id}
+## Invitation Routes
 
-Update user properties.
+Base path: `/invitations`
 
-**Request Body**:
-```json
-{
-  "name": "Updated Name",
-  "status": "inactive"
-}
-```
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/invitations/:token/accept` | Accept pending account invitation |
 
-### DELETE /api/users/{id}
+The current package persists invitations but does not send invitation emails.
+Email delivery must be added in `@etus/auth` or via a package-supported hook
+before products rely on invitation delivery.
 
-Soft delete a user (sets `deleted_at`).
+## Audit Routes
 
-**Response**: `204 No Content`
+Base path: `/audit`
 
-### POST /api/users/{id}/restore
+These routes require `auth_users.role === "admin"` in the current package.
 
-Restore a soft-deleted user.
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/audit/logs` | Query logs; returns `{ logs, total }` |
+| `POST` | `/audit/cleanup` | Delete logs older than retention window |
 
-**Response**: `200 OK`
+Supported query parameters for `/audit/logs`:
 
----
+| Parameter | Description |
+|-----------|-------------|
+| `eventType` | Filter by package event type, for example `account.created` |
+| `actorId` | Filter by actor user id |
+| `accountId` | Filter by account id |
+| `startDate` | ISO date lower bound |
+| `endDate` | ISO date upper bound |
+| `limit` | Result limit, capped at 100 |
+| `offset` | Offset for pagination |
 
-## Accounts Endpoints [HIGH]
-
-Base path: `/api/accounts`
-
-| Method | Path | Description | Auth | Permission |
-|--------|------|-------------|------|------------|
-| `GET` | `/api/accounts` | List accounts | Yes | VIEWER+ |
-| `GET` | `/api/accounts/{id}` | Get account | Yes | VIEWER+ |
-| `POST` | `/api/accounts` | Create account | Yes | Auth only |
-| `PATCH` | `/api/accounts/{id}` | Update account | Yes | ADMIN |
-| `DELETE` | `/api/accounts/{id}` | Soft delete account | Yes | ADMIN |
-| `POST` | `/api/accounts/{id}/restore` | Restore account | Yes | ADMIN |
-
-### GET /api/accounts
-
-List accounts the current user has access to.
-
-**Query Parameters**:
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `page` | integer | 1 | Page number |
-| `limit` | integer | 20 | Items per page |
-
-**Response**:
-```json
-{
-  "data": [
-    {
-      "id": "account-uuid",
-      "name": "My Workspace",
-      "description": "Team workspace",
-      "domain": "myworkspace",
-      "memberCount": 5,
-      "createdAt": "2025-01-01T00:00:00Z"
-    }
-  ],
-  "pagination": {
-    "page": 1,
-    "limit": 20,
-    "total": 3,
-    "totalPages": 1
-  }
-}
-```
-
-### POST /api/accounts
-
-Create a new account (workspace).
-
-**Request Body**:
-```json
-{
-  "name": "New Workspace",
-  "description": "Description of the workspace",
-  "domain": "new-workspace"
-}
-```
-
-**Response**: `201 Created`
-
----
-
-## Invitations Endpoints [HIGH]
-
-Base path: `/api/invitations`
-
-| Method | Path | Description | Auth | Permission |
-|--------|------|-------------|------|------------|
-| `POST` | `/api/invitations` | Send invitation | Yes | MANAGER+ |
-| `GET` | `/api/invitations` | List invitations | Yes | MANAGER+ |
-| `DELETE` | `/api/invitations/{id}` | Revoke invitation | Yes | MANAGER+ |
-
-### POST /api/invitations
-
-Send a team invitation email.
-
-**Request Body**:
-```json
-{
-  "email": "newmember@example.com",
-  "role": "EDITOR",
-  "accountId": "account-uuid"
-}
-```
-
-**Response**: `201 Created`
-```json
-{
-  "id": "invitation-uuid",
-  "email": "newmember@example.com",
-  "role": "EDITOR",
-  "status": "pending",
-  "expiresAt": "2025-01-08T00:00:00Z"
-}
-```
-
-### GET /api/invitations
-
-List pending invitations for an account.
-
-**Query Parameters**:
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `accountId` | string | Filter by account |
-| `status` | string | Filter by status (pending, accepted, expired) |
-
-### DELETE /api/invitations/{id}
-
-Revoke a pending invitation.
-
-**Response**: `204 No Content`
-
----
-
-## Audits Endpoints [HIGH]
-
-Base path: `/api/audits`
-
-| Method | Path | Description | Auth | Permission |
-|--------|------|-------------|------|------------|
-| `GET` | `/api/audits` | List audit logs | Yes | ANALYTICS/ADMIN |
-
-### GET /api/audits
-
-Query audit logs with filtering.
-
-**Query Parameters**:
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `page` | integer | Page number |
-| `limit` | integer | Items per page |
-| `action` | string | Filter by action (CREATE, UPDATE, DELETE, LOGIN, LOGOUT) |
-| `resourceType` | string | Filter by resource type |
-| `resourceId` | string | Filter by resource ID |
-| `userId` | string | Filter by user ID |
-| `startDate` | string | Filter from date (ISO 8601) |
-| `endDate` | string | Filter to date (ISO 8601) |
-
-**Response**:
-```json
-{
-  "data": [
-    {
-      "id": "audit-uuid",
-      "action": "UPDATE",
-      "resourceType": "user",
-      "resourceId": "user-uuid",
-      "userId": "actor-uuid",
-      "changes": {
-        "before": { "name": "Old Name" },
-        "after": { "name": "New Name" }
-      },
-      "ipAddress": "192.168.1.1",
-      "userAgent": "Mozilla/5.0...",
-      "transactionId": "txn-uuid",
-      "createdAt": "2025-01-01T12:00:00Z"
-    }
-  ],
-  "pagination": {
-    "page": 1,
-    "limit": 20,
-    "total": 150,
-    "totalPages": 8
-  }
-}
-```
-
----
-
-## Storage Endpoints [HIGH]
+## App Storage Routes
 
 Base path: `/api/storage`
 
-| Method | Path | Description | Auth | Permission |
-|--------|------|-------------|------|------------|
-| `POST` | `/api/storage/upload-url` | Get presigned upload URL | Yes | AUTHOR+ |
-| `PUT` | `/api/storage/upload/{key}` | Upload file directly | Yes | AUTHOR+ |
-| `DELETE` | `/api/storage/{key}` | Delete file | Yes | EDITOR+ |
+These routes are app-owned and protected by `auth.middleware()` plus
+`auth.accountMiddleware()`. They also use local permission guards.
 
-### POST /api/storage/upload-url
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/storage/upload-url` | Create internal upload URL |
+| `PUT` | `/api/storage/upload/:key` | Upload file body to R2 |
+| `GET` | `/api/storage/files/:key` | Read file metadata/download target |
+| `DELETE` | `/api/storage/files/:key` | Delete file from R2 |
 
-Generate a presigned URL for client-side upload.
-
-**Request Body**:
-```json
-{
-  "filename": "document.pdf",
-  "contentType": "application/pdf",
-  "size": 1048576
-}
-```
-
-**Response**:
-```json
-{
-  "uploadUrl": "https://r2.cloudflarestorage.com/...",
-  "key": "accounts/uuid/files/uuid/document.pdf",
-  "expiresAt": "2025-01-01T12:15:00Z"
-}
-```
-
-### PUT /api/storage/upload/{key}
-
-Direct file upload (alternative to presigned URL).
-
-**Headers**:
-- `Content-Type`: File MIME type
-- `Content-Length`: File size in bytes
-
-**Response**: `200 OK`
-```json
-{
-  "key": "accounts/uuid/files/uuid/document.pdf",
-  "url": "https://storage.example.com/...",
-  "size": 1048576
-}
-```
-
-### DELETE /api/storage/{key}
-
-Delete a file from R2 storage.
-
-**Response**: `204 No Content`
-
----
-
-## Health Endpoints [HIGH]
+## Health Routes
 
 Base path: `/health`
 
@@ -461,115 +155,21 @@ Base path: `/health`
 | `GET` | `/health/ready` | Readiness probe | No |
 | `GET` | `/health/live` | Liveness probe | No |
 
-### GET /health
-
-Basic health check endpoint.
-
-**Response**:
-```json
-{
-  "status": "healthy",
-  "timestamp": "2025-01-01T12:00:00Z"
-}
-```
-
-### GET /health/ready
-
-Kubernetes readiness probe - checks database connectivity.
-
-**Response**:
-```json
-{
-  "status": "ready",
-  "checks": {
-    "database": "ok",
-    "kv": "ok"
-  }
-}
-```
-
-### GET /health/live
-
-Kubernetes liveness probe - basic process health.
-
-**Response**:
-```json
-{
-  "status": "alive"
-}
-```
-
----
-
 ## Error Responses
 
-All endpoints return consistent error responses:
+The boilerplate error handler returns:
 
 ```json
 {
   "error": {
-    "code": "ERROR_CODE",
+    "code": "BAD_REQUEST",
     "message": "Human-readable error message",
-    "details": {}
+    "status": 400,
+    "timestamp": "2026-05-22T00:00:00.000Z"
   }
 }
 ```
 
-### HTTP Status Codes
-
-| Code | Meaning |
-|------|---------|
-| `200` | Success |
-| `201` | Created |
-| `204` | No Content |
-| `400` | Bad Request (validation error) |
-| `401` | Unauthorized (not authenticated) |
-| `403` | Forbidden (insufficient permissions) |
-| `404` | Not Found |
-| `409` | Conflict (duplicate resource) |
-| `429` | Too Many Requests (rate limited) |
-| `500` | Internal Server Error |
-
-### Common Error Codes
-
-| Code | Description |
-|------|-------------|
-| `VALIDATION_ERROR` | Request body/params failed validation |
-| `UNAUTHORIZED` | No valid session |
-| `FORBIDDEN` | Insufficient role/permissions |
-| `NOT_FOUND` | Resource doesn't exist |
-| `DUPLICATE_EMAIL` | Email already registered |
-| `INVITATION_EXPIRED` | Invitation token expired |
-| `RATE_LIMITED` | Too many requests |
-
----
-
-## Rate Limiting
-
-| Endpoint Type | Limit | Window |
-|---------------|-------|--------|
-| Auth endpoints | 10 req | 1 minute |
-| API endpoints | 100 req | 1 minute |
-| Upload endpoints | 20 req | 1 minute |
-
-Rate limit headers:
-```
-X-RateLimit-Limit: 100
-X-RateLimit-Remaining: 95
-X-RateLimit-Reset: 1704110400
-```
-
----
-
-## OpenAPI Specification
-
-Full OpenAPI 3.0 specification available at:
-
-- **JSON**: `GET /api/doc`
-- **Swagger UI**: `GET /api/swagger`
-
-The specification includes:
-- All request/response schemas (Zod-generated)
-- Authentication requirements
-- Example requests and responses
-- Error schemas
+Some package handlers currently return simpler `{ "error": "..." }` responses
+for route-local validation errors. Tests should assert the behavior that matters
+without assuming a fully normalized error body for every package-owned route.

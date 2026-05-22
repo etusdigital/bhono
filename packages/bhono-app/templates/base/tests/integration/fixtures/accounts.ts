@@ -1,7 +1,7 @@
 /**
  * Account Fixtures for Integration Tests
  *
- * Provides factory functions for creating accounts and user-account
+ * Provides factory functions for creating auth accounts and membership
  * relationships in the test database.
  */
 
@@ -11,22 +11,20 @@ import { getSqlite } from '../setup'
 // TYPES
 // ============================================================================
 
-export type Role = 'ADMIN' | 'MANAGER' | 'EDITOR' | 'AUTHOR' | 'VIEWER' | 'BILLING' | 'ANALYTICS'
+export type Role = 'admin' | 'member' | 'guest'
 
 export interface CreateAccountOptions {
   id?: string
   name?: string
-  description?: string | null
-  domain?: string | null
-  deletedAt?: string | null
+  slug?: string | null
+  ownerId?: string
 }
 
 export interface CreatedAccount {
   id: string
   name: string
-  description: string | null
-  domain: string | null
-  deletedAt: string | null
+  slug: string | null
+  ownerId: string
 }
 
 // ============================================================================
@@ -57,34 +55,23 @@ export async function createAccount(options: CreateAccountOptions = {}): Promise
   const account: CreatedAccount = {
     id: options.id ?? defaults.id,
     name: options.name ?? defaults.name,
-    description: options.description ?? null,
-    domain: options.domain ?? null,
-    deletedAt: options.deletedAt ?? null,
+    slug: options.slug ?? null,
+    ownerId: options.ownerId ?? 'test-owner',
   }
 
   db.prepare(`
-    INSERT INTO accounts (id, name, description, domain, deleted_at)
-    VALUES (?, ?, ?, ?, ?)
-  `).run(
-    account.id,
-    account.name,
-    account.description,
-    account.domain,
-    account.deletedAt
-  )
+    INSERT INTO auth_accounts (id, name, slug, owner_id)
+    VALUES (?, ?, ?, ?)
+  `).run(account.id, account.name, account.slug, account.ownerId)
 
   return account
 }
 
 /**
- * Create a soft-deleted account
+ * Legacy alias kept for old fixture callers. auth_accounts has no soft-delete column.
  */
 export async function createDeletedAccount(options: CreateAccountOptions = {}): Promise<CreatedAccount> {
-  const deletedAt = options.deletedAt ?? new Date().toISOString()
-  return createAccount({
-    ...options,
-    deletedAt,
-  })
+  return createAccount(options)
 }
 
 /**
@@ -98,9 +85,9 @@ export async function addUserToAccount(
   const db = getSqlite()
 
   db.prepare(`
-    INSERT INTO user_accounts (user_id, account_id, role)
-    VALUES (?, ?, ?)
-  `).run(userId, accountId, role)
+    INSERT INTO auth_memberships (id, user_id, account_id, role, status)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(crypto.randomUUID(), userId, accountId, role, 'active')
 
   return { userId, accountId, role }
 }
@@ -111,7 +98,7 @@ export async function addUserToAccount(
 export async function getUserAccounts(userId: string): Promise<{ accountId: string; role: Role }[]> {
   const db = getSqlite()
   const rows = db.prepare(`
-    SELECT account_id, role FROM user_accounts WHERE user_id = ?
+    SELECT account_id, role FROM auth_memberships WHERE user_id = ?
   `).all(userId) as { account_id: string; role: Role }[]
 
   return rows.map((row) => ({
@@ -126,7 +113,7 @@ export async function getUserAccounts(userId: string): Promise<{ accountId: stri
 export async function getAccountUsers(accountId: string): Promise<{ userId: string; role: Role }[]> {
   const db = getSqlite()
   const rows = db.prepare(`
-    SELECT user_id, role FROM user_accounts WHERE account_id = ?
+    SELECT user_id, role FROM auth_memberships WHERE account_id = ?
   `).all(accountId) as { user_id: string; role: Role }[]
 
   return rows.map((row) => ({

@@ -1,7 +1,59 @@
 import "@testing-library/jest-dom/vitest"
 import "../../src/test/vitest-zod-matcher"
 import { cleanup } from "@testing-library/react"
-import { afterEach, vi } from "vitest"
+import { afterEach, beforeEach, vi } from "vitest"
+
+// Mock user and account for tests
+const mockUser = {
+  id: "test-user-id",
+  email: "test@example.com",
+  name: "Test User",
+  picture: null,
+  role: "admin",
+}
+
+const mockAccount = {
+  id: "test-account-id",
+  name: "Test Account",
+  slug: "test-account",
+  status: "active" as const,
+  role: "admin" as const,
+  isCurrent: true,
+}
+
+// Setup global fetch mock for common API endpoints
+beforeEach(() => {
+  const originalFetch = global.fetch
+  vi.spyOn(global, "fetch").mockImplementation((input, init) => {
+    const url = typeof input === "string" ? input : input.toString()
+
+    // Mock /auth/me
+    if (url === "/auth/me" || url.endsWith("/auth/me")) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ user: mockUser }),
+      } as Response)
+    }
+
+    // Mock /api/accounts/my
+    if (url === "/api/accounts/my" || url.endsWith("/api/accounts/my")) {
+      return Promise.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            data: [mockAccount],
+            currentAccountId: mockAccount.id,
+          }),
+      } as Response)
+    }
+
+    // Default mock for other URLs
+    return Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({}),
+    } as Response)
+  })
+})
 
 // Cleanup after each test
 afterEach(() => {
@@ -30,3 +82,21 @@ global.ResizeObserver = vi.fn().mockImplementation(() => ({
   unobserve: vi.fn(),
   disconnect: vi.fn(),
 }))
+
+// Mock localStorage
+const localStorageMock = (() => {
+  let store: Record<string, string> = {}
+  return {
+    getItem: vi.fn((key: string) => store[key] || null),
+    setItem: vi.fn((key: string, value: string) => {
+      store[key] = value
+    }),
+    removeItem: vi.fn((key: string) => {
+      delete store[key]
+    }),
+    clear: vi.fn(() => {
+      store = {}
+    }),
+  }
+})()
+Object.defineProperty(window, "localStorage", { value: localStorageMock })

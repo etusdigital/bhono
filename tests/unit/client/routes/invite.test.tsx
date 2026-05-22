@@ -1,93 +1,61 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { renderRoute } from '@tests/helpers/client-test-utils'
 
+function mockResponse(init: Pick<Response, 'ok' | 'status'>): Response {
+  return {
+    ...init,
+    json: () => Promise.resolve({}),
+  } as Response
+}
+
+function setupDefaultFetch() {
+  vi.spyOn(global, 'fetch').mockImplementation((input) => {
+    const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input)
+
+    if (url === '/auth/me') {
+      return Promise.resolve(mockResponse({ ok: false, status: 401 }))
+    }
+
+    if (url === '/invitations/test-token-123/accept') {
+      return Promise.resolve(mockResponse({ ok: true, status: 200 }))
+    }
+
+    return Promise.resolve(mockResponse({ ok: true, status: 200 }))
+  })
+}
+
 describe('Invite Token Page', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-
-    // Mock fetch - the invite page is public, no auth needed
-    vi.spyOn(global, 'fetch').mockImplementation((url) => {
-      if (url === '/auth/me') {
-        return Promise.resolve({
-          ok: false,
-          status: 401,
-        } as Response)
-      }
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({}),
-      } as Response)
-    })
+    setupDefaultFetch()
   })
 
   describe('pending invitation state', () => {
-    it('should render invitation page with inviter name and workspace', async () => {
+    it('renders the public invitation acceptance page', async () => {
       renderRoute({ initialEntries: ['/invite/test-token-123'] })
 
       await waitFor(() => {
-        expect(screen.getByText("You've Been Invited!")).toBeInTheDocument()
+        expect(screen.getByText("You've been invited")).toBeInTheDocument()
       })
 
-      // Inviter name and workspace in the description
-      expect(screen.getByText('John Doe')).toBeInTheDocument()
-      // Acme Inc appears in both the description and details
-      expect(screen.getAllByText('Acme Inc').length).toBeGreaterThanOrEqual(1)
+      expect(screen.getByText(/accept this invitation to join the workspace/i)).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /accept invitation/i })).toBeInTheDocument()
     })
 
-    it('should display invitation details (email, workspace, role)', async () => {
-      renderRoute({ initialEntries: ['/invite/test-token-123'] })
-
-      await waitFor(() => {
-        expect(screen.getByText("You've Been Invited!")).toBeInTheDocument()
-      })
-
-      // Email
-      expect(screen.getByText('Email')).toBeInTheDocument()
-      expect(screen.getByText('invited@example.com')).toBeInTheDocument()
-
-      // Workspace
-      expect(screen.getByText('Workspace')).toBeInTheDocument()
-      // Acme Inc appears twice (in description and details)
-      expect(screen.getAllByText('Acme Inc')).toHaveLength(2)
-
-      // Role
-      expect(screen.getByText('Role')).toBeInTheDocument()
-      expect(screen.getByText('member')).toBeInTheDocument()
-    })
-
-    it('should display accept invitation button', async () => {
-      renderRoute({ initialEntries: ['/invite/test-token-123'] })
-
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /accept invitation/i })).toBeInTheDocument()
-      })
-    })
-
-    it('should display decline button linking to homepage', async () => {
+    it('shows a decline link to the homepage', async () => {
       renderRoute({ initialEntries: ['/invite/test-token-123'] })
 
       await waitFor(() => {
         expect(screen.getByText('Decline')).toBeInTheDocument()
       })
 
-      // The decline text is inside a link which is inside a button (asChild pattern)
       const declineLink = screen.getByText('Decline').closest('a')
       expect(declineLink).toHaveAttribute('href', '/')
     })
 
-    it('should show terms of service and privacy policy links', async () => {
-      renderRoute({ initialEntries: ['/invite/test-token-123'] })
-
-      await waitFor(() => {
-        expect(screen.getByText('Terms of Service')).toBeInTheDocument()
-      })
-
-      expect(screen.getByText('Privacy Policy')).toBeInTheDocument()
-    })
-
-    it('should have a logo link to homepage', async () => {
+    it('has a logo link to homepage', async () => {
       renderRoute({ initialEntries: ['/invite/test-token-123'] })
 
       await waitFor(() => {
@@ -97,41 +65,79 @@ describe('Invite Token Page', () => {
   })
 
   describe('acceptance flow', () => {
-    it('should show loading state when accepting invitation', async () => {
+    it('posts the token to @etus/auth and shows success when accepted', async () => {
       const user = userEvent.setup()
 
       renderRoute({ initialEntries: ['/invite/test-token-123'] })
 
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /accept invitation/i })).toBeInTheDocument()
-      })
-
-      const acceptButton = screen.getByRole('button', { name: /accept invitation/i })
+      const acceptButton = await screen.findByRole('button', { name: /accept invitation/i })
       await user.click(acceptButton)
 
-      // Should show loading state
+      expect(global.fetch).toHaveBeenCalledWith('/invitations/test-token-123/accept', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'X-CSRF-Token': '1' },
+      })
       await waitFor(() => {
-        expect(screen.getByText(/accepting\.\.\./i)).toBeInTheDocument()
+        expect(screen.getByText('Invitation accepted')).toBeInTheDocument()
       })
     })
 
-    it('should disable button while accepting', async () => {
+    it('shows and disables the loading button while accepting', async () => {
       const user = userEvent.setup()
+      let resolveAccept: (response: Response) => void = () => {}
+
+      vi.mocked(global.fetch).mockImplementation((input) => {
+        const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input)
+
+        if (url === '/auth/me') {
+          return Promise.resolve(mockResponse({ ok: false, status: 401 }))
+        }
+
+        if (url === '/invitations/test-token-123/accept') {
+          return new Promise<Response>((resolve) => {
+            resolveAccept = resolve
+          })
+        }
+
+        return Promise.resolve(mockResponse({ ok: true, status: 200 }))
+      })
 
       renderRoute({ initialEntries: ['/invite/test-token-123'] })
 
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /accept invitation/i })).toBeInTheDocument()
-      })
-
-      const acceptButton = screen.getByRole('button', { name: /accept invitation/i })
+      const acceptButton = await screen.findByRole('button', { name: /accept invitation/i })
       await user.click(acceptButton)
 
-      // Button should be disabled during loading
+      const loadingButton = screen.getByRole('button', { name: /accepting/i })
+      expect(loadingButton).toBeDisabled()
+
+      resolveAccept(mockResponse({ ok: true, status: 200 }))
+    })
+
+    it('shows an error state when the invitation cannot be accepted', async () => {
+      const user = userEvent.setup()
+
+      vi.mocked(global.fetch).mockImplementation((input) => {
+        const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input)
+
+        if (url === '/auth/me') {
+          return Promise.resolve(mockResponse({ ok: false, status: 401 }))
+        }
+
+        if (url === '/invitations/test-token-123/accept') {
+          return Promise.resolve(mockResponse({ ok: false, status: 404 }))
+        }
+
+        return Promise.resolve(mockResponse({ ok: true, status: 200 }))
+      })
+
+      renderRoute({ initialEntries: ['/invite/test-token-123'] })
+
+      const acceptButton = await screen.findByRole('button', { name: /accept invitation/i })
+      await user.click(acceptButton)
+
       await waitFor(() => {
-        const buttons = screen.getAllByRole('button')
-        const acceptingButton = buttons.find(btn => btn.textContent?.includes('Accepting'))
-        expect(acceptingButton).toBeDisabled()
+        expect(screen.getByText('Invitation could not be accepted')).toBeInTheDocument()
       })
     })
   })

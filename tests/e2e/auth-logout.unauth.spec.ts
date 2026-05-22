@@ -87,7 +87,12 @@ test.describe('Logout Flow @auth @logout', () => {
     test.skip(!authResponse.ok(), 'Not authenticated - cannot test logout')
 
     // Call logout endpoint
-    const logoutResponse = await request.post(`${baseURL}/auth/logout`)
+    const logoutResponse = await request.post(`${baseURL}/auth/logout`, {
+      headers: {
+        Origin: new URL(baseURL ?? 'http://localhost:8787').origin,
+        'X-CSRF-Token': '1',
+      },
+    })
 
     // Should succeed (200) or redirect (302)
     expect([200, 302]).toContain(logoutResponse.status())

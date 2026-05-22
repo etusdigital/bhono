@@ -5,7 +5,7 @@
  * - In-memory SQLite database (better-sqlite3) as D1-compatible database
  * - Mock KV store (Map-based) for sessions
  * - Mock R2 bucket (Map-based) for file storage
- * - Mocked external services (Google OAuth, SendGrid)
+ * - Mocked external services (ETUS OAuth gateway, SendGrid)
  * - Test utilities for creating sessions and test apps
  */
 
@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url'
 import { vi, beforeAll, afterAll, beforeEach, afterEach } from 'vitest'
 import { Hono } from 'hono'
 import type { Env } from '../../src/server/env'
-import type { SessionData, HonoEnv } from '../../src/server/types'
+import type { HonoEnv } from '../../src/server/types'
 
 // ============================================================================
 // TYPES
@@ -45,6 +45,17 @@ export interface MockR2Store {
   put: (key: string, value: ArrayBuffer | string | ReadableStream, options?: R2PutOptions) => Promise<R2Object>
   delete: (keys: string | string[]) => Promise<void>
   list: (options?: R2ListOptions) => Promise<R2Objects>
+}
+
+interface TestAuthSession {
+  id: string
+  userId: string
+  expiresAt: number
+  createdAt: number
+  fingerprint: {
+    ip: string
+    userAgent: string
+  }
 }
 
 // ============================================================================
@@ -421,7 +432,7 @@ function createMockR2(): MockR2Store {
 // ============================================================================
 
 /**
- * Mocked fetch for external services (Google OAuth, SendGrid)
+ * Mocked fetch for external services (ETUS OAuth gateway, SendGrid)
  */
 const originalFetch = globalThis.fetch
 
@@ -429,34 +440,42 @@ function createMockedFetch() {
   return vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
 
-    // Mock Google OAuth token endpoint
-    if (url.includes('oauth2.googleapis.com/token')) {
+    // Mock ETUS OAuth gateway metadata endpoint
+    if (url.includes('/.well-known/openid-configuration')) {
       return new Response(
         JSON.stringify({
-          access_token: 'mock_access_token',
-          refresh_token: 'mock_refresh_token',
-          expires_in: 3600,
-          token_type: 'Bearer',
-          scope: 'openid email profile',
-          id_token: 'mock_id_token',
+          issuer: 'https://auth.test.etus.io',
+          authorization_endpoint: 'https://auth.test.etus.io/oauth/authorize',
+          token_endpoint: 'https://auth.test.etus.io/oauth/token',
+          userinfo_endpoint: 'https://auth.test.etus.io/oauth/userinfo',
         }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
       )
     }
 
-    // Mock Google userinfo endpoint
-    if (url.includes('googleapis.com/oauth2') && url.includes('userinfo')) {
+    // Mock ETUS OAuth token endpoint
+    if (url.includes('/oauth/token')) {
       return new Response(
         JSON.stringify({
-          id: 'mock_google_id_123',
-          email: 'testuser@gmail.com',
-          verified_email: true,
+          access_token: 'mock_access_token',
+          expires_in: 3600,
+          token_type: 'Bearer',
+          scope: 'openid email profile',
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    // Mock ETUS OAuth userinfo endpoint
+    if (url.includes('/oauth/userinfo')) {
+      return new Response(
+        JSON.stringify({
+          sub: 'mock_gateway_user_123',
+          email: 'testuser@example.com',
           name: 'Test User',
-          given_name: 'Test',
-          family_name: 'User',
           picture: 'https://example.com/avatar.jpg',
         }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
       )
     }
 
@@ -481,16 +500,15 @@ function createMockedFetch() {
 const DEFAULT_TEST_ENV_VALUES = {
   ENVIRONMENT: 'test',
   APP_URL: 'http://localhost:8787',
-  JWT_SECRET: 'test-jwt-secret-key-for-integration-testing',
-  JWT_EXPIRY_MINUTES: '15',
-  GOOGLE_CLIENT_ID: 'test-google-client-id',
-  GOOGLE_CLIENT_SECRET: 'test-google-client-secret',
-  GOOGLE_REDIRECT_URI: 'http://localhost:8787/auth/google/callback',
-  REFRESH_TOKEN_EXPIRY_DAYS: '30',
+  ETUS_GATEWAY: 'https://ag.etus.io',
+  ETUS_CLIENT_ID: 'test-etus-client-id',
+  ETUS_CLIENT_SECRET: 'test-etus-client-secret',
+  ETUS_ALLOWED_DOMAINS: 'example.com',
+  ETUS_ADMIN_EMAILS: 'admin@example.com',
   SENDGRID_API_KEY: 'test-sendgrid-api-key',
   SENDGRID_FROM_EMAIL: 'test@example.com',
   R2_PUBLIC_URL: 'https://r2-test.example.com',
-  CORS_ORIGINS: 'http://localhost:3000,http://localhost:5173',
+  CORS_ORIGINS: 'http://localhost:3000,http://localhost:8787',
 }
 
 // ============================================================================
@@ -553,24 +571,39 @@ export function getR2(): MockR2Store {
  */
 export async function createSession(
   userId: string,
-  sessionData?: Partial<SessionData>
-): Promise<{ sessionId: string; sessionData: SessionData }> {
+  sessionData?: Partial<TestAuthSession>
+): Promise<{ sessionId: string; sessionData: TestAuthSession }> {
   const kv = getKV()
+  const db = getSqlite()
   const sessionId = crypto.randomUUID()
+  const createdAt = Date.now()
+  const expiresAt = createdAt + 24 * 60 * 60 * 1000
 
-  const data: SessionData = {
+  const data: TestAuthSession = {
+    id: sessionId,
     userId,
-    email: sessionData?.email ?? `user-${userId}@example.com`,
-    name: sessionData?.name ?? `Test User ${userId}`,
-    avatarUrl: sessionData?.avatarUrl ?? null,
-    isSuperAdmin: sessionData?.isSuperAdmin ?? false,
+    expiresAt: sessionData?.expiresAt ?? expiresAt,
+    createdAt: sessionData?.createdAt ?? createdAt,
     fingerprint: sessionData?.fingerprint ?? {
       ip: '127.0.0.1',
       userAgent: 'IntegrationTest/1.0',
     },
   }
 
-  await kv.put(`sid:${sessionId}`, JSON.stringify(data), { expirationTtl: 86400 })
+  await kv.put(`auth_sid:${sessionId}`, JSON.stringify(data), { expirationTtl: 86400 })
+  db.prepare(`
+    INSERT OR REPLACE INTO auth_sessions
+      (id, user_id, ip, user_agent, last_active_at, expires_at, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    sessionId,
+    userId,
+    data.fingerprint.ip,
+    data.fingerprint.userAgent,
+    createdAt,
+    data.expiresAt,
+    data.createdAt,
+  )
 
   return { sessionId, sessionData: data }
 }
@@ -597,13 +630,14 @@ export function createTestApp(): Hono<HonoEnv> {
  */
 export async function clearDatabase(): Promise<void> {
   const db = getSqlite()
-  // Delete in order to respect foreign key constraints
-  db.exec('DELETE FROM audit_logs')
-  db.exec('DELETE FROM invitations')
-  db.exec('DELETE FROM refresh_tokens')
-  db.exec('DELETE FROM user_accounts')
-  db.exec('DELETE FROM accounts')
-  db.exec('DELETE FROM users')
+  db.exec('DELETE FROM auth_resource_permissions')
+  db.exec('DELETE FROM auth_user_permissions')
+  db.exec('DELETE FROM auth_audit_logs')
+  db.exec('DELETE FROM auth_invitations')
+  db.exec('DELETE FROM auth_memberships')
+  db.exec('DELETE FROM auth_sessions')
+  db.exec('DELETE FROM auth_accounts')
+  db.exec('DELETE FROM auth_users')
 }
 
 /**
@@ -611,32 +645,33 @@ export async function clearDatabase(): Promise<void> {
  */
 export async function seedUser(userData: {
   id?: string
-  googleId?: string
+  gatewayUserId?: string | null
   email: string
   name: string
-  avatarUrl?: string | null
-  status?: 'active' | 'inactive'
-  isSuperAdmin?: boolean
-}): Promise<{ id: string; googleId: string; email: string; name: string }> {
+  picture?: string | null
+  role?: 'owner' | 'admin' | 'member' | 'guest'
+  status?: 'pending' | 'active' | 'suspended' | 'denied'
+}): Promise<{ id: string; gatewayUserId: string | null; email: string; name: string; role: string }> {
   const db = getSqlite()
   const id = userData.id ?? crypto.randomUUID()
-  const googleId = userData.googleId ?? `google_${id}`
+  const gatewayUserId = userData.gatewayUserId ?? `gateway_${id}`
+  const role = userData.role ?? 'member'
 
   db.prepare(`
-    INSERT INTO users (id, google_id, email, name, avatar_url, status, is_super_admin, provider_ids)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO auth_users
+      (id, gateway_user_id, email, name, picture, role, status, invited_by, created_at, last_login_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, NULL, datetime('now'), datetime('now'))
   `).run(
     id,
-    googleId,
+    gatewayUserId,
     userData.email,
     userData.name,
-    userData.avatarUrl ?? null,
+    userData.picture ?? null,
+    role,
     userData.status ?? 'active',
-    userData.isSuperAdmin ? 1 : 0,
-    JSON.stringify(['google'])
   )
 
-  return { id, googleId, email: userData.email, name: userData.name }
+  return { id, gatewayUserId, email: userData.email, name: userData.name, role }
 }
 
 /**
@@ -645,18 +680,19 @@ export async function seedUser(userData: {
 export async function seedAccount(accountData: {
   id?: string
   name: string
-  description?: string | null
-  domain?: string | null
-}): Promise<{ id: string; name: string }> {
+  slug?: string | null
+  ownerId?: string
+}): Promise<{ id: string; name: string; ownerId: string }> {
   const db = getSqlite()
   const id = accountData.id ?? crypto.randomUUID()
+  const ownerId = accountData.ownerId ?? 'test-owner'
 
   db.prepare(`
-    INSERT INTO accounts (id, name, description, domain)
-    VALUES (?, ?, ?, ?)
-  `).run(id, accountData.name, accountData.description ?? null, accountData.domain ?? null)
+    INSERT INTO auth_accounts (id, name, slug, owner_id, created_at, updated_at)
+    VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
+  `).run(id, accountData.name, accountData.slug ?? null, ownerId)
 
-  return { id, name: accountData.name }
+  return { id, name: accountData.name, ownerId }
 }
 
 /**
@@ -665,13 +701,14 @@ export async function seedAccount(accountData: {
 export async function seedUserAccount(data: {
   userId: string
   accountId: string
-  role: 'ADMIN' | 'MANAGER' | 'EDITOR' | 'AUTHOR' | 'VIEWER' | 'BILLING' | 'ANALYTICS'
+  role: 'admin' | 'member' | 'guest'
 }): Promise<void> {
   const db = getSqlite()
   db.prepare(`
-    INSERT INTO user_accounts (user_id, account_id, role)
-    VALUES (?, ?, ?)
-  `).run(data.userId, data.accountId, data.role)
+    INSERT INTO auth_memberships
+      (id, user_id, account_id, role, status, joined_at, created_at)
+    VALUES (?, ?, ?, ?, 'active', datetime('now'), datetime('now'))
+  `).run(crypto.randomUUID(), data.userId, data.accountId, data.role)
 }
 
 // ============================================================================
@@ -753,5 +790,4 @@ afterEach(async () => {
 // RE-EXPORTS FOR CONVENIENCE
 // ============================================================================
 
-export { schema }
 export type { Database }

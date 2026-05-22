@@ -18,11 +18,5 @@ export const requestContext = createMiddleware<HonoEnv>(async (c, next) => {
   const userAgent = c.req.header('user-agent') ?? 'unknown'
   c.set('userAgent', userAgent)
 
-  // Initialize user and account context (will be set by auth middleware)
-  c.set('user', null)
-  c.set('accountId', '')
-  c.set('userRole', null)
-  c.set('isSystemAdminAccess', false)
-
   await next()
 })

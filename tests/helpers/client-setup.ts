@@ -8,15 +8,14 @@ const mockUser = {
   id: "test-user-id",
   email: "test@example.com",
   name: "Test User",
-  isSuperAdmin: false,
-  avatarUrl: null,
+  picture: null,
+  role: "admin",
 }
 
 const mockAccount = {
   id: "test-account-id",
   name: "Test Account",
-  description: null,
-  domain: null,
+  slug: "test-account",
   status: "active" as const,
   role: "admin" as const,
   isCurrent: true,

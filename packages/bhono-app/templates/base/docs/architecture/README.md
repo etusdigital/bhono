@@ -13,7 +13,7 @@
 | **Database** | Cloudflare D1 (SQLite at Edge) | HIGH |
 | **Sessions** | Cloudflare KV | HIGH |
 | **Storage** | Cloudflare R2 | HIGH |
-| **Auth** | Google OAuth 2.0 + Session Cookies | HIGH |
+| **Auth** | `@etus/auth` via ETUS OAuth Gateway + session cookies | HIGH |
 | **Multi-tenancy** | Account-based with RBAC | HIGH |
 
 ### Key Characteristics
@@ -21,7 +21,7 @@
 - **Edge-first**: Entire stack runs at Cloudflare's edge, ~50ms latency globally
 - **Multi-tenant**: Users belong to multiple Accounts with role-based permissions
 - **Type-safe**: Full TypeScript with Zod validation on both client and server
-- **API-first**: OpenAPI 3.0 spec with Swagger UI
+- **API-first**: OpenAPI 3.0 spec with Swagger UI for app-owned `/api/*` routes
 - **Test coverage**: 94%+ server, 90%+ client, 363+ E2E tests
 
 ## Architecture Indicators Detected
@@ -37,7 +37,7 @@
 | TanStack Router | YES | `src/client/routes/*` |
 | Hono.js Backend | YES | `src/server/*` |
 | OpenAPI/Swagger | YES | `src/server/routes/openapi.ts` |
-| Multi-tenancy | YES | `src/server/auth/guards.ts` |
+| Multi-tenancy | YES | `@etus/auth` account routes + `src/server/auth/guards.ts` |
 
 ## Document Index
 
@@ -113,14 +113,14 @@
 
 | Area | Implementation | Confidence |
 |------|----------------|------------|
-| **Authentication** | Google OAuth 2.0 + Session Cookies | HIGH |
-| **Authorization** | RBAC (7 roles) with Guards | HIGH |
+| **Authentication** | `@etus/auth` gateway OAuth + session cookies | HIGH |
+| **Authorization** | Product RBAC (`owner > admin > member > guest`) + account membership roles | HIGH |
 | **Session Management** | KV-backed, httpOnly cookies | HIGH |
-| **Token Security** | SHA-256 hashed refresh tokens | HIGH |
-| **CSRF Protection** | SameSite=Strict cookies | HIGH |
+| **Token Security** | OAuth/session internals owned by `@etus/auth`; no browser bearer tokens | HIGH |
+| **CSRF Protection** | SameSite cookies + Origin/Referer + explicit request header | HIGH |
 | **Rate Limiting** | In-memory with lazy cleanup | HIGH |
-| **Audit Logging** | All state changes logged | HIGH |
-| **Soft Delete** | Users/Accounts retain data | HIGH |
+| **Audit Logging** | Package-owned auth/account/invitation events logged by `@etus/auth` | HIGH |
+| **Soft Delete** | Product-specific; package account routes currently hard-delete | MEDIUM |
 
 ## Project Structure Overview
 

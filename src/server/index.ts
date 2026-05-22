@@ -1,10 +1,11 @@
 // src/server/index.ts
 import { Hono } from 'hono'
-import { secureHeaders } from 'hono/secure-headers'
 import type { HonoEnv } from './types'
 import type { Env } from './env'
 import { getAuth } from './auth/setup'
 import { protectAccountOwner } from './auth/guards'
+import { requireSupportedAccountMembershipRole } from './auth/package-compat'
+import { requireSafeAuthRedirects } from './auth/redirects'
 import { api } from './routes'
 import { health } from './routes/health'
 import { devLogin } from './routes/dev-login'
@@ -15,6 +16,9 @@ import {
   requestContext,
   rateLimit,
   authRateLimit,
+  csrfProtection,
+  securityHeaders,
+  requestBodyLimit,
 } from './middleware'
 import { validateEnv } from './env'
 
@@ -35,7 +39,9 @@ function buildApp(env: Env): Hono<HonoEnv> {
 
   // 3. Environment validation
   app.use('*', async (c, next) => {
-    validateEnv(c.env)
+    const hostname = new URL(c.req.url).hostname
+    const isLoopback = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1'
+    validateEnv(c.env, { allowMissingClientSecret: isLoopback })
     await next()
   })
 
@@ -52,7 +58,7 @@ function buildApp(env: Env): Hono<HonoEnv> {
   })
 
   // 6. Security headers
-  app.use('*', secureHeaders())
+  app.use('*', securityHeaders(env))
 
   // 7. Global rate limiting
   app.use('*', rateLimit())
@@ -76,20 +82,24 @@ function buildApp(env: Env): Hono<HonoEnv> {
     await next()
   })
 
-  // Health checks (no auth) — before everything else
+  // 10. CSRF/origin protection for state-changing browser requests.
+  app.use('*', csrfProtection())
+
+  // 11. Bound JSON payloads before any route parses request bodies.
+  app.use('*', requestBodyLimit())
+
+  // Health checks (no auth) — before protected routers
   app.route('/health', health)
 
   // Dev-only test-login. The route itself is always mounted; the handler
   // returns 403 unless the request comes from localhost. Mounted BEFORE
-  // optionalMiddleware so it can create the very first session.
+  // the package-protected routers so it can create the very first session.
   app.route('/auth/test-login', devLogin)
 
-  // Populate authUser/authPermissions/authAccount when a session exists, but
-  // never block. Scoped to the package's admin/account/audit/invitation
-  // routers — they expect c.get('authUser') to be set before their own
-  // role/permission checks run. auth.routes() handles /login/callback/
-  // logout/me with its own session reads, and /api/* uses auth.middleware().
-  const withAuthContext = auth.optionalMiddleware()
+  // Require the package's full auth middleware for package-owned protected
+  // routers. Those routers expect c.get('authUser') to exist; using the
+  // required middleware also preserves session fingerprint enforcement.
+  const requireAuthContext = auth.middleware()
   for (const path of [
     '/auth/admin/*',
     '/audit',
@@ -99,14 +109,20 @@ function buildApp(env: Env): Hono<HonoEnv> {
     '/invitations',
     '/invitations/*',
   ]) {
-    app.use(path, withAuthContext)
+    app.use(path, requireAuthContext)
   }
 
   // Protect the account owner from being demoted by an admin — runs before
   // accountRoutes handles PATCH /accounts/:id/members/:userId.
   app.use('/accounts/:id/members/:userId', protectAccountOwner())
 
+  // Keep the boilerplate account-membership contract narrower than the current
+  // package defaults until @etus/auth owns multiTenant.roles/defaultRole.
+  app.use('/accounts/:id/members/invite', requireSupportedAccountMembershipRole(['POST']))
+  app.use('/accounts/:id/members/:userId', requireSupportedAccountMembershipRole(['PATCH']))
+
   // @etus/auth routes — OAuth flow, admin user management, accounts, invitations, audit
+  app.use('/auth/*', requireSafeAuthRedirects())
   app.route('/auth', auth.routes())
   app.route('/auth/admin', auth.adminRoutes())
   app.route('/audit', auth.auditRoutes())
@@ -114,12 +130,16 @@ function buildApp(env: Env): Hono<HonoEnv> {
   app.route('/invitations', auth.invitationRoutes())
 
   // Protected application API — requires authentication (docs are public)
+  const resolveAccountContext = auth.accountMiddleware()
   app.use('/api/*', async (c, next) => {
     if (c.req.path === '/api/doc' || c.req.path === '/api/swagger') {
       return next()
     }
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Hono wildcard route typing
-    return auth.middleware()(c, next)
+    return requireAuthContext(c, async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Hono wildcard route typing
+      await resolveAccountContext(c, next)
+    })
   })
   app.route('/api', api)
 

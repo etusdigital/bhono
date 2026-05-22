@@ -1,8 +1,8 @@
 /**
  * User Fixtures for Integration Tests
  *
- * Provides factory functions for creating users in the test database
- * with various states (active, inactive, super admin, deleted).
+ * Provides factory functions for creating @etus/auth users in the test
+ * database with various states.
  */
 
 import { getSqlite, createSession } from '../setup'
@@ -13,24 +13,24 @@ import { getSqlite, createSession } from '../setup'
 
 export interface CreateUserOptions {
   id?: string
-  googleId?: string
+  gatewayUserId?: string | null
   email?: string
   name?: string
-  avatarUrl?: string | null
-  status?: 'active' | 'inactive'
+  picture?: string | null
+  role?: 'owner' | 'admin' | 'member' | 'guest'
+  status?: 'pending' | 'active' | 'suspended' | 'denied'
   isSuperAdmin?: boolean
-  deletedAt?: string | null
 }
 
 export interface CreatedUser {
   id: string
-  googleId: string
+  gatewayUserId: string | null
   email: string
   name: string
-  avatarUrl: string | null
-  status: 'active' | 'inactive'
+  picture: string | null
+  role: 'owner' | 'admin' | 'member' | 'guest'
+  status: 'pending' | 'active' | 'suspended' | 'denied'
   isSuperAdmin: boolean
-  deletedAt: string | null
 }
 
 // ============================================================================
@@ -39,12 +39,12 @@ export interface CreatedUser {
 
 let userCounter = 0
 
-function generateUserDefaults(): { id: string; googleId: string; email: string; name: string } {
+function generateUserDefaults(): { id: string; gatewayUserId: string; email: string; name: string } {
   userCounter++
   const id = crypto.randomUUID()
   return {
     id,
-    googleId: `google_${id}`,
+    gatewayUserId: `gateway_${id}`,
     email: `testuser${userCounter}@example.com`,
     name: `Test User ${userCounter}`,
   }
@@ -60,31 +60,30 @@ function generateUserDefaults(): { id: string; googleId: string; email: string; 
 export async function createUser(options: CreateUserOptions = {}): Promise<CreatedUser> {
   const db = getSqlite()
   const defaults = generateUserDefaults()
+  const role = options.role ?? (options.isSuperAdmin ? 'admin' : 'member')
 
   const user: CreatedUser = {
     id: options.id ?? defaults.id,
-    googleId: options.googleId ?? defaults.googleId,
+    gatewayUserId: options.gatewayUserId ?? defaults.gatewayUserId,
     email: options.email ?? defaults.email,
     name: options.name ?? defaults.name,
-    avatarUrl: options.avatarUrl ?? null,
+    picture: options.picture ?? null,
+    role,
     status: options.status ?? 'active',
-    isSuperAdmin: options.isSuperAdmin ?? false,
-    deletedAt: options.deletedAt ?? null,
+    isSuperAdmin: options.isSuperAdmin ?? (role === 'owner' || role === 'admin'),
   }
 
   db.prepare(`
-    INSERT INTO users (id, google_id, email, name, avatar_url, status, is_super_admin, provider_ids, deleted_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO auth_users (id, gateway_user_id, email, name, picture, role, status)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `).run(
     user.id,
-    user.googleId,
+    user.gatewayUserId,
     user.email,
     user.name,
-    user.avatarUrl,
+    user.picture,
+    user.role,
     user.status,
-    user.isSuperAdmin ? 1 : 0,
-    JSON.stringify(['google']),
-    user.deletedAt
   )
 
   return user
@@ -96,29 +95,29 @@ export async function createUser(options: CreateUserOptions = {}): Promise<Creat
 export async function createSuperAdmin(options: CreateUserOptions = {}): Promise<CreatedUser> {
   return createUser({
     ...options,
+    role: options.role ?? 'admin',
     isSuperAdmin: true,
     name: options.name ?? 'Super Admin User',
   })
 }
 
 /**
- * Create an inactive user
+ * Create a suspended user.
  */
 export async function createInactiveUser(options: CreateUserOptions = {}): Promise<CreatedUser> {
   return createUser({
     ...options,
-    status: 'inactive',
+    status: 'suspended',
   })
 }
 
 /**
- * Create a soft-deleted user
+ * Create a denied user. Kept as a legacy alias for older integration helpers.
  */
 export async function createDeletedUser(options: CreateUserOptions = {}): Promise<CreatedUser> {
-  const deletedAt = options.deletedAt ?? new Date().toISOString()
   return createUser({
     ...options,
-    deletedAt,
+    status: 'denied',
   })
 }
 
@@ -127,18 +126,18 @@ export async function createDeletedUser(options: CreateUserOptions = {}): Promis
  */
 export async function createUserSession(
   userId: string,
-  sessionData?: {
+  _sessionData?: {
     email?: string
     name?: string
-    avatarUrl?: string | null
+    picture?: string | null
     isSuperAdmin?: boolean
   }
 ): Promise<{ sessionId: string; headers: Record<string, string> }> {
-  const { sessionId } = await createSession(userId, sessionData)
+  const { sessionId } = await createSession(userId)
   return {
     sessionId,
     headers: {
-      Cookie: `sid=${sessionId}`,
+      Cookie: `auth_sid=${sessionId}`,
     },
   }
 }

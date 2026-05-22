@@ -8,7 +8,7 @@ export const openApiConfig = {
     description: 'Multi-tenant API with role-based access control. Uses session-based authentication via cookies. Login via /auth/login to start a session.',
   },
   servers: [
-    { url: 'http://localhost:3000', description: 'Development server' },
+    { url: 'http://localhost:8787', description: 'Development server' },
   ],
   security: [{ SessionCookie: [] }],
 }

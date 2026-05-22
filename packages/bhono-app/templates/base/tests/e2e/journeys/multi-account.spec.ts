@@ -25,35 +25,28 @@ test.describe('Multi-Account Experience Journey @journey @accounts', () => {
 
     test('should list all user accounts via API', async ({ page }) => {
       // Step 1: Fetch all accounts for the user
-      const response = await apiRequest(page, 'get', '/api/accounts')
+      const response = await apiRequest(page, 'get', '/accounts')
       expect(response.ok()).toBeTruthy()
 
       const body = await response.json()
 
       // Step 2: Verify response structure
-      expect(body).toHaveProperty('data')
-      expect(body).toHaveProperty('meta')
-      expect(Array.isArray(body.data)).toBe(true)
+      expect(body).toHaveProperty('accounts')
+      expect(Array.isArray(body.accounts)).toBe(true)
 
       // Step 3: User should have at least one account
-      expect(body.data.length).toBeGreaterThan(0)
-
-      // Step 4: Verify pagination metadata
-      expect(body.meta).toHaveProperty('totalItems')
-      expect(body.meta).toHaveProperty('currentPage')
-      expect(body.meta).toHaveProperty('limit')
-      expect(body.meta).toHaveProperty('totalPages')
+      expect(body.accounts.length).toBeGreaterThan(0)
     })
 
     test('should have valid account structure', async ({ page }) => {
       // Step 1: Fetch accounts
-      const response = await apiRequest(page, 'get', '/api/accounts')
+      const response = await apiRequest(page, 'get', '/accounts')
       expect(response.ok()).toBeTruthy()
 
       const body = await response.json()
 
       // Step 2: Verify each account has required fields
-      for (const account of body.data) {
+      for (const account of body.accounts) {
         expect(account).toHaveProperty('id')
         expect(account).toHaveProperty('name')
         expect(account).toHaveProperty('createdAt')
@@ -79,48 +72,48 @@ test.describe('Multi-Account Experience Journey @journey @accounts', () => {
       const accountId = getAccountId()
 
       // Step 1: Fetch current account details
-      const response = await apiRequest(page, 'get', `/api/accounts/${accountId}`)
+      const response = await apiRequest(page, 'get', `/accounts/${accountId}`)
       expect(response.ok()).toBeTruthy()
 
       const body = await response.json()
 
       // Step 2: Verify response structure
-      expect(body).toHaveProperty('data')
-      expect(body.data).toHaveProperty('id', accountId)
-      expect(body.data).toHaveProperty('name')
+      expect(body).toHaveProperty('account')
+      expect(body.account).toHaveProperty('id', accountId)
+      expect(body.account).toHaveProperty('name')
 
       // Step 3: Verify account has timestamps
-      expect(body.data).toHaveProperty('createdAt')
-      expect(body.data).toHaveProperty('updatedAt')
+      expect(body.account).toHaveProperty('createdAt')
+      expect(body.account).toHaveProperty('updatedAt')
     })
 
     test('should update account name and restore', async ({ page }) => {
       const accountId = getAccountId()
 
       // Step 1: Get original account data
-      const getResponse = await apiRequest(page, 'get', `/api/accounts/${accountId}`)
+      const getResponse = await apiRequest(page, 'get', `/accounts/${accountId}`)
       expect(getResponse.ok()).toBeTruthy()
 
       const originalData = await getResponse.json()
-      const originalName = originalData.data.name
+      const originalName = originalData.account.name
 
       // Step 2: Update account name
       const newName = `Test Multi-Account ${Date.now()}`
-      const updateResponse = await apiRequest(page, 'patch', `/api/accounts/${accountId}`, {
+      const updateResponse = await apiRequest(page, 'patch', `/accounts/${accountId}`, {
         data: { name: newName },
       })
 
       expect(updateResponse.ok()).toBeTruthy()
       const updatedData = await updateResponse.json()
-      expect(updatedData.data.name).toBe(newName)
+      expect(updatedData.account.name).toBe(newName)
 
       // Step 3: Verify update persisted
-      const verifyResponse = await apiRequest(page, 'get', `/api/accounts/${accountId}`)
+      const verifyResponse = await apiRequest(page, 'get', `/accounts/${accountId}`)
       const verifyData = await verifyResponse.json()
-      expect(verifyData.data.name).toBe(newName)
+      expect(verifyData.account.name).toBe(newName)
 
       // Step 4: Restore original name
-      const restoreResponse = await apiRequest(page, 'patch', `/api/accounts/${accountId}`, {
+      const restoreResponse = await apiRequest(page, 'patch', `/accounts/${accountId}`, {
         data: { name: originalName },
       })
       expect(restoreResponse.ok()).toBeTruthy()
@@ -138,24 +131,24 @@ test.describe('Multi-Account Experience Journey @journey @accounts', () => {
 
     test('should list account members via users API', async ({ page }) => {
       // Step 1: Fetch users in current account context
-      const response = await apiRequest(page, 'get', '/api/users')
+      const accountId = getAccountId()
+      const response = await apiRequest(page, 'get', `/accounts/${accountId}/members`)
       expect(response.ok()).toBeTruthy()
 
       const body = await response.json()
 
       // Step 2: Verify response structure
-      expect(body).toHaveProperty('data')
-      expect(body).toHaveProperty('meta')
-      expect(Array.isArray(body.data)).toBe(true)
+      expect(body).toHaveProperty('members')
+      expect(Array.isArray(body.members)).toBe(true)
 
       // Step 3: Account should have at least one member (current user)
-      expect(body.data.length).toBeGreaterThan(0)
+      expect(body.members.length).toBeGreaterThan(0)
 
       // Step 4: Verify user structure
-      const user = body.data[0]
-      expect(user).toHaveProperty('id')
-      expect(user).toHaveProperty('email')
-      expect(user).toHaveProperty('name')
+      const member = body.members[0]
+      expect(member).toHaveProperty('userId')
+      expect(member).toHaveProperty('role')
+      expect(member).toHaveProperty('user')
     })
 
     test('should display team members on team page', async ({ page }) => {
@@ -186,7 +179,7 @@ test.describe('Multi-Account Experience Journey @journey @accounts', () => {
     test('should return 404 for non-existent account', async ({ page }) => {
       // Step 1: Try to access non-existent account
       const nonExistentId = '00000000-0000-0000-0000-000000000000'
-      const response = await apiRequest(page, 'get', `/api/accounts/${nonExistentId}`)
+      const response = await apiRequest(page, 'get', `/accounts/${nonExistentId}`)
 
       // Step 2: Should return 404
       expect(response.status()).toBe(404)
@@ -199,10 +192,10 @@ test.describe('Multi-Account Experience Journey @journey @accounts', () => {
     test('should return validation error for invalid account ID format', async ({ page }) => {
       // Step 1: Try to access with invalid ID format
       const invalidId = 'invalid-uuid-format'
-      const response = await apiRequest(page, 'get', `/api/accounts/${invalidId}`)
+      const response = await apiRequest(page, 'get', `/accounts/${invalidId}`)
 
-      // Step 2: Should return 400 or 422 validation error
-      expect([400, 422]).toContain(response.status())
+      // Step 2: Package account routes treat ids as opaque strings
+      expect(response.status()).toBe(404)
 
       const body = await response.json()
       expect(body).toHaveProperty('error')
@@ -275,21 +268,22 @@ test.describe('Multi-Account Experience Journey @journey @accounts', () => {
       const accountId = getAccountId()
 
       // Step 1: List all accounts
-      const accountsResponse = await apiRequest(page, 'get', '/api/accounts')
+      const accountsResponse = await apiRequest(page, 'get', '/accounts')
       expect(accountsResponse.ok()).toBeTruthy()
       const accountsData = await accountsResponse.json()
-      expect(accountsData.data.length).toBeGreaterThan(0)
+      expect(accountsData.accounts.length).toBeGreaterThan(0)
 
       // Step 2: Get current account details
-      const currentAccountResponse = await apiRequest(page, 'get', `/api/accounts/${accountId}`)
+      const currentAccountResponse = await apiRequest(page, 'get', `/accounts/${accountId}`)
       expect(currentAccountResponse.ok()).toBeTruthy()
       const currentAccount = await currentAccountResponse.json()
+      expect(currentAccount.account).toHaveProperty('id', accountId)
 
       // Step 3: List users in current account
-      const usersResponse = await apiRequest(page, 'get', '/api/users')
+      const usersResponse = await apiRequest(page, 'get', `/accounts/${accountId}/members`)
       expect(usersResponse.ok()).toBeTruthy()
       const usersData = await usersResponse.json()
-      expect(usersData.data.length).toBeGreaterThan(0)
+      expect(usersData.members.length).toBeGreaterThan(0)
 
       // Step 4: Verify account context in UI
       await page.goto('/team')
@@ -301,10 +295,10 @@ test.describe('Multi-Account Experience Journey @journey @accounts', () => {
       await expect(page.getByRole('heading', { name: /^account$/i, level: 1 })).toBeVisible()
 
       // Step 6: Verify account-scoped audit logs
-      const auditResponse = await apiRequest(page, 'get', '/api/audits?limit=5')
+      const auditResponse = await apiRequest(page, 'get', '/audit/logs?limit=5')
       expect(auditResponse.ok()).toBeTruthy()
       const auditData = await auditResponse.json()
-      expect(auditData).toHaveProperty('data')
+      expect(auditData).toHaveProperty('logs')
 
       // Step 7: Verify user can view connected accounts
       await expect(page.getByText('Google')).toBeVisible()

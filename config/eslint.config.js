@@ -32,6 +32,7 @@ export default tseslint.config(
       "**/tooling/**",
       "**/tests/**",
       "**/.claude/**",
+      "**/.agents/**",
       "**/.codex/**",
       "**/e2e/**",
       "**/packages/**",
@@ -39,6 +40,7 @@ export default tseslint.config(
       "**/config/**",
       "**/.test-output/**",
       "**/scripts/**",
+      "src/shared/types/api.ts",
     ],
   },
 

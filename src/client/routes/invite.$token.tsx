@@ -39,6 +39,7 @@ function AcceptInvitationPage() {
       const res = await fetch(`/invitations/${token}/accept`, {
         method: 'POST',
         credentials: 'include',
+        headers: { 'X-CSRF-Token': '1' },
       })
       if (res.status === 401) {
         window.location.href = `/auth/login?returnTo=${encodeURIComponent(`/invite/${token}`)}`

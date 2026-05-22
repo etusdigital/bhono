@@ -77,14 +77,14 @@ test.describe('Performance Benchmarks @performance @benchmark', () => {
       test.skip(!authenticated, 'No authenticated session available')
     })
 
-    test('users list endpoint responds under 500ms', async ({ page, accountId }) => {
+    test('admin users endpoint responds under 500ms', async ({ page, accountId }) => {
       // Navigate to establish session context
       await page.goto('/dashboard')
       await expect(page.getByRole('navigation')).toBeVisible()
 
       // Measure API response time
       const startTime = Date.now()
-      const response = await page.request.get('/api/users', {
+      const response = await page.request.get('/auth/admin/users', {
         headers: accountId ? { 'account-id': accountId } : {},
       })
       const responseTime = Date.now() - startTime
@@ -95,7 +95,7 @@ test.describe('Performance Benchmarks @performance @benchmark', () => {
       // Assert response time is within threshold
       expect(responseTime).toBeLessThan(THRESHOLDS.apiResponse)
 
-      console.log(`Users list API: ${responseTime}ms (threshold: ${THRESHOLDS.apiResponse}ms)`)
+      console.log(`Admin users API: ${responseTime}ms (threshold: ${THRESHOLDS.apiResponse}ms)`)
     })
 
     test('accounts list endpoint responds under 500ms', async ({ page, accountId }) => {
@@ -103,7 +103,7 @@ test.describe('Performance Benchmarks @performance @benchmark', () => {
       await expect(page.getByRole('navigation')).toBeVisible()
 
       const startTime = Date.now()
-      const response = await page.request.get('/api/accounts', {
+      const response = await page.request.get('/accounts', {
         headers: accountId ? { 'account-id': accountId } : {},
       })
       const responseTime = Date.now() - startTime
@@ -119,7 +119,7 @@ test.describe('Performance Benchmarks @performance @benchmark', () => {
       await expect(page.getByRole('navigation')).toBeVisible()
 
       const startTime = Date.now()
-      const response = await page.request.get('/api/audits', {
+      const response = await page.request.get('/audit/logs', {
         headers: accountId ? { 'account-id': accountId } : {},
       })
       const responseTime = Date.now() - startTime
@@ -347,9 +347,9 @@ test.describe('Performance Benchmarks @performance @benchmark', () => {
       const startTime = Date.now()
 
       const [usersRes, accountsRes, auditsRes, meRes] = await Promise.all([
-        page.request.get('/api/users', { headers }),
-        page.request.get('/api/accounts', { headers }),
-        page.request.get('/api/audits', { headers }),
+        page.request.get('/auth/admin/users', { headers }),
+        page.request.get('/accounts', { headers }),
+        page.request.get('/audit/logs', { headers }),
         page.request.get('/auth/me'),
       ])
 

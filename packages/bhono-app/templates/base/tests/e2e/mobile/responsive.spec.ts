@@ -22,9 +22,9 @@ test.describe('Mobile Responsive - Public Pages @mobile @responsive', () => {
     await expect(page.getByText('Welcome back')).toBeVisible()
 
     // Verify OAuth button is visible and tappable
-    const googleOAuthButton = page.getByRole('button', { name: /continue with google/i })
-    await expect(googleOAuthButton).toBeVisible()
-    await expect(googleOAuthButton).toBeEnabled()
+    const authButton = page.getByRole('button', { name: /continue with etus/i })
+    await expect(authButton).toBeVisible()
+    await expect(authButton).toBeEnabled()
   })
 })
 

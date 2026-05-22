@@ -21,7 +21,7 @@ test.describe('Error Recovery Journey @journey @error-handling', () => {
 
     test('should handle 404 errors gracefully', async ({ page }) => {
       // Step 1: Request non-existent resource
-      const response = await apiRequest(page, 'get', '/api/users/00000000-0000-0000-0000-000000000000')
+      const response = await apiRequest(page, 'get', '/auth/admin/users/00000000-0000-0000-0000-000000000000')
 
       // Step 2: Verify 404 response
       expect(response.status()).toBe(404)
@@ -54,10 +54,10 @@ test.describe('Error Recovery Journey @journey @error-handling', () => {
 
     test('should handle invalid UUID format errors', async ({ page }) => {
       // Step 1: Request with invalid ID format
-      const response = await apiRequest(page, 'get', '/api/accounts/invalid-uuid')
+      const response = await apiRequest(page, 'get', '/accounts/invalid-uuid')
 
       // Step 2: Verify validation error
-      expect([400, 422]).toContain(response.status())
+      expect(response.status()).toBe(404)
 
       const body = await response.json()
 
@@ -222,7 +222,7 @@ test.describe('Error Recovery Journey @journey @error-handling', () => {
       // Step 1: Make multiple rapid requests
       const requests = Array(5)
         .fill(null)
-        .map(() => apiRequest(page, 'get', '/api/audits?limit=1'))
+        .map(() => apiRequest(page, 'get', '/audit/logs?limit=1'))
 
       // Step 2: Wait for all requests
       const responses = await Promise.all(requests)
@@ -235,14 +235,15 @@ test.describe('Error Recovery Journey @journey @error-handling', () => {
 
     test('should handle sequential API calls', async ({ page }) => {
       // Step 1: Make sequential calls to different endpoints
-      const endpoints = ['/api/audits?limit=1', '/api/users?limit=1', '/api/accounts']
+      const accountId = getAccountId()
+      const endpoints = ['/audit/logs?limit=1', `/accounts/${accountId}/members`, '/accounts']
 
       for (const endpoint of endpoints) {
         const response = await apiRequest(page, 'get', endpoint)
         expect(response.ok()).toBeTruthy()
 
         const body = await response.json()
-        expect(body).toHaveProperty('data')
+        expect(body.logs ?? body.members ?? body.accounts).toBeDefined()
       }
     })
   })

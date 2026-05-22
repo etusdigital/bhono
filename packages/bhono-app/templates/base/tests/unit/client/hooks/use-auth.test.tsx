@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { renderHook, waitFor, act } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import type { ReactNode } from "react"
-import { useAuth } from "../use-auth"
+import { useAuth } from "@/hooks/use-auth"
 import type { AuthUser } from "@shared/types"
 
 // Mock global fetch
@@ -29,6 +29,17 @@ function createWrapper() {
 function createWrapperWithClient(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  }
+}
+
+function createMockUser(overrides: Partial<AuthUser> = {}): AuthUser {
+  return {
+    id: "user-123",
+    email: "test@example.com",
+    name: "Test User",
+    picture: null,
+    role: "admin",
+    ...overrides,
   }
 }
 
@@ -68,12 +79,12 @@ describe("useAuth", () => {
   })
 
   it("returns user when authenticated", async () => {
-    const mockUser: AuthUser = {
+    const mockUser = createMockUser({
       id: "user-123",
       email: "test@example.com",
       name: "Test User",
-      avatarUrl: "https://example.com/avatar.png",
-    }
+      picture: "https://example.com/avatar.png",
+    })
 
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -91,11 +102,11 @@ describe("useAuth", () => {
   })
 
   it("isAuthenticated is true when user exists", async () => {
-    const mockUser: AuthUser = {
+    const mockUser = createMockUser({
       id: "user-456",
       email: "auth@example.com",
       name: "Authenticated User",
-    }
+    })
 
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -125,11 +136,11 @@ describe("useAuth", () => {
   })
 
   it("logout calls the logout endpoint", async () => {
-    const mockUser: AuthUser = {
+    const mockUser = createMockUser({
       id: "user-789",
       email: "logout@example.com",
       name: "Logout User",
-    }
+    })
 
     // First call is for fetchMe, second for logout
     mockFetch
@@ -155,16 +166,20 @@ describe("useAuth", () => {
       expect(mockFetch).toHaveBeenCalledWith("/auth/logout", {
         method: "POST",
         credentials: "include",
+        headers: {
+          Accept: "application/json",
+          "X-CSRF-Token": "1",
+        },
       })
     })
   })
 
   it("logout clears the user from cache", async () => {
-    const mockUser: AuthUser = {
+    const mockUser = createMockUser({
       id: "user-clear",
       email: "clear@example.com",
       name: "Clear Cache User",
-    }
+    })
 
     const queryClient = new QueryClient({
       defaultOptions: {
@@ -205,11 +220,11 @@ describe("useAuth", () => {
   })
 
   it("isLoggingOut is true during logout", async () => {
-    const mockUser: AuthUser = {
+    const mockUser = createMockUser({
       id: "user-pending",
       email: "pending@example.com",
       name: "Pending User",
-    }
+    })
 
     let resolveLogout: () => void
     const logoutPromise = new Promise<void>((resolve) => {
@@ -268,11 +283,11 @@ describe("useAuth", () => {
   })
 
   it("handles logout failure", async () => {
-    const mockUser: AuthUser = {
+    const mockUser = createMockUser({
       id: "user-fail",
       email: "fail@example.com",
       name: "Fail User",
-    }
+    })
 
     // First call is for fetchMe (success), second for logout (failure)
     mockFetch

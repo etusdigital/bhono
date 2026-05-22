@@ -47,9 +47,9 @@ function LoginPage() {
               {isLoading ? (
                 <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
               ) : (
-                <Icons.google className="mr-2 h-4 w-4" />
+                <Icons.shield className="mr-2 h-4 w-4" />
               )}
-              {isLoading ? 'Redirecting...' : 'Continue with Google'}
+              {isLoading ? 'Redirecting...' : 'Continue with ETUS'}
             </Button>
 
             <div className="relative">

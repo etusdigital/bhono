@@ -29,7 +29,7 @@ test.describe('Error Boundary @error @error-boundary', () => {
       await expect(page.getByRole('navigation')).toBeVisible()
 
       // Now intercept API calls to cause loader failure
-      await page.route('**/api/audits**', (route) => {
+      await page.route('**/audit/logs**', (route) => {
         route.fulfill({
           status: 500,
           contentType: 'application/json',
@@ -47,7 +47,7 @@ test.describe('Error Boundary @error @error-boundary', () => {
       await expect(page.getByRole('navigation')).toBeVisible()
 
       // Intercept the team API to fail with 500
-      await page.route('**/api/users**', (route) => {
+      await page.route('**/accounts/**/members**', (route) => {
         route.fulfill({
           status: 500,
           contentType: 'application/json',
@@ -75,7 +75,7 @@ test.describe('Error Boundary @error @error-boundary', () => {
       let requestCount = 0
 
       // Intercept API to fail first, then succeed
-      await page.route('**/api/users**', (route) => {
+      await page.route('**/accounts/**/members**', (route) => {
         requestCount++
         if (requestCount <= 1) {
           route.fulfill({
@@ -122,7 +122,7 @@ test.describe('Error Boundary @error @error-boundary', () => {
       await expect(page.getByRole('navigation')).toBeVisible()
 
       // Intercept API call and abort (simulates network failure)
-      await page.route('**/api/users**', (route) => {
+      await page.route('**/accounts/**/members**', (route) => {
         route.abort('failed')
       })
 
@@ -153,9 +153,9 @@ test.describe('Error Boundary @error @error-boundary', () => {
       await expect(page.getByRole('navigation')).toBeVisible()
 
       // Intercept API to return 500
-      await page.route('**/api/**', (route) => {
-        if (route.request().url().includes('/api/audits') ||
-            route.request().url().includes('/api/users') ||
+      await page.route('**/*', (route) => {
+        if (route.request().url().includes('/audit/logs') ||
+            route.request().url().includes('/members') ||
             route.request().url().includes('/api/storage')) {
           route.fulfill({
             status: 500,
@@ -173,7 +173,7 @@ test.describe('Error Boundary @error @error-boundary', () => {
       })
 
       // Make an API request that will fail
-      const response = await page.request.get('/api/audits', {
+      const response = await page.request.get('/audit/logs', {
         failOnStatusCode: false,
       })
 
@@ -192,7 +192,7 @@ test.describe('Error Boundary @error @error-boundary', () => {
       await expect(page.getByRole('navigation')).toBeVisible()
 
       // Intercept API to simulate very slow response
-      await page.route('**/api/users**', async (route) => {
+      await page.route('**/accounts/**/members**', async (route) => {
         // Delay for 10 seconds to trigger timeout behavior
         await new Promise((resolve) => setTimeout(resolve, 10000))
         route.continue()
@@ -219,7 +219,7 @@ test.describe('Error Boundary @error @error-boundary', () => {
       await expect(page.getByRole('navigation')).toBeVisible()
 
       // Intercept team API to fail
-      await page.route('**/api/users**', (route) => {
+      await page.route('**/accounts/**/members**', (route) => {
         route.fulfill({
           status: 500,
           contentType: 'application/json',
@@ -246,7 +246,7 @@ test.describe('Error Boundary @error @error-boundary', () => {
 
       // Intercept team API to fail once
       let failCount = 0
-      await page.route('**/api/users**', (route) => {
+      await page.route('**/accounts/**/members**', (route) => {
         failCount++
         if (failCount <= 1) {
           route.fulfill({
@@ -277,7 +277,7 @@ test.describe('Error Boundary @error @error-boundary', () => {
       await expect(page.getByRole('navigation')).toBeVisible()
 
       // Intercept to cause error
-      await page.route('**/api/users**', (route) => {
+      await page.route('**/accounts/**/members**', (route) => {
         route.abort('failed')
       })
 
@@ -300,7 +300,7 @@ test.describe('Error Boundary @error @error-boundary', () => {
       await expect(page.getByRole('heading', { name: /settings/i })).toBeVisible()
 
       // Intercept to cause error
-      await page.route('**/api/users**', (route) => {
+      await page.route('**/accounts/**/members**', (route) => {
         route.abort('failed')
       })
 
@@ -367,7 +367,7 @@ test.describe('Error Boundary @error @error-boundary', () => {
 
     test('app shows loading state during slow API responses', async ({ page }) => {
       // Intercept API to add delay
-      await page.route('**/api/users**', async (route) => {
+      await page.route('**/accounts/**/members**', async (route) => {
         await new Promise((resolve) => setTimeout(resolve, 1000))
         route.continue()
       })
@@ -387,20 +387,20 @@ test.describe('Error Boundary @error @error-boundary', () => {
       await expect(page.getByRole('navigation')).toBeVisible()
 
       // Intercept API to return empty data
-      await page.route('**/api/audits**', (route) => {
+      await page.route('**/audit/logs**', (route) => {
         route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify({ data: [], pagination: { page: 1, pageSize: 10, total: 0, totalPages: 0 } }),
+          body: JSON.stringify({ logs: [], total: 0 }),
         })
       })
 
       // Make API request
-      const response = await page.request.get('/api/audits')
+      const response = await page.request.get('/audit/logs')
       expect(response.ok()).toBeTruthy()
 
       const body = await response.json()
-      expect(body.data).toEqual([])
+      expect(body.logs).toEqual([])
     })
 
     test('app handles malformed API responses', async ({ page }) => {
@@ -409,7 +409,7 @@ test.describe('Error Boundary @error @error-boundary', () => {
       await expect(page.getByRole('navigation')).toBeVisible()
 
       // Intercept API to return malformed response
-      await page.route('**/api/users**', (route) => {
+      await page.route('**/accounts/**/members**', (route) => {
         route.fulfill({
           status: 200,
           contentType: 'application/json',

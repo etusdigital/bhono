@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -21,55 +22,76 @@ import {
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Icons } from '@/components/icons'
 import { useAuth } from '@/hooks/use-auth'
+import type { Account, AuthUser } from '@shared/types'
 
 const InviteFormSchema = z.object({
   email: z.email('Email inválido'),
-  role: z.enum(['member', 'admin']),
+  role: z.enum(['guest', 'member', 'admin']),
 })
 
 type InviteFormInput = z.infer<typeof InviteFormSchema>
+
+interface AccountSummary extends Account {
+  role: 'admin' | 'member' | 'guest'
+}
+
+interface AccountMember {
+  id: string
+  accountId: string
+  userId: string
+  role: 'admin' | 'member' | 'guest'
+  status: 'active' | 'pending'
+  joinedAt: string | null
+  createdAt: string
+  user: AuthUser | null
+}
+
+interface Invitation {
+  id: string
+  accountId: string
+  email: string
+  role: 'admin' | 'member' | 'guest'
+  invitedBy: string
+  expiresAt: string
+  acceptedAt: string | null
+  createdAt: string
+}
 
 export const Route = createFileRoute('/_authenticated/team')({
   component: TeamPage,
 })
 
-// Mock data for team members
-const mockTeamMembers: {
-  id: string
-  name: string
-  email: string
-  role: string
-  avatarUrl: string | null
-  joinedAt: string
-  isCurrentUser: boolean
-}[] = [
-  {
-    id: '1',
-    name: 'You',
-    email: '',
-    role: 'owner',
-    avatarUrl: null,
-    joinedAt: new Date().toISOString(),
-    isCurrentUser: true,
-  },
-]
+async function fetchJson<T>(url: string): Promise<T> {
+  const res = await fetch(url, { credentials: 'include' })
+  if (!res.ok) {
+    throw new Error(`Request failed: ${String(res.status)}`)
+  }
+  const body: unknown = await res.json()
+  return body as T
+}
 
-// Mock data for pending invitations
-const mockInvitations = [
-  {
-    id: '1',
-    email: 'pending@example.com',
-    role: 'member',
-    invitedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    expiresAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-]
-
-type TeamMember = typeof mockTeamMembers[0]
-type Invitation = typeof mockInvitations[0]
+async function mutateJson<T>(url: string, method: 'POST' | 'DELETE', data?: unknown): Promise<T> {
+  const res = await fetch(url, {
+    method,
+    credentials: 'include',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': '1',
+    },
+    ...(data === undefined ? {} : { body: JSON.stringify(data) }),
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => null) as { error?: { message?: string } } | null
+    throw new Error(body?.error?.message ?? `Request failed: ${String(res.status)}`)
+  }
+  const body: unknown = await res.json()
+  return body as T
+}
 
 function TeamPage() {
   const { user } = useAuth()
+  const queryClient = useQueryClient()
   const [isInviteOpen, setIsInviteOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -81,20 +103,84 @@ function TeamPage() {
     },
   })
 
-  // Populate current user data
-  const teamMembers: TeamMember[] = mockTeamMembers.map((m) =>
-    m.isCurrentUser
-      ? { ...m, name: user?.name ?? 'You', email: user?.email ?? '', avatarUrl: user?.avatarUrl ?? null }
-      : m
-  )
+  const accountsQuery = useQuery({
+    queryKey: ['auth', 'accounts'],
+    queryFn: async () => fetchJson<{ accounts: AccountSummary[] }>('/accounts'),
+  })
 
-  const invitations: Invitation[] = mockInvitations
+  const currentAccount = accountsQuery.data?.accounts[0] ?? null
+  const currentAccountId = currentAccount?.id ?? ''
 
-  const filteredMembers = teamMembers.filter(
-    (m) =>
-      m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.email.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const membersQuery = useQuery({
+    queryKey: ['auth', 'accounts', currentAccountId, 'members'],
+    queryFn: async () => fetchJson<{ members: AccountMember[] }>(`/accounts/${currentAccountId}/members`),
+    enabled: currentAccountId.length > 0,
+  })
+
+  const invitationsQuery = useQuery({
+    queryKey: ['auth', 'accounts', currentAccountId, 'invitations'],
+    queryFn: async () => {
+      const res = await fetch(`/accounts/${currentAccountId}/invitations`, {
+        credentials: 'include',
+      })
+      if (res.status === 403) return { invitations: [] }
+      if (!res.ok) throw new Error(`Request failed: ${String(res.status)}`)
+      const body: unknown = await res.json()
+      return body as { invitations: Invitation[] }
+    },
+    enabled: currentAccountId.length > 0,
+    retry: false,
+  })
+
+  const inviteMutation = useMutation({
+    mutationFn: async (data: InviteFormInput) => {
+      if (!currentAccount) throw new Error('No account selected')
+      return mutateJson<{ invitation: Invitation }>(
+        `/accounts/${currentAccount.id}/members/invite`,
+        'POST',
+        data,
+      )
+    },
+    onSuccess: (_result, variables) => {
+      toast.success(`Invitation sent to ${variables.email}`)
+      setIsInviteOpen(false)
+      form.reset()
+      void queryClient.invalidateQueries({ queryKey: ['auth', 'accounts', currentAccount?.id, 'invitations'] })
+    },
+    onError: (error: Error) => {
+      toast.error(error.message)
+    },
+  })
+
+  const revokeMutation = useMutation({
+    mutationFn: async (invitationId: string) => {
+      if (!currentAccount) throw new Error('No account selected')
+      return mutateJson<{ success: true }>(
+        `/accounts/${currentAccount.id}/invitations/${invitationId}`,
+        'DELETE',
+      )
+    },
+    onSuccess: () => {
+      toast.success('Invitation revoked')
+      void queryClient.invalidateQueries({ queryKey: ['auth', 'accounts', currentAccount?.id, 'invitations'] })
+    },
+    onError: (error: Error) => {
+      toast.error(error.message)
+    },
+  })
+
+  const teamMembers = useMemo(() => membersQuery.data?.members ?? [], [membersQuery.data?.members])
+  const invitations = invitationsQuery.data?.invitations ?? []
+  const isLoadingTeam = accountsQuery.isLoading || membersQuery.isLoading
+
+  const filteredMembers = teamMembers.filter((member) => {
+    const name = member.user?.name ?? ''
+    const email = member.user?.email ?? ''
+    return (
+      name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      email.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  })
 
   const handleOpenChange = (open: boolean) => {
     setIsInviteOpen(open)
@@ -102,20 +188,11 @@ function TeamPage() {
   }
 
   const onSubmit = async (data: InviteFormInput) => {
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      toast.success(`Invitation sent to ${data.email}`)
-      setIsInviteOpen(false)
-      form.reset()
-    } catch {
-      toast.error('Failed to send invitation. Please try again.')
-    }
+    await inviteMutation.mutateAsync(data)
   }
 
   return (
     <div className="space-y-8">
-      {/* Page Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Team Members</h1>
@@ -126,7 +203,7 @@ function TeamPage() {
 
         <Dialog open={isInviteOpen} onOpenChange={handleOpenChange}>
           <DialogTrigger asChild>
-            <Button>
+            <Button disabled={!currentAccount}>
               <Icons.userPlus className="mr-2 h-4 w-4" />
               Invite Member
             </Button>
@@ -167,31 +244,27 @@ function TeamPage() {
                       <FormItem>
                         <FormLabel>Role</FormLabel>
                         <FormControl>
-                          <div className="flex gap-2">
-                            <Button
-                              type="button"
-                              variant={field.value === 'member' ? 'default' : 'outline'}
-                              size="sm"
-                              onClick={() => { field.onChange('member'); }}
-                              className="flex-1"
-                            >
-                              Member
-                            </Button>
-                            <Button
-                              type="button"
-                              variant={field.value === 'admin' ? 'default' : 'outline'}
-                              size="sm"
-                              onClick={() => { field.onChange('admin'); }}
-                              className="flex-1"
-                            >
-                              Admin
-                            </Button>
+                          <div className="grid grid-cols-3 gap-2">
+                            {(['guest', 'member', 'admin'] as const).map((role) => (
+                              <Button
+                                key={role}
+                                type="button"
+                                variant={field.value === role ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => { field.onChange(role) }}
+                                className="capitalize"
+                              >
+                                {role}
+                              </Button>
+                            ))}
                           </div>
                         </FormControl>
                         <FormDescription>
-                          {field.value === 'member'
-                            ? 'Members can view and collaborate on projects.'
-                            : 'Admins can manage team settings and members.'}
+                          {field.value === 'admin'
+                            ? 'Admins can manage team settings and members.'
+                            : field.value === 'member'
+                              ? 'Members can view and collaborate on projects.'
+                              : 'Guests can view workspace content.'}
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -200,11 +273,11 @@ function TeamPage() {
                 </div>
 
                 <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => { setIsInviteOpen(false); }}>
+                  <Button type="button" variant="outline" onClick={() => { setIsInviteOpen(false) }}>
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={form.formState.isSubmitting}>
-                    {form.formState.isSubmitting && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
+                  <Button type="submit" disabled={inviteMutation.isPending}>
+                    {inviteMutation.isPending && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
                     Send Invitation
                   </Button>
                 </DialogFooter>
@@ -214,18 +287,16 @@ function TeamPage() {
         </Dialog>
       </div>
 
-      {/* Search */}
       <div className="relative max-w-sm">
         <Icons.search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder="Search members..."
           value={searchQuery}
-          onChange={(e) => { setSearchQuery(e.target.value); }}
+          onChange={(e) => { setSearchQuery(e.target.value) }}
           className="pl-9"
         />
       </div>
 
-      {/* Team Members List */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Active Members</CardTitle>
@@ -235,10 +306,19 @@ function TeamPage() {
         </CardHeader>
         <CardContent>
           <div className="divide-y">
-            {filteredMembers.map((member) => (
-              <TeamMemberRow key={member.id} member={member} />
+            {isLoadingTeam && (
+              <div className="py-8 text-center text-muted-foreground">
+                Loading members...
+              </div>
+            )}
+            {!isLoadingTeam && filteredMembers.map((member) => (
+              <TeamMemberRow
+                key={member.id}
+                member={member}
+                isCurrentUser={member.userId === user?.id}
+              />
             ))}
-            {filteredMembers.length === 0 && (
+            {!isLoadingTeam && filteredMembers.length === 0 && (
               <div className="py-8 text-center text-muted-foreground">
                 No members found matching your search.
               </div>
@@ -247,7 +327,6 @@ function TeamPage() {
         </CardContent>
       </Card>
 
-      {/* Pending Invitations */}
       {invitations.length > 0 && (
         <Card>
           <CardHeader>
@@ -259,7 +338,12 @@ function TeamPage() {
           <CardContent>
             <div className="divide-y">
               {invitations.map((invitation) => (
-                <InvitationRow key={invitation.id} invitation={invitation} />
+                <InvitationRow
+                  key={invitation.id}
+                  invitation={invitation}
+                  isRevoking={revokeMutation.isPending}
+                  onRevoke={() => { revokeMutation.mutate(invitation.id) }}
+                />
               ))}
             </div>
           </CardContent>
@@ -269,34 +353,40 @@ function TeamPage() {
   )
 }
 
-function TeamMemberRow({ member }: { member: TeamMember }) {
-  const initials = member.name
-    ? member.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
-    : member.email
-      ? member.email[0].toUpperCase()
-      : '?'
+function TeamMemberRow({
+  member,
+  isCurrentUser,
+}: {
+  member: AccountMember
+  isCurrentUser: boolean
+}) {
+  const name = member.user?.name ?? member.user?.email ?? 'Unknown user'
+  const email = member.user?.email ?? ''
+  const initials = name
+    ? name.split(' ').map((part) => part[0]).join('').toUpperCase().slice(0, 2)
+    : '?'
 
-  const roleColors: Record<string, 'default' | 'secondary' | 'outline'> = {
-    owner: 'default',
+  const roleColors: Record<AccountMember['role'], 'default' | 'secondary' | 'outline'> = {
     admin: 'secondary',
     member: 'outline',
+    guest: 'outline',
   }
 
   return (
     <div className="flex items-center justify-between py-4 first:pt-0 last:pb-0">
       <div className="flex items-center gap-4">
         <Avatar>
-          <AvatarImage src={member.avatarUrl ?? undefined} alt={member.name} />
+          <AvatarImage src={member.user?.picture ?? undefined} alt={name} />
           <AvatarFallback>{initials}</AvatarFallback>
         </Avatar>
         <div>
           <div className="flex items-center gap-2">
-            <p className="font-medium">{member.name}</p>
-            {member.isCurrentUser && (
+            <p className="font-medium">{name}</p>
+            {isCurrentUser && (
               <span className="text-xs text-muted-foreground">(you)</span>
             )}
           </div>
-          <p className="text-sm text-muted-foreground">{member.email}</p>
+          <p className="text-sm text-muted-foreground">{email}</p>
         </div>
       </div>
 
@@ -304,7 +394,7 @@ function TeamMemberRow({ member }: { member: TeamMember }) {
         <Badge variant={roleColors[member.role]} className="capitalize">
           {member.role}
         </Badge>
-        {!member.isCurrentUser && (
+        {!isCurrentUser && (
           <Button variant="ghost" size="icon" className="h-8 w-8">
             <Icons.more className="h-4 w-4" />
           </Button>
@@ -314,37 +404,20 @@ function TeamMemberRow({ member }: { member: TeamMember }) {
   )
 }
 
-function InvitationRow({ invitation }: { invitation: Invitation }) {
-  const [isRevoking, setIsRevoking] = useState(false)
-  const [isResending, setIsResending] = useState(false)
-
-  const daysUntilExpiry = Math.ceil(
-    (new Date(invitation.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+function InvitationRow({
+  invitation,
+  isRevoking,
+  onRevoke,
+}: {
+  invitation: Invitation
+  isRevoking: boolean
+  onRevoke: () => void
+}) {
+  const [daysUntilExpiry] = useState(() =>
+    Math.ceil(
+      (new Date(invitation.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+    ),
   )
-
-  const handleRevoke = async () => {
-    setIsRevoking(true)
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 500))
-      toast.success('Invitation revoked')
-    } catch {
-      toast.error('Failed to revoke invitation')
-    } finally {
-      setIsRevoking(false)
-    }
-  }
-
-  const handleResend = async () => {
-    setIsResending(true)
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 500))
-      toast.success('Invitation resent')
-    } catch {
-      toast.error('Failed to resend invitation')
-    } finally {
-      setIsResending(false)
-    }
-  }
 
   return (
     <div className="flex items-center justify-between py-4 first:pt-0 last:pb-0">
@@ -365,20 +438,7 @@ function InvitationRow({ invitation }: { invitation: Invitation }) {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => { void handleResend() }}
-          disabled={isResending}
-        >
-          {isResending ? (
-            <Icons.spinner className="h-4 w-4 animate-spin" />
-          ) : (
-            <Icons.mail className="h-4 w-4" />
-          )}
-          <span className="ml-2 hidden sm:inline">Resend</span>
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => { void handleRevoke() }}
+          onClick={onRevoke}
           disabled={isRevoking}
           className="text-destructive hover:text-destructive"
         >

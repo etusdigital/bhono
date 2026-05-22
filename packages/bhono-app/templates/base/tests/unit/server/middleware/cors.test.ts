@@ -48,6 +48,21 @@ describe('configurableCors', () => {
     expect(res.headers.get('Access-Control-Allow-Origin')).toBe('https://default.example.com')
   })
 
+  it('ignores wildcard origins because credentialed CORS requires an explicit origin', async () => {
+    const app = new Hono()
+    app.use('*', configurableCors({
+      corsOrigins: ['*'],
+      appUrl: 'https://default.example.com',
+    }))
+    app.get('/api/test', (c) => c.json({ ok: true }))
+
+    const res = await app.request('/api/test', {
+      headers: { Origin: 'https://malicious.com' },
+    })
+
+    expect(res.headers.get('Access-Control-Allow-Origin')).toBeNull()
+  })
+
   it('sets credentials to true', async () => {
     const app = new Hono()
     app.use('*', configurableCors({
@@ -82,7 +97,10 @@ describe('configurableCors', () => {
 
     const allowedHeaders = res.headers.get('Access-Control-Allow-Headers')
     expect(allowedHeaders).toContain('Content-Type')
-    expect(allowedHeaders).toContain('Authorization')
+    expect(allowedHeaders).toContain('X-CSRF-Token')
+    expect(allowedHeaders).toContain('X-Requested-With')
+    expect(allowedHeaders).toContain('X-Account-ID')
     expect(allowedHeaders).toContain('Account-ID')
+    expect(allowedHeaders).not.toContain('Authorization')
   })
 })

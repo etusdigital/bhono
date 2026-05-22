@@ -1,7 +1,7 @@
 // src/client/components/__tests__/error-boundary.test.tsx
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { ErrorBoundary } from '../error-boundary'
+import { ErrorBoundary } from '@/components/error-boundary'
 
 // Component that throws an error
 function ThrowError({ shouldThrow = true }: { shouldThrow?: boolean }) {

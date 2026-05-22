@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest"
 import { render, screen, fireEvent, waitFor } from "@tests/helpers/client-test-utils"
 import { createRef } from "react"
-import { Avatar, AvatarImage, AvatarFallback } from "../avatar"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 
 describe("Avatar", () => {
   it("renders avatar container", () => {
