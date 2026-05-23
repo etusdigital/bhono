@@ -92,7 +92,7 @@ export function validateEnv(env: Env, options: { allowMissingClientSecret?: bool
   if (env.ENVIRONMENT === 'production' && parseList(env.CORS_ORIGINS).includes('*')) {
     throw new Error('CORS_ORIGINS must not contain * in production')
   }
-  // Validate MAX_UPLOAD_BYTES eagerly so we fail at first request with a clear
-  // message instead of falling back to the default silently.
+  // Validate MAX_UPLOAD_BYTES eagerly so we fail in validateEnv with a clear
+  // message instead of crashing when the first oversized upload arrives.
   parseUploadBytes(env.MAX_UPLOAD_BYTES)
 }
