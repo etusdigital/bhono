@@ -202,6 +202,28 @@ describe('csrfProtection', () => {
     expect(res.status).toBe(200)
   })
 
+  it('treats additional emptyBodyPatterns as allowed without Content-Type', async () => {
+    // Same idea as emptyBodyPaths but for token/id-keyed routes that need a
+    // pattern instead of an exact match.
+    const app = new Hono<HonoEnv>()
+    app.onError(errorHandler)
+    app.use(
+      '*',
+      csrfProtection({ emptyBodyPatterns: [/^\/api\/jobs\/[^/]+\/cancel$/] }),
+    )
+    app.post('/api/jobs/:id/cancel', (c) => c.json({ ok: true }))
+
+    const res = await app.request(
+      '/api/jobs/abc-123/cancel',
+      {
+        method: 'POST',
+        headers: { Origin: 'http://localhost:8787' },
+      },
+      createMockEnv(),
+    )
+    expect(res.status).toBe(200)
+  })
+
   it('points the 415 error at the opt-out so the operator knows how to fix it', async () => {
     const res = await makeApp().request(
       '/api/resource',

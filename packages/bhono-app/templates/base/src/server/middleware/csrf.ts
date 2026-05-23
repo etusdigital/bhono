@@ -121,7 +121,7 @@ export function csrfProtection(options: CsrfProtectionOptions = {}) {
       throw new HTTPException(415, {
         message:
           'State-changing requests must use application/json. ' +
-          'Extend csrfProtection({ nonJsonPathPrefixes: [...] }) to opt this route out.',
+          'Extend csrfProtection options (emptyBodyPaths, emptyBodyPatterns, nonJsonPathPrefixes) to opt this route out.',
       })
     }
 
