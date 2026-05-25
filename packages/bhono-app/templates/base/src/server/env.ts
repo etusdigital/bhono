@@ -32,6 +32,37 @@ export interface Env {
 
   // CORS
   CORS_ORIGINS?: string
+
+  // Max body size for direct R2 uploads (PUT /api/storage/upload/*).
+  // Accepts a positive integer in bytes. Defaults to 25 MiB when unset.
+  MAX_UPLOAD_BYTES?: string
+}
+
+const DEFAULT_UPLOAD_BYTES = 25 * 1024 * 1024
+// Workers (paid plan) caps request body at 500 MiB; anything above that is
+// either a typo (e.g. MAX_UPLOAD_BYTES=10000000000) or a value the runtime
+// will reject anyway. Treat it as a config error so the operator sees a
+// clear message at boot instead of opaque 524/cancelled-request later.
+const MAX_REASONABLE_UPLOAD_BYTES = 500 * 1024 * 1024
+
+/**
+ * Parse MAX_UPLOAD_BYTES env var into a positive integer.
+ * Returns the default (25 MiB) when unset; throws when set to garbage or
+ * to a value the Workers runtime cannot honor (> 500 MiB).
+ */
+export function parseUploadBytes(raw: string | undefined): number {
+  if (raw === undefined || raw === '') return DEFAULT_UPLOAD_BYTES
+  const parsed = Number(raw)
+  if (!Number.isFinite(parsed) || parsed <= 0 || !Number.isInteger(parsed)) {
+    throw new Error(`MAX_UPLOAD_BYTES must be a positive integer in bytes, got: ${raw}`)
+  }
+  if (parsed > MAX_REASONABLE_UPLOAD_BYTES) {
+    throw new Error(
+      `MAX_UPLOAD_BYTES=${String(parsed)} exceeds the Cloudflare Workers body cap (~500 MiB). ` +
+        'Likely a typo — use a value in bytes (e.g. 26214400 for 25 MiB).',
+    )
+  }
+  return parsed
 }
 
 // Helper to get env with derived values
@@ -73,4 +104,7 @@ export function validateEnv(env: Env, options: { allowMissingClientSecret?: bool
   if (env.ENVIRONMENT === 'production' && parseList(env.CORS_ORIGINS).includes('*')) {
     throw new Error('CORS_ORIGINS must not contain * in production')
   }
+  // Validate MAX_UPLOAD_BYTES eagerly so we fail in validateEnv with a clear
+  // message instead of crashing when the first oversized upload arrives.
+  parseUploadBytes(env.MAX_UPLOAD_BYTES)
 }

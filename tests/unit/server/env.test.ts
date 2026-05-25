@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getEnv, validateEnv, type Env } from '@server/env'
+import { getEnv, parseUploadBytes, validateEnv, type Env } from '@server/env'
 
 // Note: The old process.env-based tests were removed as the env module
 // now uses Cloudflare Workers bindings (passed to getEnv function)
@@ -139,5 +139,41 @@ describe('validateEnv', () => {
     expect(() => {
       validateEnv({ ...validEnv, ETUS_ADMIN_EMAILS: '' })
     }).toThrow('ETUS_ADMIN_EMAILS must include at least one admin email')
+  })
+
+  it('rejects an invalid MAX_UPLOAD_BYTES so operators see the problem at boot, not on first upload', () => {
+    expect(() => {
+      validateEnv({ ...validEnv, MAX_UPLOAD_BYTES: 'not-a-number' })
+    }).toThrow('MAX_UPLOAD_BYTES must be a positive integer in bytes')
+  })
+})
+
+describe('parseUploadBytes', () => {
+  it('falls back to the 25 MiB default when the env var is unset', () => {
+    expect(parseUploadBytes(undefined)).toBe(25 * 1024 * 1024)
+    expect(parseUploadBytes('')).toBe(25 * 1024 * 1024)
+  })
+
+  it('returns the configured value when a positive integer string is provided', () => {
+    expect(parseUploadBytes('1048576')).toBe(1048576)
+    expect(parseUploadBytes('52428800')).toBe(50 * 1024 * 1024)
+  })
+
+  it('throws on negative, zero, fractional, or non-numeric values to fail fast at boot', () => {
+    expect(() => parseUploadBytes('0')).toThrow(/positive integer/)
+    expect(() => parseUploadBytes('-1024')).toThrow(/positive integer/)
+    expect(() => parseUploadBytes('1024.5')).toThrow(/positive integer/)
+    expect(() => parseUploadBytes('abc')).toThrow(/positive integer/)
+  })
+
+  it('rejects values above the Workers ~500 MiB body cap so a typo is caught at boot', () => {
+    // 10 GiB — a realistic typo (extra zeros) the previous guards accepted.
+    expect(() => parseUploadBytes('10000000000')).toThrow(/exceeds the Cloudflare Workers body cap/)
+    // 1 GiB — also above the runtime cap.
+    expect(() => parseUploadBytes(String(1024 * 1024 * 1024))).toThrow(/exceeds/)
+  })
+
+  it('accepts values up to and including the 500 MiB cap', () => {
+    expect(parseUploadBytes(String(500 * 1024 * 1024))).toBe(500 * 1024 * 1024)
   })
 })
