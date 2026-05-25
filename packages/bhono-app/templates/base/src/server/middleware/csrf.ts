@@ -4,8 +4,33 @@ import type { Context } from 'hono'
 import type { HonoEnv } from '../types'
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
-const CSRF_EXEMPT_PATHS = new Set(['/auth/test-login'])
-const EMPTY_BODY_PATHS = new Set(['/auth/logout'])
+
+/**
+ * Options for csrfProtection().
+ *
+ * Each list extends the defaults — it does not replace them. The defaults
+ * cover the routes the boilerplate ships with; pass extra entries here when
+ * adding new mounted routes that need to opt out of the default contract.
+ */
+export interface CsrfProtectionOptions {
+  /** Paths skipped entirely. Use only for endpoints with their own gate (e.g. dev-login's localhost check). */
+  exemptPaths?: Iterable<string>
+  /** Exact paths where POST/PUT/PATCH may legitimately send no body. */
+  emptyBodyPaths?: Iterable<string>
+  /** Regex patterns for the empty-body allowlist (e.g. token-keyed verbs under /invitations). */
+  emptyBodyPatterns?: Iterable<RegExp>
+  /** Path prefixes allowed to use non-JSON content types (e.g. binary uploads, webhooks). */
+  nonJsonPathPrefixes?: Iterable<string>
+}
+
+const DEFAULT_EXEMPT_PATHS = ['/auth/test-login'] as const
+const DEFAULT_EMPTY_BODY_PATHS = ['/auth/logout'] as const
+// Accept | decline cover both lifecycle verbs on a token-keyed invitation.
+// Add more here (revoke, expire, etc.) only when the matching route exists.
+const DEFAULT_EMPTY_BODY_PATTERNS: readonly RegExp[] = [
+  /^\/invitations\/[^/]+\/(accept|decline)$/,
+]
+const DEFAULT_NON_JSON_PATH_PREFIXES = ['/api/storage/upload/'] as const
 
 function parseList(csv: string | undefined): string[] {
   return (csv ?? '')
@@ -46,26 +71,43 @@ function requestOrigin(c: Context<HonoEnv>): string | null {
   return referer ? normalizeOrigin(referer) : null
 }
 
-function isStorageUpload(path: string): boolean {
-  return path.startsWith('/api/storage/upload/')
-}
+export function csrfProtection(options: CsrfProtectionOptions = {}) {
+  const exemptPaths = new Set<string>([
+    ...DEFAULT_EXEMPT_PATHS,
+    ...(options.exemptPaths ?? []),
+  ])
+  const emptyBodyPaths = new Set<string>([
+    ...DEFAULT_EMPTY_BODY_PATHS,
+    ...(options.emptyBodyPaths ?? []),
+  ])
+  const emptyBodyPatterns: readonly RegExp[] = [
+    ...DEFAULT_EMPTY_BODY_PATTERNS,
+    ...(options.emptyBodyPatterns ?? []),
+  ]
+  const nonJsonPathPrefixes: readonly string[] = [
+    ...DEFAULT_NON_JSON_PATH_PREFIXES,
+    ...(options.nonJsonPathPrefixes ?? []),
+  ]
 
-function allowsEmptyBody(path: string): boolean {
-  if (EMPTY_BODY_PATHS.has(path)) return true
-  return /^\/invitations\/[^/]+\/accept$/.test(path)
-}
+  function allowsEmptyBody(path: string): boolean {
+    if (emptyBodyPaths.has(path)) return true
+    return emptyBodyPatterns.some((pattern) => pattern.test(path))
+  }
 
-function hasRequiredContentType(c: Context<HonoEnv>): boolean {
-  if (!['POST', 'PUT', 'PATCH'].includes(c.req.method)) return true
-  if (allowsEmptyBody(c.req.path) || isStorageUpload(c.req.path)) return true
+  function isNonJsonPath(path: string): boolean {
+    return nonJsonPathPrefixes.some((prefix) => path.startsWith(prefix))
+  }
 
-  const contentType = c.req.header('Content-Type')
-  return contentType?.toLowerCase().startsWith('application/json') ?? false
-}
+  function hasRequiredContentType(c: Context<HonoEnv>): boolean {
+    if (!['POST', 'PUT', 'PATCH'].includes(c.req.method)) return true
+    if (allowsEmptyBody(c.req.path) || isNonJsonPath(c.req.path)) return true
 
-export function csrfProtection() {
+    const contentType = c.req.header('Content-Type')
+    return contentType?.toLowerCase().startsWith('application/json') ?? false
+  }
+
   return createMiddleware<HonoEnv>(async (c, next) => {
-    if (SAFE_METHODS.has(c.req.method) || CSRF_EXEMPT_PATHS.has(c.req.path)) {
+    if (SAFE_METHODS.has(c.req.method) || exemptPaths.has(c.req.path)) {
       await next()
       return
     }
@@ -76,7 +118,11 @@ export function csrfProtection() {
     }
 
     if (!hasRequiredContentType(c)) {
-      throw new HTTPException(415, { message: 'State-changing requests must use application/json' })
+      throw new HTTPException(415, {
+        message:
+          'State-changing requests must use application/json. ' +
+          'Extend csrfProtection options (emptyBodyPaths, emptyBodyPatterns, nonJsonPathPrefixes) to opt this route out.',
+      })
     }
 
     await next()

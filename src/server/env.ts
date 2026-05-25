@@ -104,7 +104,27 @@ export function validateEnv(env: Env, options: { allowMissingClientSecret?: bool
   if (env.ENVIRONMENT === 'production' && parseList(env.CORS_ORIGINS).includes('*')) {
     throw new Error('CORS_ORIGINS must not contain * in production')
   }
+  if (env.ENVIRONMENT !== 'production' && parseList(env.CORS_ORIGINS).includes('*')) {
+    // csrfProtection requires exact-origin matches; '*' is silently dropped by
+    // the normalizer. Surface this so dev/staging operators don't lose hours
+    // debugging cross-origin requests that were rejected for a stripped wildcard.
+    //
+    // validateEnv runs per-request in the boot middleware — memoize per env
+    // object so we warn once per isolate (the Worker reuses one env), and once
+    // per test (each test constructs a fresh env).
+    warnWildcardCorsOnce(env)
+  }
   // Validate MAX_UPLOAD_BYTES eagerly so we fail in validateEnv with a clear
   // message instead of crashing when the first oversized upload arrives.
   parseUploadBytes(env.MAX_UPLOAD_BYTES)
+}
+
+const wildcardCorsWarnedFor = new WeakSet<Env>()
+
+function warnWildcardCorsOnce(env: Env): void {
+  if (wildcardCorsWarnedFor.has(env)) return
+  wildcardCorsWarnedFor.add(env)
+  console.warn(
+    "CORS_ORIGINS includes '*' but csrfProtection requires exact origin matches — the wildcard is ignored. List each origin explicitly.",
+  )
 }
