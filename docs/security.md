@@ -38,8 +38,20 @@ own every security decision. Frontend checks are only UX.
   boilerplate does not send a decorative CSRF token header; if `@etus/auth`
   exposes a session-bound token later, it should be validated as data, not just
   checked for presence.
+- `csrfProtection()` accepts options to extend (never replace) the defaults:
+  `exemptPaths` skips all checks (for routes with their own gate, e.g.
+  dev-login's localhost guard); `emptyBodyPaths` and `emptyBodyPatterns`
+  allow `POST`/`PUT`/`PATCH` without `Content-Type` for legitimately empty
+  requests (logout, invitation accept/decline); `nonJsonPathPrefixes` opts
+  whole route trees out of the JSON-only contract (storage uploads,
+  webhook receivers). The `415` error message names these options so the
+  fix is discoverable from the failing request.
 - Credentialed CORS is allowlist-only. `CORS_ORIGINS=*` is rejected in
-  production by `validateEnv()`.
+  production by `validateEnv()`. Outside production it is permitted but
+  `validateEnv()` emits a one-shot warning (per env object via `WeakSet`,
+  so it fires once per isolate and once per test) explaining that csrf's
+  exact origin matcher silently drops the wildcard — operators should
+  list each origin explicitly even in dev to avoid silent rejections.
 - Request bodies are capped by `requestBodyLimit()` before route parsing.
   Direct R2 upload routes use an explicit larger upload cap instead of
   bypassing size checks.

@@ -18,7 +18,7 @@ export interface CsrfProtectionOptions {
   /** Exact paths where POST/PUT/PATCH may legitimately send no body. */
   emptyBodyPaths?: Iterable<string>
   /** Regex patterns for the empty-body allowlist (e.g. token-keyed verbs under /invitations). */
-  emptyBodyPatterns?: readonly RegExp[]
+  emptyBodyPatterns?: Iterable<RegExp>
   /** Path prefixes allowed to use non-JSON content types (e.g. binary uploads, webhooks). */
   nonJsonPathPrefixes?: Iterable<string>
 }
