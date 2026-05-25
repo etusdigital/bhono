@@ -42,7 +42,11 @@ own every security decision. Frontend checks are only UX.
   production by `validateEnv()`.
 - Request bodies are capped by `requestBodyLimit()` before route parsing.
   Direct R2 upload routes use an explicit larger upload cap instead of
-  bypassing size checks.
+  bypassing size checks. The upload cap defaults to 25 MiB and can be
+  raised via the `MAX_UPLOAD_BYTES` env var (positive integer in bytes,
+  up to the Workers runtime cap of ~500 MiB). `validateEnv()` parses the
+  value at boot so a bad value fails the first request with a clear
+  message instead of crashing inside the middleware on the first upload.
 
 ## Frontend Protections
 
@@ -54,6 +58,24 @@ own every security decision. Frontend checks are only UX.
 - Static assets are served with CSP, Trusted Types, referrer policy,
   frame-denial, nosniff, HSTS, and restrictive permissions policy from
   `public/_headers`.
+- The CSP keeps `<style>` elements strict (`style-src 'self' …`) but
+  explicitly allows inline style attributes via the CSP3 directive
+  `style-src-attr 'unsafe-inline'`. This is required because Radix UI
+  primitives (Dialog overlay, Popover positioning) emit `style="…"`
+  attributes from their own code that would otherwise be blocked,
+  silently breaking modals and dropdowns. Element-level injection (the
+  actual XSS vector) is still rejected — `style-src-elem` falls back to
+  the strict `style-src`. Both the runtime middleware
+  (`src/server/middleware/security-headers.ts`) and the static
+  `public/_headers` file ship this split.
+- **Browser compatibility note:** `style-src-attr` is CSP3 and requires
+  Chrome 75+, Firefox 74+, or Safari 15.4+ (released 2022). Older
+  browsers ignore the directive and fall back to the strict `style-src`,
+  which means Radix primitives will render with broken positioning. The
+  boilerplate targets browsers released within the last ~3 years; if you
+  need to support older Safari, either restore `'unsafe-inline'` in
+  `style-src` (weaker defense) or migrate to a UI library that doesn't
+  rely on inline style attributes.
 
 ## Required Checks
 

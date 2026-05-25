@@ -165,4 +165,15 @@ describe('parseUploadBytes', () => {
     expect(() => parseUploadBytes('1024.5')).toThrow(/positive integer/)
     expect(() => parseUploadBytes('abc')).toThrow(/positive integer/)
   })
+
+  it('rejects values above the Workers ~500 MiB body cap so a typo is caught at boot', () => {
+    // 10 GiB — a realistic typo (extra zeros) the previous guards accepted.
+    expect(() => parseUploadBytes('10000000000')).toThrow(/exceeds the Cloudflare Workers body cap/)
+    // 1 GiB — also above the runtime cap.
+    expect(() => parseUploadBytes(String(1024 * 1024 * 1024))).toThrow(/exceeds/)
+  })
+
+  it('accepts values up to and including the 500 MiB cap', () => {
+    expect(parseUploadBytes(String(500 * 1024 * 1024))).toBe(500 * 1024 * 1024)
+  })
 })
