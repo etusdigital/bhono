@@ -17,3 +17,5 @@ SENDGRID_FROM_EMAIL=noreply@yourdomain.com
 
 # R2
 R2_PUBLIC_URL=https://pub-your-bucket-id.r2.dev
+# Max body size for direct R2 uploads (bytes). Defaults to 25 MiB when unset.
+# MAX_UPLOAD_BYTES=26214400

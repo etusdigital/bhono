@@ -20,7 +20,7 @@ import {
   securityHeaders,
   requestBodyLimit,
 } from './middleware'
-import { validateEnv } from './env'
+import { parseUploadBytes, validateEnv } from './env'
 
 // The app is built lazily on the first request: @etus/auth needs the ETUS_*
 // config vars, which only exist at request time in Cloudflare Workers. The
@@ -85,8 +85,9 @@ function buildApp(env: Env): Hono<HonoEnv> {
   // 10. CSRF/origin protection for state-changing browser requests.
   app.use('*', csrfProtection())
 
-  // 11. Bound JSON payloads before any route parses request bodies.
-  app.use('*', requestBodyLimit())
+  // 11. Bound payloads before any route parses request bodies. The R2 upload
+  // limit comes from env so operators can raise it without editing middleware.
+  app.use('*', requestBodyLimit(undefined, parseUploadBytes(env.MAX_UPLOAD_BYTES)))
 
   // Health checks (no auth) — before protected routers
   app.route('/health', health)

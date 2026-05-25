@@ -30,7 +30,12 @@ describe('securityHeaders', () => {
     expect(csp).toContain("object-src 'none'")
     expect(csp).toContain("script-src 'self' 'nonce-")
     expect(csp).toContain("style-src 'self'")
-    expect(csp).not.toContain("'unsafe-inline'")
+    // <style> elements and scripts stay strict. Inline style attributes are
+    // explicitly allowed via style-src-attr so Radix primitives keep working —
+    // verify the narrow opt-in didn't leak into the umbrella style-src.
+    expect(csp).toContain("style-src-attr 'unsafe-inline'")
+    expect(csp).not.toMatch(/style-src 'self'[^;]*'unsafe-inline'/)
+    expect(csp).not.toMatch(/script-src[^;]*'unsafe-inline'/)
     expect(await res.text()).toContain('script nonce="')
   })
 
@@ -61,6 +66,7 @@ describe('securityHeaders', () => {
     expect(headers).toContain("Content-Security-Policy: default-src 'self'")
     expect(headers).toContain("script-src 'self'")
     expect(headers).toContain("frame-ancestors 'none'")
+    expect(headers).toContain("style-src-attr 'unsafe-inline'")
     expect(headers).toContain("require-trusted-types-for 'script'")
     expect(headers).toContain('Strict-Transport-Security: max-age=31536000; includeSubDomains')
   })
