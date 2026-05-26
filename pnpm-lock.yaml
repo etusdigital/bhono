@@ -12,8 +12,8 @@ importers:
   .:
     dependencies:
       '@etus/auth':
-        specifier: ^0.3.0
-        version: 0.3.0(hono@4.12.21)
+        specifier: ^0.5.0
+        version: 0.5.0(hono@4.12.21)(react@19.2.6)
       '@hono/swagger-ui':
         specifier: ^0.6.1
         version: 0.6.1(hono@4.12.21)
@@ -1032,11 +1032,12 @@ packages:
     resolution: {integrity: sha512-rZAP3aVgB9ds9KOeUSL+zZ21hPmo8dh6fnIFwRQj5EAZl9gzR7wxYbYXYysAM8CTqGmUGyp2S4kUdV17MnGuWQ==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
 
-  '@etus/auth@0.3.0':
-    resolution: {integrity: sha512-n2EMewIiL44UqlLlnV+qGkQsrUAUi9yqjVWFmMP+zx+5/WTERZm4cjosgrSoB4tvsx+fdAjkOaK0mu0Zr0PzMw==}
+  '@etus/auth@0.5.0':
+    resolution: {integrity: sha512-J8vWTxVqs4IZoi2hP3eQWbxW4Bd56fcX7gTgh8Ghm6beq491qxR9m+lQjl1Djk0OHlYEa3go7QOSzrFDyUuCcg==}
     hasBin: true
     peerDependencies:
-      hono: '>=4.0.0'
+      hono: '>=4.12.18 <5.0.0'
+      react: '>=18.0.0 <20.0.0'
 
   '@etus/bhono-app@0.1.5':
     resolution: {integrity: sha512-pzFmn+5OY4+lSzEjQsygaaZV/tYsPOlN8K8yqTJgMXtA11AXnp0zGJ5WDL8qAPRqnul/ewIrsjWr/VUl6J/HXA==}
@@ -2381,6 +2382,10 @@ packages:
   commander@12.1.0:
     resolution: {integrity: sha512-Vw8qHK3bZM9y/P10u3Vib8o/DdkvA2OtPtZvD871QKjy74Wj1WSKFILMPRPSdUSx5RFK1arlJzEtA4PkFgnbuA==}
     engines: {node: '>=18'}
+
+  commander@14.0.3:
+    resolution: {integrity: sha512-H+y0Jo/T1RZ9qPP4Eh1pkcQcLRglraJaSLoyOtHxu6AapkjWVCy2Sit1QQ4x3Dng8qDlSsZEet7g5Pq06MvTgw==}
+    engines: {node: '>=20'}
 
   commondir@1.0.1:
     resolution: {integrity: sha512-W9pAhw0ja1Edb5GVdIF1mjZw/ASI0AlShXM83UUGe2DVr5TdAPEA1OA8m/g8zWp9x6On7gqufY+FatDbC3MDQg==}
@@ -5229,11 +5234,12 @@ snapshots:
       '@eslint/core': 1.2.1
       levn: 0.4.1
 
-  '@etus/auth@0.3.0(hono@4.12.21)':
+  '@etus/auth@0.5.0(hono@4.12.21)(react@19.2.6)':
     dependencies:
       '@clack/prompts': 1.4.0
-      commander: 12.1.0
+      commander: 14.0.3
       hono: 4.12.21
+      react: 19.2.6
 
   '@etus/bhono-app@0.1.5':
     dependencies:
@@ -6616,6 +6622,8 @@ snapshots:
   colorette@1.4.0: {}
 
   commander@12.1.0: {}
+
+  commander@14.0.3: {}
 
   commondir@1.0.1: {}
 

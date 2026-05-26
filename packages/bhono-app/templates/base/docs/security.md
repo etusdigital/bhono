@@ -5,8 +5,9 @@ own every security decision. Frontend checks are only UX.
 
 ## Auth Boundary
 
-- `@etus/auth` owns OAuth, sessions, users, accounts, memberships, invitations,
-  and audit logs.
+- `@etus/auth` (v0.5.0+) owns OAuth, sessions, users, accounts, memberships,
+  invitations (including delivery via the `MailerAdapter` configured in
+  `src/server/auth/setup.ts`), and audit logs.
 - The browser never receives OAuth client secrets, refresh tokens, session
   identifiers in JavaScript, or long-lived bearer tokens.
 - Sessions are stored in Cloudflare KV and referenced in D1 through
@@ -25,11 +26,18 @@ own every security decision. Frontend checks are only UX.
   `owner > admin > member > guest`.
 - Account membership mutations intentionally accept only
   `admin | member | guest` through `src/server/auth/package-compat.ts`.
-  This keeps the boilerplate contract stable while `@etus/auth` still exposes
-  hard-coded account-role behavior.
-- `@etus/auth` persists invitations. Sending the invitation email remains a
-  product/boilerplate responsibility until the package exposes an invitation
-  delivery hook.
+  v0.5.0's package validates roles against `access.roles` (our 4-role list),
+  but we deliberately keep `owner` out of membership writes — it's a
+  product-level concept tracked on `auth_accounts.owner_id`, not a membership
+  role. The shim enforces that narrowing.
+- `@etus/auth` v0.5.0 ships invitation delivery — we wire a `MailerAdapter`
+  in `setup.ts` that bridges the package contract to our SendGrid wrapper
+  (`src/server/lib/email.ts`). The invitation URL is built by the package
+  using the `multiTenant.invitationUrl` callback we provide
+  (`${env.APP_URL}/invite/${inv.token}`).
+- `defaultRole` is `member`: invites without an explicit role land as
+  `member` (collaborative), not `guest` (read-only) or `admin` (too much).
+  This is a v0.5.0 change — earlier versions hardcoded `viewer`.
 
 ## Browser Request Protections
 

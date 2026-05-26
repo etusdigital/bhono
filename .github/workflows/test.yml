@@ -41,9 +41,17 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
+          # registry-url makes setup-node write a ~/.npmrc that pnpm reads —
+          # the _authToken interpolates from NODE_AUTH_TOKEN at install time,
+          # so the secret never lands on disk in plaintext.
+          registry-url: 'https://registry.npmjs.org/'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+        env:
+          # Required so the runner can fetch @etus/* packages (restricted on npmjs).
+          # NPM_TOKEN must be a granular token with read access on the @etus scope.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Lint
         run: pnpm lint
