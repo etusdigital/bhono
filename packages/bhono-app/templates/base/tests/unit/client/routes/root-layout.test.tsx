@@ -24,7 +24,7 @@ describe('Root Layout', () => {
 
       await waitFor(() => {
         // Login page should render (as child route)
-        expect(screen.getByRole('button', { name: /continue with google/i })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /continue with etus/i })).toBeInTheDocument()
       })
     })
 
@@ -55,7 +55,7 @@ describe('Root Layout', () => {
       renderRoute({ initialEntries: ['/login'] })
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /continue with google/i })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /continue with etus/i })).toBeInTheDocument()
       })
 
       // The root should be rendering properly

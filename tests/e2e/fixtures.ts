@@ -136,15 +136,17 @@ export const test = base.extend<CustomFixtures>({
   /**
    * API helper with automatic account-id header
    */
-  api: async ({ request, accountId }, use) => {
+  api: async ({ request, accountId, baseURL }, use) => {
+    const origin = new URL(baseURL ?? 'http://localhost:8787').origin
     const headers = accountId ? { 'account-id': accountId } : {}
+    const mutationHeaders = { ...headers, Origin: origin }
 
     await use({
       get: (url: string) => request.get(url, { headers }),
-      post: (url: string, data?: unknown) => request.post(url, { data, headers }),
-      put: (url: string, data?: unknown) => request.put(url, { data, headers }),
-      patch: (url: string, data?: unknown) => request.patch(url, { data, headers }),
-      delete: (url: string) => request.delete(url, { headers }),
+      post: (url: string, data?: unknown) => request.post(url, { data, headers: mutationHeaders }),
+      put: (url: string, data?: unknown) => request.put(url, { data, headers: mutationHeaders }),
+      patch: (url: string, data?: unknown) => request.patch(url, { data, headers: mutationHeaders }),
+      delete: (url: string) => request.delete(url, { headers: mutationHeaders }),
     })
   },
 })
@@ -254,9 +256,16 @@ export async function apiRequest(
   options?: { data?: unknown; headers?: Record<string, string> }
 ) {
   const accountId = getAccountIdFromFile()
-  const headers = {
+  const currentUrl = page.url()
+  const origin = currentUrl === 'about:blank'
+    ? new URL(process.env.BASE_URL ?? 'http://localhost:8787').origin
+    : new URL(currentUrl).origin
+  const headers: Record<string, string> = {
     ...(accountId ? { 'account-id': accountId } : {}),
     ...options?.headers,
+  }
+  if (method !== 'get') {
+    headers.Origin ??= origin
   }
 
   return page.request[method](url, {

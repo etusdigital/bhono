@@ -16,18 +16,42 @@ export const mockUser = {
   id: "test-user-id",
   email: "test@example.com",
   name: "Test User",
-  isSuperAdmin: false,
-  avatarUrl: null,
+  picture: null,
+  role: "admin",
 }
 
 export const mockAccount = {
   id: "test-account-id",
   name: "Test Account",
-  description: null,
-  domain: null,
+  slug: "test-account",
+  ownerId: "test-user-id",
+  createdAt: new Date().toISOString(),
+  updatedAt: null,
   status: "active" as const,
   role: "admin" as const,
   isCurrent: true,
+}
+
+export const mockMember = {
+  id: "test-membership-id",
+  accountId: mockAccount.id,
+  userId: mockUser.id,
+  role: "admin" as const,
+  status: "active" as const,
+  joinedAt: new Date().toISOString(),
+  createdAt: new Date().toISOString(),
+  user: mockUser,
+}
+
+export const mockInvitation = {
+  id: "test-invitation-id",
+  accountId: mockAccount.id,
+  email: "pending@example.com",
+  role: "member" as const,
+  invitedBy: mockUser.id,
+  expiresAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+  acceptedAt: null,
+  createdAt: new Date().toISOString(),
 }
 
 /**
@@ -64,6 +88,44 @@ export function createMockFetch(overrides?: Record<string, () => Promise<Respons
             data: [mockAccount],
             currentAccountId: mockAccount.id,
           }),
+      } as Response)
+    }
+
+    if (url === "/accounts" || url.endsWith("/accounts")) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ accounts: [mockAccount] }),
+      } as Response)
+    }
+
+    if (url === `/accounts/${mockAccount.id}/members` || url.endsWith(`/accounts/${mockAccount.id}/members`)) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ members: [mockMember] }),
+      } as Response)
+    }
+
+    if (url === `/accounts/${mockAccount.id}/invitations` || url.endsWith(`/accounts/${mockAccount.id}/invitations`)) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ invitations: [mockInvitation] }),
+      } as Response)
+    }
+
+    if (url === `/accounts/${mockAccount.id}/members/invite` || url.endsWith(`/accounts/${mockAccount.id}/members/invite`)) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ invitation: mockInvitation }),
+      } as Response)
+    }
+
+    if (
+      url === `/accounts/${mockAccount.id}/invitations/${mockInvitation.id}` ||
+      url.endsWith(`/accounts/${mockAccount.id}/invitations/${mockInvitation.id}`)
+    ) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ success: true }),
       } as Response)
     }
 

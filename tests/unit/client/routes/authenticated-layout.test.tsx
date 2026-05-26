@@ -67,10 +67,10 @@ describe('Authenticated Layout', () => {
         if (url === '/auth/me' || url.endsWith('/auth/me')) {
           return pendingPromise
         }
-        if (url === '/api/accounts/my' || url.endsWith('/api/accounts/my')) {
+        if (url === '/accounts' || url.endsWith('/accounts')) {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve({ data: [mockAccount], currentAccountId: mockAccount.id }),
+            json: () => Promise.resolve({ accounts: [mockAccount] }),
           } as Response)
         }
         return Promise.resolve({
@@ -107,10 +107,10 @@ describe('Authenticated Layout', () => {
         if (url === '/auth/me' || url.endsWith('/auth/me')) {
           return pendingPromise
         }
-        if (url === '/api/accounts/my' || url.endsWith('/api/accounts/my')) {
+        if (url === '/accounts' || url.endsWith('/accounts')) {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve({ data: [mockAccount], currentAccountId: mockAccount.id }),
+            json: () => Promise.resolve({ accounts: [mockAccount] }),
           } as Response)
         }
         return Promise.resolve({
@@ -148,7 +148,7 @@ describe('Authenticated Layout', () => {
             json: () => Promise.resolve({ error: 'Not authenticated' }),
           } as Response)
         }
-        if (url === '/api/accounts/my' || url.endsWith('/api/accounts/my')) {
+        if (url === '/accounts' || url.endsWith('/accounts')) {
           return Promise.resolve({
             ok: false,
             status: 401,
@@ -179,7 +179,7 @@ describe('Authenticated Layout', () => {
             json: () => Promise.resolve({ error: 'Not authenticated' }),
           } as Response)
         }
-        if (url === '/api/accounts/my' || url.endsWith('/api/accounts/my')) {
+        if (url === '/accounts' || url.endsWith('/accounts')) {
           return Promise.resolve({
             ok: false,
             status: 401,
@@ -209,7 +209,7 @@ describe('Authenticated Layout', () => {
             json: () => Promise.resolve({ error: 'Not authenticated' }),
           } as Response)
         }
-        if (url === '/api/accounts/my' || url.endsWith('/api/accounts/my')) {
+        if (url === '/accounts' || url.endsWith('/accounts')) {
           return Promise.resolve({
             ok: false,
             status: 401,

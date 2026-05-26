@@ -349,6 +349,9 @@ test.describe('UI Features Gap Tests @ui @features @pages', () => {
           filename: 'malicious.exe',
           contentType: 'application/x-msdownload',
         },
+        headers: {
+          Origin: new URL(page.url()).origin,
+        },
         failOnStatusCode: false,
       })
 

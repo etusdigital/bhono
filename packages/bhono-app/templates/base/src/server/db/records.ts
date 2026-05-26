@@ -1,81 +1,77 @@
 // src/server/db/records.ts
+//
+// Record shapes for the package-owned auth_* tables in schema.sql.
 
-export type UserStatus = 'active' | 'inactive'
+export type AuthUserStatus = 'pending' | 'active' | 'suspended' | 'denied'
+export type AuthRole = 'owner' | 'admin' | 'member' | 'guest'
+export type AuthMembershipStatus = 'active' | 'invited' | 'removed'
 
-export interface UserRecord {
+export interface AuthUserRecord {
   id: string
-  googleId: string
+  gatewayUserId: string | null
   email: string
-  name: string
-  avatarUrl: string | null
-  status: UserStatus
-  providerIds: string[]
-  isSuperAdmin: boolean
+  name: string | null
+  picture: string | null
+  role: AuthRole
+  status: AuthUserStatus
+  invitedBy: string | null
   createdAt: string
-  updatedAt: string
-  deletedAt: string | null
-  createdById?: string | null
-  updatedById?: string | null
-  deletedById?: string | null
+  lastLoginAt: string | null
 }
 
-export interface AccountRecord {
-  id: string
-  name: string
-  description: string | null
-  domain: string | null
-  createdAt: string
-  updatedAt: string
-  deletedAt: string | null
-}
-
-export interface UserAccountRecord {
-  userId: string
-  accountId: string
-  role: string
-}
-
-export interface RefreshTokenRecord {
+export interface AuthSessionRecord {
   id: string
   userId: string
-  tokenHash: string
+  ip: string | null
+  userAgent: string | null
+  lastActiveAt: number | null
   expiresAt: number
   createdAt: number
-  revokedAt: number | null
 }
 
-export interface InvitationRecord {
+export interface AuthAccountRecord {
+  id: string
+  name: string
+  slug: string | null
+  ownerId: string
+  createdAt: string
+  updatedAt: string | null
+}
+
+export interface AuthMembershipRecord {
+  id: string
+  accountId: string
+  userId: string
+  role: AuthRole
+  status: AuthMembershipStatus
+  invitedBy: string | null
+  invitedAt: string | null
+  joinedAt: string | null
+  createdAt: string
+}
+
+export interface AuthInvitationRecord {
   id: string
   accountId: string
   email: string
-  role: string
+  role: AuthRole
+  invitedBy: string
   token: string
-  invitedById: string
   expiresAt: string
   acceptedAt: string | null
   createdAt: string
 }
 
-export type AuditAction =
-  | 'INSERT'
-  | 'UPDATE'
-  | 'DELETE'
-  | 'LOGIN'
-  | 'LOGOUT'
-  | 'SIGNUP'
-  | 'TOKEN_REFRESH'
-  | 'LOGIN_FAILED'
-
-export interface AuditLogRecord {
+export interface AuthAuditLogRecord {
   id: string
-  transactionId: string
+  eventType: string
+  actorId: string | null
+  actorEmail: string | null
+  targetId: string | null
+  targetType: string | null
   accountId: string | null
-  userId: string | null
-  entity: string
-  entityId: string
-  action: AuditAction
-  changes: Record<string, unknown> | null
-  ipAddress: string | null
+  ip: string | null
   userAgent: string | null
-  timestamp: string
+  metadata: Record<string, unknown>
+  createdAt: string
 }

@@ -80,7 +80,7 @@ function HomePage() {
             <FeatureCard
               icon={<Icons.shield className="h-10 w-10" />}
               title="Secure by Default"
-              description="OAuth authentication, JWT tokens, and role-based access control built-in."
+              description="Gateway OAuth, HTTP-only session cookies, and role-based access control built-in."
             />
             <FeatureCard
               icon={<Icons.users className="h-10 w-10" />}

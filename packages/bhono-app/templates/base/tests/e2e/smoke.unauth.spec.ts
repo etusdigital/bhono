@@ -24,7 +24,7 @@ test.describe('Smoke Tests (Unauthenticated)', () => {
 
     // Should see login page content
     await expect(page.getByText('Welcome back')).toBeVisible()
-    await expect(page.getByRole('button', { name: /continue with google/i })).toBeVisible()
+    await expect(page.getByRole('button', { name: /continue with etus/i })).toBeVisible()
   })
 
   test('health endpoint returns healthy status', async ({ request, baseURL }) => {

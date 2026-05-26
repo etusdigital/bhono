@@ -190,7 +190,7 @@ export function Sidebar({ defaultCollapsed = false }: SidebarProps) {
             disabled={isLoggingOut}
           >
             <Avatar className="h-8 w-8">
-              <AvatarImage src={user?.avatarUrl ?? undefined} alt={user?.name ?? ''} />
+              <AvatarImage src={user?.picture ?? undefined} alt={user?.name ?? ''} />
               <AvatarFallback className="text-xs bg-sidebar-accent text-sidebar-foreground">
                 {initials}
               </AvatarFallback>
@@ -199,7 +199,7 @@ export function Sidebar({ defaultCollapsed = false }: SidebarProps) {
         ) : (
           <div className="flex items-center gap-3 rounded-lg p-2 hover:bg-sidebar-accent transition-colors">
             <Avatar className="h-9 w-9 shrink-0">
-              <AvatarImage src={user?.avatarUrl ?? undefined} alt={user?.name ?? ''} />
+              <AvatarImage src={user?.picture ?? undefined} alt={user?.name ?? ''} />
               <AvatarFallback className="text-xs bg-sidebar-accent text-sidebar-foreground">
                 {initials}
               </AvatarFallback>

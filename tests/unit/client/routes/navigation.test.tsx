@@ -10,7 +10,7 @@ describe('Navigation', () => {
 
   describe('authenticated navigation', () => {
     beforeEach(() => {
-      // Use setupFetchMock which handles /auth/me and /api/accounts/my
+      // Use setupFetchMock which handles /auth/me and /accounts
       setupFetchMock()
     })
 

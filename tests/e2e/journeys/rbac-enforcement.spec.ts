@@ -152,14 +152,14 @@ test.describe('RBAC Enforcement Journey @journey @rbac', () => {
 
     test('should list invitations via API', async ({ page }) => {
       // Step 1: Fetch invitations
-      const response = await apiRequest(page, 'get', '/api/invitations')
+      const accountId = getAccountId()
+      const response = await apiRequest(page, 'get', `/accounts/${accountId}/invitations`)
 
       // Step 2: Verify response (admin can list invitations)
       expect(response.ok()).toBeTruthy()
 
       const body = await response.json()
-      expect(body).toHaveProperty('data')
-      expect(body).toHaveProperty('meta')
+      expect(body).toHaveProperty('invitations')
     })
 
     test('should display pending invitations on team page', async ({ page }) => {
@@ -198,15 +198,15 @@ test.describe('RBAC Enforcement Journey @journey @rbac', () => {
       const accountId = getAccountId()
 
       // Step 1: Get original account data
-      const getResponse = await apiRequest(page, 'get', `/api/accounts/${accountId}`)
+      const getResponse = await apiRequest(page, 'get', `/accounts/${accountId}`)
       expect(getResponse.ok()).toBeTruthy()
 
       const originalData = await getResponse.json()
-      const originalName = originalData.data.name
+      const originalName = originalData.account.name
 
       // Step 2: Update account name
       const newName = `RBAC Test ${Date.now()}`
-      const updateResponse = await apiRequest(page, 'patch', `/api/accounts/${accountId}`, {
+      const updateResponse = await apiRequest(page, 'patch', `/accounts/${accountId}`, {
         data: { name: newName },
       })
 
@@ -214,21 +214,22 @@ test.describe('RBAC Enforcement Journey @journey @rbac', () => {
       expect(updateResponse.ok()).toBeTruthy()
 
       // Step 4: Restore original name
-      await apiRequest(page, 'patch', `/api/accounts/${accountId}`, {
+      await apiRequest(page, 'patch', `/accounts/${accountId}`, {
         data: { name: originalName },
       })
     })
 
     test('admin should access user list via API', async ({ page }) => {
       // Step 1: Fetch users
-      const response = await apiRequest(page, 'get', '/api/users')
+      const accountId = getAccountId()
+      const response = await apiRequest(page, 'get', `/accounts/${accountId}/members`)
 
       // Step 2: Verify admin can list users
       expect(response.ok()).toBeTruthy()
 
       const body = await response.json()
-      expect(body).toHaveProperty('data')
-      expect(body.data.length).toBeGreaterThan(0)
+      expect(body).toHaveProperty('members')
+      expect(body.members.length).toBeGreaterThan(0)
     })
   })
 
@@ -372,13 +373,14 @@ test.describe('RBAC Enforcement Journey @journey @rbac', () => {
       await expect(page.getByRole('button', { name: 'Add Webhook' }).first()).toBeVisible()
 
       // Step 5: Verify API-level permissions
-      const usersResponse = await apiRequest(page, 'get', '/api/users')
+      const accountId = getAccountId()
+      const usersResponse = await apiRequest(page, 'get', `/accounts/${accountId}/members`)
       expect(usersResponse.ok()).toBeTruthy()
 
-      const invitationsResponse = await apiRequest(page, 'get', '/api/invitations')
+      const invitationsResponse = await apiRequest(page, 'get', `/accounts/${accountId}/invitations`)
       expect(invitationsResponse.ok()).toBeTruthy()
 
-      const auditsResponse = await apiRequest(page, 'get', '/api/audits')
+      const auditsResponse = await apiRequest(page, 'get', '/audit/logs')
       expect(auditsResponse.ok()).toBeTruthy()
 
       // Step 6: Return to dashboard

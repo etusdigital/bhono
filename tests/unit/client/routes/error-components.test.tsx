@@ -23,7 +23,7 @@ vi.mock('@tanstack/react-router', () => ({
 // Mock useAuth for Sidebar component
 vi.mock('@/hooks/use-auth', () => ({
   useAuth: () => ({
-    user: { id: '1', email: 'test@example.com', name: 'Test User', avatarUrl: null },
+    user: { id: '1', email: 'test@example.com', name: 'Test User', picture: null, role: 'admin' },
     logout: vi.fn(),
     isLoggingOut: false,
     isAuthenticated: true,

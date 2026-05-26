@@ -16,7 +16,7 @@ A production-ready, fully-typed, multi-tenant SaaS boilerplate built with **Hono
 This boilerplate provides everything you need to build a modern, secure, and scalable SaaS application:
 
 - **Multi-tenant architecture** with role-based access control
-- **Google OAuth authentication** with session management
+- **Gateway-backed OAuth** via `@etus/auth` and `ag.etus.io`
 - **Team collaboration** with email invitations
 - **Comprehensive audit logging** for compliance
 - **Full-stack type safety** from database to frontend
@@ -28,12 +28,12 @@ This boilerplate provides everything you need to build a modern, secure, and sca
 ## Features
 
 ### Authentication & Authorization
-- Google OAuth 2.0 with PKCE (Proof Key for Code Exchange)
-- Session-based authentication via Cloudflare KV
-- Secure httpOnly cookies with SameSite protection
-- Role-based access control: `ADMIN`, `EDITOR`, `VIEWER`
-- Token refresh mechanism
-- User-agent fingerprint validation
+- OAuth flow owned by `@etus/auth` through the ETUS auth gateway
+- Session-based authentication via Cloudflare KV and D1 session references
+- HTTP-only cookies with `SameSite=Lax` and `Secure` on HTTPS
+- Product RBAC catalog: `owner`, `admin`, `member`, `guest`
+- Multi-tenant account context resolved by `auth.accountMiddleware()`
+- Session fingerprint validation using client IP and user-agent metadata
 
 ### Multi-Tenant Architecture
 - Workspaces/Organizations (Accounts)
@@ -50,13 +50,15 @@ This boilerplate provides everything you need to build a modern, secure, and sca
 
 ### Security
 - Rate limiting middleware (in-memory with lazy cleanup)
-- CSRF protection via SameSite cookies
-- XSS prevention with secure headers
+- CSRF protection for cookie-authenticated mutations
+- Strict credentialed CORS allowlist
+- XSS defense-in-depth with CSP, nonced scripts, and secure headers
+- JSON payload limits for state-changing API calls
 - SQL injection protection via parameterized queries
 
 ### Testing
 - Unit tests with Vitest (94%+ coverage)
-- Integration tests (93%+ coverage)
+- Integration tests for D1/KV/R2 wiring and auth schema constraints
 - E2E tests with Playwright (363+ tests)
 - Visual regression testing
 - Accessibility testing (WCAG compliance)
@@ -90,7 +92,7 @@ This boilerplate provides everything you need to build a modern, secure, and sca
 - Node.js 20+
 - pnpm (recommended), npm, or yarn
 - Cloudflare account (for deployment)
-- Google Cloud Console project (for OAuth)
+- ETUS auth gateway client (`ETUS_CLIENT_ID` and `ETUS_CLIENT_SECRET`)
 
 ### Installation
 
@@ -115,7 +117,7 @@ pnpm db:seed:local
 pnpm dev
 ```
 
-The application will be available at `http://localhost:5173`
+The application will be available at `http://localhost:8787`
 
 ### Environment Variables
 
@@ -124,23 +126,20 @@ The application will be available at `http://localhost:5173`
 PORT=3000
 NODE_ENV=development
 
-# Authentication
-JWT_SECRET=your-secret-key-min-32-chars
-JWT_EXPIRY_MINUTES=15
-REFRESH_TOKEN_EXPIRY_DAYS=30
-
-# Google OAuth
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-GOOGLE_REDIRECT_URI=http://localhost:3000/auth/callback
+# ETUS Auth (OAuth Gateway via @etus/auth)
+ETUS_GATEWAY=https://ag.etus.io
+ETUS_CLIENT_ID=your-client-id-from-npx-etus-auth-init
+ETUS_CLIENT_SECRET=your-client-secret-from-npx-etus-auth-init
+ETUS_ALLOWED_DOMAINS=yourdomain.com,anotherdomain.com
+ETUS_ADMIN_EMAILS=admin@yourdomain.com
 
 # Email (SendGrid)
 SENDGRID_API_KEY=your-sendgrid-api-key
 SENDGRID_FROM_EMAIL=noreply@yourdomain.com
 
 # Application
-APP_URL=http://localhost:3000
-CORS_ORIGINS=*
+APP_URL=http://localhost:8787
+CORS_ORIGINS=http://localhost:3000,http://localhost:8787
 LOG_LEVEL=info
 ```
 
@@ -157,20 +156,15 @@ LOG_LEVEL=info
 ├── src/
 │   ├── server/                 # Backend (Hono.js)
 │   │   ├── routes/             # API endpoints
-│   │   │   ├── auth/           # Authentication
-│   │   │   ├── users/          # User CRUD
-│   │   │   ├── accounts/       # Multi-tenant accounts
-│   │   │   ├── invitations/    # Team invitations
-│   │   │   ├── audits/         # Audit logs
-│   │   │   └── storage/        # File storage (R2)
-│   │   ├── services/           # Business logic
+│   │   │   ├── health/         # Health checks
+│   │   │   └── storage/        # App-owned API protected by @etus/auth
 │   │   ├── middleware/         # Request middleware
 │   │   ├── db/                 # Database (SQL helpers)
 │   │   │   ├── client.ts       # D1 client wrapper
 │   │   │   ├── records.ts      # Record typings (SQL results)
 │   │   │   ├── sql.ts          # Query helpers (queryOne/queryAll/execute)
 │   │   │   └── seed.ts         # Seed generator (seed.sql)
-│   │   ├── auth/               # Roles, permissions, guards
+│   │   ├── auth/               # @etus/auth setup, RBAC matrix, guards
 │   │   └── lib/                # Utilities
 │   │
 │   ├── client/                 # Frontend (React)
@@ -221,6 +215,7 @@ LOG_LEVEL=info
 
 - `docs/app_spec.txt` - Canonical app specification and architecture overview
 - `docs/architecture/README.md` - Architecture docs index
+- `docs/security.md` - Current auth and browser security baseline
 - `docs/testing.md` - Testing guide
 
 ---
@@ -246,62 +241,79 @@ If the CLI cannot find local templates, it will clone the default Bhono template
 ### Core Tables
 
 ```sql
--- Users
-users (
-  id UUID PRIMARY KEY,
-  google_id TEXT UNIQUE,
-  email TEXT NOT NULL,
+-- Users provisioned by @etus/auth after OAuth callback
+auth_users (
+  id TEXT PRIMARY KEY,
+  gateway_user_id TEXT,
+  email TEXT NOT NULL UNIQUE,
   name TEXT,
-  avatar_url TEXT,
-  status TEXT DEFAULT 'active',
-  is_super_admin BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMP,
-  updated_at TIMESTAMP,
-  deleted_at TIMESTAMP
+  picture TEXT,
+  role TEXT NOT NULL DEFAULT 'guest',
+  status TEXT NOT NULL DEFAULT 'pending',
+  invited_by TEXT,
+  created_at TEXT,
+  last_login_at TEXT
 )
 
--- Accounts (Workspaces/Organizations)
-accounts (
-  id UUID PRIMARY KEY,
-  name TEXT NOT NULL,
-  description TEXT,
-  domain TEXT UNIQUE,
-  created_at TIMESTAMP,
-  updated_at TIMESTAMP,
-  deleted_at TIMESTAMP
-)
-
--- User-Account Mapping with Roles
-user_accounts (
-  user_id UUID REFERENCES users(id),
-  account_id UUID REFERENCES accounts(id),
-  role TEXT CHECK (role IN ('ADMIN', 'EDITOR', 'VIEWER')),
-  PRIMARY KEY (user_id, account_id)
-)
-
--- Audit Logs
-audit_logs (
-  id UUID PRIMARY KEY,
-  user_id UUID,
-  account_id UUID,
-  action TEXT,
-  resource_type TEXT,
-  resource_id TEXT,
-  changes JSONB,
-  ip_address TEXT,
+-- Session references for listing/revocation; full session payload lives in KV
+auth_sessions (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES auth_users(id) ON DELETE CASCADE,
+  ip TEXT,
   user_agent TEXT,
-  created_at TIMESTAMP
+  last_active_at INTEGER,
+  expires_at INTEGER,
+  created_at INTEGER
 )
 
--- Invitations
-invitations (
-  id UUID PRIMARY KEY,
+-- Accounts and memberships for multi-tenant workspaces
+auth_accounts (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  slug TEXT UNIQUE,
+  owner_id TEXT NOT NULL,
+  created_at TEXT,
+  updated_at TEXT
+)
+
+auth_memberships (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'guest',
+  status TEXT NOT NULL DEFAULT 'active',
+  invited_by TEXT,
+  invited_at TEXT,
+  joined_at TEXT,
+  created_at TEXT,
+  UNIQUE(account_id, user_id)
+)
+
+-- Invitations and audit logs
+auth_invitations (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
   email TEXT NOT NULL,
-  account_id UUID,
-  invited_by UUID,
-  token TEXT UNIQUE,
-  accepted_at TIMESTAMP,
-  expires_at TIMESTAMP
+  role TEXT NOT NULL DEFAULT 'guest',
+  invited_by TEXT NOT NULL,
+  token TEXT NOT NULL UNIQUE,
+  expires_at TEXT NOT NULL,
+  accepted_at TEXT,
+  created_at TEXT
+)
+
+auth_audit_logs (
+  id TEXT PRIMARY KEY,
+  event_type TEXT NOT NULL,
+  actor_id TEXT,
+  actor_email TEXT,
+  target_id TEXT,
+  target_type TEXT,
+  account_id TEXT,
+  ip TEXT,
+  user_agent TEXT,
+  metadata TEXT,
+  created_at TEXT
 )
 ```
 
@@ -332,42 +344,59 @@ pnpm cf-typegen
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/auth/login` | Initiate Google OAuth |
-| `GET` | `/auth/callback` | OAuth callback |
-| `POST` | `/auth/logout` | Destroy session |
-| `GET` | `/auth/me` | Get current user |
-| `POST` | `/auth/refresh` | Refresh token |
+| `GET` | `/auth/login` | Start ETUS gateway OAuth flow |
+| `GET` | `/auth/callback` | OAuth callback handled by `@etus/auth` |
+| `POST` | `/auth/logout` | Destroy session and clear cookie |
+| `GET` | `/auth/me` | Get current user/session context |
+| `POST` | `/auth/test-login` | Localhost-only dev/E2E session helper |
 
-### Users
+### Admin Users
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/api/users` | List users (paginated) |
-| `POST` | `/api/users` | Create user |
-| `GET` | `/api/users/:id` | Get user by ID |
-| `PATCH` | `/api/users/:id` | Update user |
-| `DELETE` | `/api/users/:id` | Delete user |
+| `GET` | `/auth/admin/users` | List users |
+| `GET` | `/auth/admin/users/:id` | Get user by ID |
+| `POST` | `/auth/admin/users/invite` | Invite a user |
+| `POST` | `/auth/admin/users/:id/approve` | Approve pending user |
+| `POST` | `/auth/admin/users/:id/deny` | Deny pending user |
+| `PATCH` | `/auth/admin/users/:id` | Update user role/status |
+| `DELETE` | `/auth/admin/users/:id` | Delete user and invalidate sessions |
 
 ### Accounts
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/api/accounts` | List accounts |
-| `POST` | `/api/accounts` | Create account |
-| `GET` | `/api/accounts/:id` | Get account |
-| `PATCH` | `/api/accounts/:id` | Update account |
-| `GET` | `/api/accounts/:id/members` | List members |
-| `POST` | `/api/accounts/:id/members` | Add member |
-| `DELETE` | `/api/accounts/:id/members/:userId` | Remove member |
+| `GET` | `/accounts` | List current user's accounts |
+| `POST` | `/accounts` | Create account |
+| `GET` | `/accounts/:id` | Get account and membership |
+| `PATCH` | `/accounts/:id` | Update account |
+| `DELETE` | `/accounts/:id` | Delete account |
+| `GET` | `/accounts/:id/members` | List members |
+| `POST` | `/accounts/:id/members/invite` | Invite member |
+| `PATCH` | `/accounts/:id/members/:userId` | Update member role |
+| `DELETE` | `/accounts/:id/members/:userId` | Remove member |
 
 ### Invitations
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/api/invitations` | List invitations |
-| `POST` | `/api/invitations` | Send invitation |
-| `POST` | `/api/invitations/:id/accept` | Accept invitation |
-| `POST` | `/api/invitations/:id/cancel` | Cancel invitation |
+| `GET` | `/invitations/:token` | Read invitation details |
+| `POST` | `/invitations/:token/accept` | Accept invitation |
+
+### Audit
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/audit/logs` | Query audit logs (admin-only) |
+
+### App API
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/storage/upload-url` | Generate an upload URL |
+| `PUT` | `/api/storage/upload/:key` | Upload a file to R2 |
+| `GET` | `/api/storage/files/:key` | Get a file |
+| `DELETE` | `/api/storage/files/:key` | Delete a file |
 
 ### Documentation
 
@@ -385,7 +414,7 @@ pnpm cf-typegen
 | Layer | Statements | Branches | Functions | Lines |
 |-------|------------|----------|-----------|-------|
 | **Server Unit** | 94.50% | 85.98% | 96.15% | 94.74% |
-| **Integration** | 93.19% | 84.88% | 92.48% | 93.51% |
+| **Integration** | Diagnostic | Diagnostic | Diagnostic | Behavioral |
 | **Client Unit** | 90.82% | 87.82% | 96.87% | 91.97% |
 | **E2E** | 363 tests | - | - | 100% pass |
 
@@ -549,6 +578,8 @@ Client (React SPA)
 │  │  - CORS                     │  │
 │  │  - Security Headers         │  │
 │  │  - Rate Limiting            │  │
+│  │  - CSRF / Origin Checks     │  │
+│  │  - JSON Body Limit          │  │
 │  │  - Session Auth             │  │
 │  │  - Account Context          │  │
 │  └─────────────────────────────┘  │
@@ -624,27 +655,30 @@ import { createUser } from '@server/services/users'  // Server
 
 ### Built-in Protections
 
-- **CSRF**: SameSite cookies + CORS validation
-- **XSS**: Secure headers + React's built-in escaping
-- **Session Hijacking**: httpOnly cookies, secure flag in production
+- **Session Auth**: `@etus/auth` issues HTTP-only cookies backed by KV sessions and D1 session references
+- **CSRF**: mutating requests require a trusted `Origin`/`Referer`; JSON endpoints must use JSON content type
+- **CORS**: credentialed CORS uses explicit origins from `APP_URL` and `CORS_ORIGINS`; wildcard origins are rejected in production
+- **XSS**: React escaping, no client-side raw HTML sinks, CSP with nonced scripts, `frame-ancestors 'none'`, `nosniff`, and referrer policy
+- **Session Hijacking**: secure cookie flags on HTTPS and session fingerprint validation
 - **SQL Injection**: Parameterized queries via SQL helpers
 - **Rate Limiting**: In-memory store with configurable limits per route
-- **Fingerprint Validation**: User-agent validation for sessions
+- **Payload DoS**: request bodies are capped before route parsing; direct R2 uploads use a larger explicit cap
+- **Frontend Secrets**: client guardrails reject auth token storage, dangerous DOM sinks, and non-public env exposure
 
 ### Audit Logging
 
-All state-changing operations are logged:
+Auth, user lifecycle, account, membership, invitation and session events are logged by `@etus/auth` when `audit.enabled=true`:
 
 ```typescript
 {
-  action: 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT',
-  resourceType: 'user' | 'account' | 'invitation',
-  resourceId: string,
-  changes: { before: any, after: any },
-  ipAddress: string,
-  userAgent: string,
-  transactionId: string,
-  createdAt: timestamp
+  type: 'auth.login' | 'auth.logout' | 'user.updated' | 'account.invitation_sent',
+  actorId: string | null,
+  actorEmail: string | null,
+  targetId: string | null,
+  targetType: 'user' | 'account' | 'invitation' | 'session',
+  accountId: string | null,
+  metadata: Record<string, unknown>,
+  createdAt: string
 }
 ```
 
@@ -662,7 +696,7 @@ All state-changing operations are logged:
 
 - Run `pnpm lint` before committing
 - Ensure all tests pass: `pnpm test:unit && pnpm test:integration && pnpm test:e2e`
-- Maintain coverage thresholds (90%+ for server, 85%+ for client)
+- Maintain unit coverage thresholds (server and client gates)
 - Follow existing code patterns
 
 ---

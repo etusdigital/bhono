@@ -14,7 +14,13 @@ async function fetchMe(): Promise<AuthResponse | null> {
 }
 
 async function logout(): Promise<void> {
-  const res = await fetch('/auth/logout', { method: 'POST', credentials: 'include' })
+  const res = await fetch('/auth/logout', {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      Accept: 'application/json',
+    },
+  })
   if (!res.ok) {
     throw new Error('Failed to logout')
   }

@@ -44,7 +44,7 @@ export default defineConfig({
 
   /* Shared settings for all projects */
   use: {
-    baseURL: process.env.BASE_URL ?? 'http://localhost:5173',
+    baseURL: process.env.BASE_URL ?? 'http://localhost:8787',
 
     /* Artifacts */
     trace: 'on-first-retry',
@@ -151,7 +151,7 @@ export default defineConfig({
     command: process.env.E2E_COVERAGE === 'true'
       ? 'E2E_COVERAGE=true pnpm run dev'
       : 'pnpm run dev',
-    url: 'http://localhost:5173',
+    url: 'http://localhost:8787',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },

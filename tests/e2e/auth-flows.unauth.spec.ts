@@ -17,44 +17,44 @@ test.describe('Auth Flows @auth', () => {
       // Should see welcome message
       await expect(page.getByText('Welcome back')).toBeVisible()
 
-      // Should have Google OAuth button
-      const googleButton = page.getByRole('button', { name: /continue with google/i })
-      await expect(googleButton).toBeVisible()
-      await expect(googleButton).toBeEnabled()
+      // Should have ETUS Auth button
+      const authButton = page.getByRole('button', { name: /continue with etus/i })
+      await expect(authButton).toBeVisible()
+      await expect(authButton).toBeEnabled()
     })
 
-    test('Google OAuth button should redirect to OAuth provider', async ({ page }) => {
+    test('ETUS Auth button should redirect to OAuth provider', async ({ page }) => {
       await page.goto('/login')
 
-      // Get the Google OAuth button
-      const googleButton = page.getByRole('button', { name: /continue with google/i })
-      await expect(googleButton).toBeVisible()
+      // Get the ETUS Auth button
+      const authButton = page.getByRole('button', { name: /continue with etus/i })
+      await expect(authButton).toBeVisible()
 
-      // Click and wait for navigation to OAuth provider
+      // Click and wait for navigation to the ETUS OAuth gateway.
       // We expect either:
-      // 1. Redirect to Google's OAuth page (accounts.google.com)
-      // 2. Redirect to our OAuth endpoint (/auth/login) which then redirects to Google
+      // 1. Redirect to the gateway authorize endpoint
+      // 2. Redirect to our OAuth entrypoint (/auth/login), which then redirects to the gateway
       const [response] = await Promise.all([
         page.waitForResponse(
           (resp) =>
-            resp.url().includes('accounts.google.com') ||
-            resp.url().includes('/auth/login') ||
-            resp.url().includes('/auth/google'),
+            resp.url().includes('/oauth/authorize') ||
+            resp.url().includes('ag.etus.io') ||
+            resp.url().includes('/auth/login'),
           { timeout: 10000 }
         ).catch(() => null),
-        googleButton.click(),
+        authButton.click(),
       ])
 
       // Should have navigated away from login page
-      // Either to Google OAuth or to our auth endpoint
+      // Either to ETUS Auth or to our auth endpoint
       await expect
         .poll(
           async () => {
             const url = page.url()
             return (
-              url.includes('accounts.google.com') ||
+              url.includes('/oauth/authorize') ||
+              url.includes('ag.etus.io') ||
               url.includes('/auth/login') ||
-              url.includes('/auth/google') ||
               // If OAuth is configured differently, we at least shouldn't be on login anymore
               !url.includes('/login')
             )
@@ -106,6 +106,9 @@ test.describe('Auth Flows @auth', () => {
     }) => {
       // Logout endpoint should not crash for unauthenticated users
       const response = await request.post(`${baseURL}/auth/logout`, {
+        headers: {
+          Origin: new URL(baseURL ?? 'http://localhost:8787').origin,
+        },
         failOnStatusCode: false,
       })
 

@@ -3,29 +3,30 @@ import type { Role } from './auth'
 
 export interface User {
   id: string
-  googleId: string
+  gatewayUserId: string | null
   email: string
-  name: string
-  avatarUrl?: string | null
-  status: 'active' | 'inactive'
-  isSuperAdmin: boolean
+  name: string | null
+  picture?: string | null
+  role: Role
+  status: 'pending' | 'active' | 'suspended' | 'denied'
   createdAt: string
-  updatedAt: string
-  deletedAt: string | null
+  lastLoginAt: string | null
 }
 
 export interface Account {
   id: string
   name: string
-  description: string | null
-  domain: string | null
+  slug: string | null
+  ownerId: string
   createdAt: string
-  updatedAt: string
-  deletedAt: string | null
+  updatedAt: string | null
 }
 
 export interface UserAccount {
+  id: string
   userId: string
   accountId: string
-  role: Role
+  role: 'admin' | 'member' | 'guest'
+  status: 'active' | 'pending'
+  joinedAt: string | null
 }

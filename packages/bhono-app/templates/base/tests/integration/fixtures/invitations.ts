@@ -82,7 +82,7 @@ export async function createInvitation(options: CreateInvitationOptions): Promis
     id: options.id ?? defaults.id,
     accountId: options.accountId,
     email: options.email ?? defaults.email,
-    role: options.role ?? 'VIEWER',
+    role: options.role ?? 'guest',
     token: options.token ?? defaults.token,
     invitedById: options.invitedById,
     expiresAt: options.expiresAt ?? daysFromNow(7), // Default: expires in 7 days
@@ -90,7 +90,7 @@ export async function createInvitation(options: CreateInvitationOptions): Promis
   }
 
   db.prepare(`
-    INSERT INTO invitations (id, account_id, email, role, token, invited_by_id, expires_at, accepted_at)
+    INSERT INTO auth_invitations (id, account_id, email, role, token, invited_by, expires_at, accepted_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     invitation.id,
@@ -136,15 +136,15 @@ export async function createAcceptedInvitation(
 export async function getInvitationByToken(token: string): Promise<CreatedInvitation | null> {
   const db = getSqlite()
   const row = db.prepare(`
-    SELECT id, account_id, email, role, token, invited_by_id, expires_at, accepted_at
-    FROM invitations WHERE token = ?
+    SELECT id, account_id, email, role, token, invited_by, expires_at, accepted_at
+    FROM auth_invitations WHERE token = ?
   `).get(token) as {
     id: string
     account_id: string
     email: string
     role: Role
     token: string
-    invited_by_id: string
+    invited_by: string
     expires_at: string
     accepted_at: string | null
   } | undefined
@@ -157,7 +157,7 @@ export async function getInvitationByToken(token: string): Promise<CreatedInvita
     email: row.email,
     role: row.role,
     token: row.token,
-    invitedById: row.invited_by_id,
+    invitedById: row.invited_by,
     expiresAt: row.expires_at,
     acceptedAt: row.accepted_at,
   }
@@ -169,15 +169,15 @@ export async function getInvitationByToken(token: string): Promise<CreatedInvita
 export async function getAccountInvitations(accountId: string): Promise<CreatedInvitation[]> {
   const db = getSqlite()
   const rows = db.prepare(`
-    SELECT id, account_id, email, role, token, invited_by_id, expires_at, accepted_at
-    FROM invitations WHERE account_id = ?
+    SELECT id, account_id, email, role, token, invited_by, expires_at, accepted_at
+    FROM auth_invitations WHERE account_id = ?
   `).all(accountId) as {
     id: string
     account_id: string
     email: string
     role: Role
     token: string
-    invited_by_id: string
+    invited_by: string
     expires_at: string
     accepted_at: string | null
   }[]
@@ -188,7 +188,7 @@ export async function getAccountInvitations(accountId: string): Promise<CreatedI
     email: row.email,
     role: row.role,
     token: row.token,
-    invitedById: row.invited_by_id,
+    invitedById: row.invited_by,
     expiresAt: row.expires_at,
     acceptedAt: row.accepted_at,
   }))

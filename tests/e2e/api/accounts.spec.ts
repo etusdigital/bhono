@@ -1,10 +1,7 @@
 import { test, expect, isAuthenticated, apiRequest, getAccountId } from '../fixtures'
 
 /**
- * Accounts API E2E Tests
- *
- * Tests for the accounts API endpoints.
- * Uses apiRequest helper to make API calls with session cookie and account-id header.
+ * Accounts API E2E tests for the @etus/auth account router.
  *
  * @tags @api @accounts
  */
@@ -18,131 +15,87 @@ test.describe('Accounts API @api @accounts', () => {
     test.skip(!accountId, 'No account ID available')
   })
 
-  test.describe('Get Current Account', () => {
-    test('GET /api/accounts/:id should return current account info', async ({ page }) => {
-      const accountId = getAccountId()
+  test('GET /accounts returns accounts for the authenticated user', async ({ page }) => {
+    const response = await apiRequest(page, 'get', '/accounts')
 
-      const response = await apiRequest(page, 'get', `/api/accounts/${accountId}`)
+    expect(response.status()).toBe(200)
+    const body = await response.json()
 
-      expect(response.status()).toBe(200)
-
-      const body = await response.json()
-      expect(body).toHaveProperty('data')
-      expect(body.data).toHaveProperty('id', accountId)
-      expect(body.data).toHaveProperty('name')
-      expect(typeof body.data.name).toBe('string')
-      expect(body.data).toHaveProperty('createdAt')
-      expect(body.data).toHaveProperty('updatedAt')
-    })
+    expect(Array.isArray(body.accounts)).toBe(true)
+    expect(body.accounts.length).toBeGreaterThan(0)
+    expect(body.accounts[0]).toHaveProperty('id')
+    expect(body.accounts[0]).toHaveProperty('name')
+    expect(body.accounts[0]).toHaveProperty('createdAt')
+    expect(body.accounts[0]).toHaveProperty('role')
   })
 
-  test.describe('List User Accounts', () => {
-    test('GET /api/accounts should return list of accounts user belongs to', async ({ page }) => {
-      const response = await apiRequest(page, 'get', '/api/accounts')
+  test('GET /accounts/:id returns current account info and membership', async ({ page }) => {
+    const accountId = getAccountId()
+    const response = await apiRequest(page, 'get', `/accounts/${accountId}`)
 
-      expect(response.status()).toBe(200)
+    expect(response.status()).toBe(200)
+    const body = await response.json()
 
-      const body = await response.json()
-      expect(body).toHaveProperty('data')
-      expect(body).toHaveProperty('meta')
-      expect(Array.isArray(body.data)).toBe(true)
-      expect(body.data.length).toBeGreaterThan(0)
-
-      // Validate pagination meta
-      expect(body.meta).toHaveProperty('totalItems')
-      expect(body.meta).toHaveProperty('currentPage')
-      expect(body.meta).toHaveProperty('limit')
-      expect(body.meta).toHaveProperty('totalPages')
-
-      // Validate account structure
-      const account = body.data[0]
-      expect(account).toHaveProperty('id')
-      expect(account).toHaveProperty('name')
-      expect(account).toHaveProperty('createdAt')
-      expect(account).toHaveProperty('updatedAt')
-    })
+    expect(body.account).toHaveProperty('id', accountId)
+    expect(body.account).toHaveProperty('name')
+    expect(body.account).toHaveProperty('createdAt')
+    expect(body.membership).toHaveProperty('accountId', accountId)
+    expect(body.membership).toHaveProperty('role')
   })
 
-  test.describe('Update Account', () => {
-    test('PATCH /api/accounts/:id should update account name and restore original', async ({
-      page,
-    }) => {
-      const accountId = getAccountId()
+  test('PATCH /accounts/:id updates account name and restores original value', async ({ page }) => {
+    const accountId = getAccountId()
+    const getResponse = await apiRequest(page, 'get', `/accounts/${accountId}`)
+    expect(getResponse.status()).toBe(200)
 
-      // Get original account data
-      const getResponse = await apiRequest(page, 'get', `/api/accounts/${accountId}`)
-      expect(getResponse.status()).toBe(200)
-      const originalData = await getResponse.json()
-      const originalName = originalData.data.name
+    const originalBody = await getResponse.json()
+    const originalName = originalBody.account.name
+    const newName = `Test Account ${Date.now()}`
 
-      // Update the account name
-      const newName = `Test Account ${Date.now()}`
-      const updateResponse = await apiRequest(page, 'patch', `/api/accounts/${accountId}`, {
-        data: { name: newName },
-      })
-
-      expect(updateResponse.status()).toBe(200)
-      const updatedBody = await updateResponse.json()
-      expect(updatedBody.data.name).toBe(newName)
-
-      // Restore the original name
-      const restoreResponse = await apiRequest(page, 'patch', `/api/accounts/${accountId}`, {
-        data: { name: originalName },
-      })
-
-      expect(restoreResponse.status()).toBe(200)
-      const restoredBody = await restoreResponse.json()
-      expect(restoredBody.data.name).toBe(originalName)
+    const updateResponse = await apiRequest(page, 'patch', `/accounts/${accountId}`, {
+      data: { name: newName },
     })
+
+    expect(updateResponse.status()).toBe(200)
+    const updatedBody = await updateResponse.json()
+    expect(updatedBody.account.name).toBe(newName)
+
+    const restoreResponse = await apiRequest(page, 'patch', `/accounts/${accountId}`, {
+      data: { name: originalName },
+    })
+
+    expect(restoreResponse.status()).toBe(200)
+    const restoredBody = await restoreResponse.json()
+    expect(restoredBody.account.name).toBe(originalName)
   })
 
-  test.describe('Account Members', () => {
-    test('GET /api/users should list account members', async ({ page }) => {
-      // Users endpoint lists users in the current account context
-      const response = await apiRequest(page, 'get', '/api/users')
+  test('GET /accounts/:id/members lists account members', async ({ page }) => {
+    const accountId = getAccountId()
+    const response = await apiRequest(page, 'get', `/accounts/${accountId}/members`)
 
-      expect(response.status()).toBe(200)
+    expect(response.status()).toBe(200)
+    const body = await response.json()
 
-      const body = await response.json()
-      expect(body).toHaveProperty('data')
-      expect(body).toHaveProperty('meta')
-      expect(Array.isArray(body.data)).toBe(true)
-      expect(body.data.length).toBeGreaterThan(0)
-
-      // Validate user structure
-      const user = body.data[0]
-      expect(user).toHaveProperty('id')
-      expect(user).toHaveProperty('email')
-      expect(user).toHaveProperty('name')
-      expect(user).toHaveProperty('createdAt')
-    })
+    expect(Array.isArray(body.members)).toBe(true)
+    expect(body.members.length).toBeGreaterThan(0)
+    expect(body.members[0]).toHaveProperty('userId')
+    expect(body.members[0]).toHaveProperty('role')
+    expect(body.members[0]).toHaveProperty('user')
   })
 
-  test.describe('Account Validation', () => {
-    test('GET /api/accounts/:id should return 404 for non-existent account', async ({ page }) => {
-      const nonExistentId = '00000000-0000-0000-0000-000000000000'
+  test('GET /accounts/:id returns 404 for an unknown account id', async ({ page }) => {
+    const response = await apiRequest(page, 'get', '/accounts/00000000-0000-0000-0000-000000000000')
 
-      const response = await apiRequest(page, 'get', `/api/accounts/${nonExistentId}`)
+    expect(response.status()).toBe(404)
+    const body = await response.json()
+    expect(body).toHaveProperty('error')
+  })
 
-      expect(response.status()).toBe(404)
+  test('GET /accounts/:id treats malformed ids as unknown package ids', async ({ page }) => {
+    const response = await apiRequest(page, 'get', '/accounts/not-a-valid-uuid')
 
-      const body = await response.json()
-      expect(body).toHaveProperty('error')
-      expect(body.error).toHaveProperty('message')
-    })
-
-    test('GET /api/accounts/:id should return 400/422 for invalid account ID format', async ({
-      page,
-    }) => {
-      const invalidId = 'not-a-valid-uuid'
-
-      const response = await apiRequest(page, 'get', `/api/accounts/${invalidId}`)
-
-      // Either 400 (Bad Request) or 422 (Unprocessable Entity) for validation error
-      expect([400, 422]).toContain(response.status())
-
-      const body = await response.json()
-      expect(body).toHaveProperty('error')
-    })
+    expect(response.status()).toBe(404)
+    const body = await response.json()
+    expect(body).toHaveProperty('error')
   })
 })

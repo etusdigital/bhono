@@ -38,31 +38,23 @@ export default defineConfig({
         "**/__tests__/**",
         "**/types/**",
         "**/*.d.ts",
-        // Entry points and config
+        // Entry point, config and wiring — not business logic
         "src/server/index.ts",
         "src/server/env.ts",
+        "src/server/auth/setup.ts",
         // Database setup (not business logic)
         "src/server/db/client.ts",
         "src/server/db/seed.ts",
         "src/server/db/records.ts",
         // Barrel exports (just re-exports, no logic)
-        "src/server/services/index.ts",
         "src/server/middleware/index.ts",
         "src/shared/schemas/index.ts",
-        // Utility/infrastructure with hard-to-test edge cases
-        "src/server/lib/password.ts",
-        "src/server/lib/audit.ts",
-        "src/server/lib/audited-db.ts",
-        "src/server/lib/tokens.ts",
-        // API documentation and router config (not testable)
-        "src/server/routes/api.ts",
+        // OpenAPI router wiring (not testable logic)
         "src/server/routes/index.ts",
-        // Dev-only endpoint (tested via E2E)
-        "src/server/routes/auth/test-login.ts",
-        // Integration test fixtures
-        "src/server/__integration__/setup.ts",
-        "src/server/__integration__/fixtures.ts",
-        "src/server/__integration__/fixtures/**",
+        // Utility with hard-to-test edge cases
+        "src/server/lib/password.ts",
+        // Dev-only endpoint (exercised by E2E, not unit tests)
+        "src/server/routes/dev-login.ts",
       ],
       thresholds: {
         statements: 85,

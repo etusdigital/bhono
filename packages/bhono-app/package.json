@@ -23,19 +23,19 @@
     "test:run": "vitest run"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "restricted"
   },
   "dependencies": {
     "@clack/prompts": "^0.8.0",
     "@octokit/rest": "^22.0.1",
     "commander": "^12.0.0",
-    "fs-extra": "^11.2.0",
+    "fs-extra": "^11.3.5",
     "picocolors": "^1.1.0"
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^22.0.0",
     "typescript": "^5.7.0",
-    "vitest": "^2.1.0"
+    "vitest": "^4.1.7"
   }
 }

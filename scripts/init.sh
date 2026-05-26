@@ -21,8 +21,9 @@ SKIP_DEV=0
 SKIP_PROVISION=0
 SKIP_SEED=0
 DEV_PORT=""
-GOOGLE_CLIENT_ID_ARG=""
-GOOGLE_CLIENT_SECRET_ARG=""
+AUTH_CLIENT_ID_ARG=""
+AUTH_CLIENT_SECRET_ARG=""
+USED_LEGACY_AUTH_FLAGS=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -45,19 +46,37 @@ while [[ $# -gt 0 ]]; do
     --port=*)
       DEV_PORT="${1#*=}"
       ;;
+    --auth-client-id)
+      AUTH_CLIENT_ID_ARG="$2"
+      shift
+      ;;
+    --auth-client-id=*)
+      AUTH_CLIENT_ID_ARG="${1#*=}"
+      ;;
+    --auth-secret)
+      AUTH_CLIENT_SECRET_ARG="$2"
+      shift
+      ;;
+    --auth-secret=*)
+      AUTH_CLIENT_SECRET_ARG="${1#*=}"
+      ;;
     --google-id)
-      GOOGLE_CLIENT_ID_ARG="$2"
+      AUTH_CLIENT_ID_ARG="$2"
+      USED_LEGACY_AUTH_FLAGS=1
       shift
       ;;
     --google-id=*)
-      GOOGLE_CLIENT_ID_ARG="${1#*=}"
+      AUTH_CLIENT_ID_ARG="${1#*=}"
+      USED_LEGACY_AUTH_FLAGS=1
       ;;
     --google-secret)
-      GOOGLE_CLIENT_SECRET_ARG="$2"
+      AUTH_CLIENT_SECRET_ARG="$2"
+      USED_LEGACY_AUTH_FLAGS=1
       shift
       ;;
     --google-secret=*)
-      GOOGLE_CLIENT_SECRET_ARG="${1#*=}"
+      AUTH_CLIENT_SECRET_ARG="${1#*=}"
+      USED_LEGACY_AUTH_FLAGS=1
       ;;
     --help|-h)
       echo ""
@@ -67,8 +86,8 @@ while [[ $# -gt 0 ]]; do
       echo ""
       echo "Options:"
       echo "  --port PORT           Set dev server port (default: 8787)"
-      echo "  --google-id ID        Set Google OAuth Client ID"
-      echo "  --google-secret SEC   Set Google OAuth Client Secret"
+      echo "  --auth-client-id ID   Set ETUS Auth client ID"
+      echo "  --auth-secret SEC     Set ETUS Auth client secret"
       echo "  --no-provision        Skip Cloudflare resource provisioning"
       echo "  --skip-dev            Don't start dev server after setup"
       echo "  --skip-seed           Skip database seeding"
@@ -78,7 +97,7 @@ while [[ $# -gt 0 ]]; do
       echo "Examples:"
       echo "  ./scripts/init.sh"
       echo "  ./scripts/init.sh --port 3000"
-      echo "  ./scripts/init.sh --port 8787 --google-id 'xxx.apps.googleusercontent.com' --google-secret 'GOCSPX-xxx'"
+      echo "  ./scripts/init.sh --port 8787 --auth-client-id 'produto' --auth-secret 'secret'"
       echo "  CLOUDFLARE_ACCOUNT_ID=xxx ./scripts/init.sh"
       echo ""
       exit 0
@@ -101,6 +120,9 @@ log_err() { echo -e "${RED}$*${NC}"; }
 log_info "========================================"
 log_info "  BHono - Dev Environment Setup         "
 log_info "========================================"
+if [[ "$USED_LEGACY_AUTH_FLAGS" -eq 1 ]]; then
+  log_warn "Deprecated auth flags detected. Use --auth-client-id and --auth-secret."
+fi
 
 # Check for required tools
 log_info "Checking required tools..."
@@ -138,7 +160,7 @@ fi
 if [[ ! -f .env && -f .env.example ]]; then
   log_info "Creating .env from .env.example..."
   cp .env.example .env
-  log_warn "Update .env with real values (GOOGLE_CLIENT_ID/SECRET, JWT_SECRET, SENDGRID_API_KEY)."
+  log_warn "Update .env with real values (ETUS_CLIENT_ID/SECRET, ETUS_ADMIN_EMAILS, SENDGRID_API_KEY)."
 fi
 
 if [[ ! -f .dev.vars && -f .dev.vars.example ]]; then
@@ -266,30 +288,33 @@ fi
 # ============================================================================
 log_info "Checking config/.dev.vars..."
 
-# Determine Google OAuth credentials
-GOOGLE_ID="${GOOGLE_CLIENT_ID_ARG:-seu-google-client-id}"
-GOOGLE_SECRET="${GOOGLE_CLIENT_SECRET_ARG:-seu-google-client-secret}"
+# Determine ETUS Auth credentials
+AUTH_ID="${AUTH_CLIENT_ID_ARG:-seu-etus-client-id}"
+AUTH_SECRET="${AUTH_CLIENT_SECRET_ARG:-seu-etus-client-secret}"
+
+upsert_dev_var() {
+  local key="$1"
+  local value="$2"
+  if grep -q "^${key}=" config/.dev.vars; then
+    sed -i.bak "s|^${key}=.*|${key}=${value}|g" config/.dev.vars
+    rm -f config/.dev.vars.bak
+  else
+    echo "${key}=${value}" >> config/.dev.vars
+  fi
+}
 
 if [[ ! -f config/.dev.vars ]]; then
-  # Generate a random JWT secret
-  JWT_RAND=$(openssl rand -hex 16 2>/dev/null || node -e "console.log(require('crypto').randomBytes(16).toString('hex'))")
-
   cat > config/.dev.vars << EOF
 # Environment
 ENVIRONMENT=development
 APP_URL=http://localhost:$DEV_PORT
 
-# JWT Configuration (IMPORTANTE: mínimo 32 caracteres)
-JWT_SECRET=super-secret-jwt-key-with-at-least-32-chars-${JWT_RAND}
-JWT_EXPIRY_MINUTES=15
-
-# Google OAuth
-GOOGLE_CLIENT_ID=$GOOGLE_ID
-GOOGLE_CLIENT_SECRET=$GOOGLE_SECRET
-GOOGLE_REDIRECT_URI=http://localhost:$DEV_PORT/auth/callback
-
-# Refresh Token
-REFRESH_TOKEN_EXPIRY_DAYS=30
+# ETUS Auth Gateway
+ETUS_GATEWAY=https://ag.etus.io
+ETUS_CLIENT_ID=$AUTH_ID
+ETUS_CLIENT_SECRET=$AUTH_SECRET
+ETUS_ALLOWED_DOMAINS=example.com
+ETUS_ADMIN_EMAILS=admin@example.com
 
 # SendGrid (opcional para desenvolvimento)
 SENDGRID_API_KEY=your-sendgrid-api-key
@@ -297,23 +322,28 @@ SENDGRID_FROM_EMAIL=noreply@example.com
 EOF
   log_ok "  config/.dev.vars created"
 
-  if [[ "$GOOGLE_ID" == "seu-google-client-id" ]]; then
-    log_warn "  IMPORTANTE: Edite config/.dev.vars com suas credenciais Google OAuth!"
+  if [[ "$AUTH_ID" == "seu-etus-client-id" ]]; then
+    log_warn "  IMPORTANTE: Edite config/.dev.vars com suas credenciais ETUS Auth!"
   else
-    log_ok "  Google OAuth credentials configured"
+    log_ok "  ETUS Auth credentials configured"
   fi
 else
-  # Update Google credentials if provided via arguments
-  if [[ -n "$GOOGLE_CLIENT_ID_ARG" ]]; then
-    sed -i.bak "s|GOOGLE_CLIENT_ID=.*|GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID_ARG|g" config/.dev.vars
-    rm -f config/.dev.vars.bak
-    log_ok "  Updated GOOGLE_CLIENT_ID"
+  # Ensure ETUS Auth variables exist and update credentials if provided.
+  upsert_dev_var "ETUS_GATEWAY" "https://ag.etus.io"
+  if [[ -n "$AUTH_CLIENT_ID_ARG" ]]; then
+    upsert_dev_var "ETUS_CLIENT_ID" "$AUTH_CLIENT_ID_ARG"
+    log_ok "  Updated ETUS_CLIENT_ID"
+  elif ! grep -q "^ETUS_CLIENT_ID=" config/.dev.vars; then
+    upsert_dev_var "ETUS_CLIENT_ID" "$AUTH_ID"
   fi
-  if [[ -n "$GOOGLE_CLIENT_SECRET_ARG" ]]; then
-    sed -i.bak "s|GOOGLE_CLIENT_SECRET=.*|GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET_ARG|g" config/.dev.vars
-    rm -f config/.dev.vars.bak
-    log_ok "  Updated GOOGLE_CLIENT_SECRET"
+  if [[ -n "$AUTH_CLIENT_SECRET_ARG" ]]; then
+    upsert_dev_var "ETUS_CLIENT_SECRET" "$AUTH_CLIENT_SECRET_ARG"
+    log_ok "  Updated ETUS_CLIENT_SECRET"
+  elif ! grep -q "^ETUS_CLIENT_SECRET=" config/.dev.vars; then
+    upsert_dev_var "ETUS_CLIENT_SECRET" "$AUTH_SECRET"
   fi
+  grep -q "^ETUS_ALLOWED_DOMAINS=" config/.dev.vars || upsert_dev_var "ETUS_ALLOWED_DOMAINS" "example.com"
+  grep -q "^ETUS_ADMIN_EMAILS=" config/.dev.vars || upsert_dev_var "ETUS_ADMIN_EMAILS" "admin@example.com"
 
   # Ensure APP_URL is set for local development
   if ! grep -q "APP_URL=http://localhost" config/.dev.vars; then
@@ -323,10 +353,8 @@ else
     log_ok "  Added APP_URL to config/.dev.vars"
   fi
 
-  # Update redirect URI if port changed
-  if ! grep -q "GOOGLE_REDIRECT_URI=http://localhost:$DEV_PORT" config/.dev.vars; then
-    sed -i.bak "s|GOOGLE_REDIRECT_URI=http://localhost:[0-9]*|GOOGLE_REDIRECT_URI=http://localhost:$DEV_PORT|g" config/.dev.vars
-    rm -f config/.dev.vars.bak
+  if grep -q "^GOOGLE_CLIENT_ID=\\|^GOOGLE_CLIENT_SECRET=\\|^JWT_SECRET=\\|^JWT_EXPIRY_MINUTES=" config/.dev.vars; then
+    log_warn "  Found legacy Google/JWT variables. They are ignored by the current @etus/auth setup."
   fi
 fi
 

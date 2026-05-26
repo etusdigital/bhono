@@ -18,10 +18,10 @@ test.describe('Critical User Journeys @critical', () => {
       // Verify page loads correctly
       await expect(page.getByText('Welcome back')).toBeVisible()
 
-      // Verify Google OAuth button is present and enabled
-      const googleOAuthButton = page.getByRole('button', { name: /continue with google/i })
-      await expect(googleOAuthButton).toBeVisible()
-      await expect(googleOAuthButton).toBeEnabled()
+      // Verify ETUS Auth button is present and enabled
+      const authButton = page.getByRole('button', { name: /continue with etus/i })
+      await expect(authButton).toBeVisible()
+      await expect(authButton).toBeEnabled()
 
       // Verify the login page has proper structure
       await expect(page.locator('body')).toBeVisible()

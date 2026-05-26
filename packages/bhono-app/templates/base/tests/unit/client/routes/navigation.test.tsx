@@ -1,16 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { renderRoute } from '@tests/helpers/client-test-utils'
-
-// Mock user for authenticated tests
-const mockUser = {
-  id: 'test-user-id',
-  email: 'test@example.com',
-  name: 'Test User',
-  isSuperAdmin: false,
-  avatarUrl: null,
-}
+import { renderRoute, setupFetchMock, mockUser, mockAccount } from '@tests/helpers/client-test-utils'
 
 describe('Navigation', () => {
   beforeEach(() => {
@@ -19,19 +10,8 @@ describe('Navigation', () => {
 
   describe('authenticated navigation', () => {
     beforeEach(() => {
-      // Mock fetch to return authenticated user
-      vi.spyOn(global, 'fetch').mockImplementation((url) => {
-        if (url === '/auth/me') {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ user: mockUser }),
-          } as Response)
-        }
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({}),
-        } as Response)
-      })
+      // Use setupFetchMock which handles /auth/me and /accounts
+      setupFetchMock()
     })
 
     it('should navigate from dashboard to team page', async () => {
@@ -110,18 +90,13 @@ describe('Navigation', () => {
 
   describe('unauthenticated navigation', () => {
     beforeEach(() => {
-      // Mock fetch to return unauthenticated
-      vi.spyOn(global, 'fetch').mockImplementation((url) => {
-        if (url === '/auth/me') {
-          return Promise.resolve({
+      // Mock fetch to return unauthenticated for /auth/me
+      setupFetchMock({
+        '/auth/me': () =>
+          Promise.resolve({
             ok: false,
             status: 401,
-          } as Response)
-        }
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({}),
-        } as Response)
+          } as Response),
       })
     })
 
@@ -182,18 +157,13 @@ describe('Navigation', () => {
 
   describe('404 handling', () => {
     beforeEach(() => {
-      // Mock fetch to return unauthenticated
-      vi.spyOn(global, 'fetch').mockImplementation((url) => {
-        if (url === '/auth/me') {
-          return Promise.resolve({
+      // Mock fetch to return unauthenticated for /auth/me
+      setupFetchMock({
+        '/auth/me': () =>
+          Promise.resolve({
             ok: false,
             status: 401,
-          } as Response)
-        }
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({}),
-        } as Response)
+          } as Response),
       })
     })
 
@@ -229,17 +199,13 @@ describe('Navigation', () => {
 
   describe('home page navigation', () => {
     beforeEach(() => {
-      vi.spyOn(global, 'fetch').mockImplementation((url) => {
-        if (url === '/auth/me') {
-          return Promise.resolve({
+      // Mock fetch to return unauthenticated for /auth/me
+      setupFetchMock({
+        '/auth/me': () =>
+          Promise.resolve({
             ok: false,
             status: 401,
-          } as Response)
-        }
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({}),
-        } as Response)
+          } as Response),
       })
     })
 

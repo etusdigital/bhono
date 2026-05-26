@@ -1,62 +1,53 @@
 import { OpenAPIHono } from '@hono/zod-openapi'
-import { swaggerUI } from '@hono/swagger-ui'
+import { NONCE } from 'hono/secure-headers'
 import type { HonoEnv } from '../types'
-import { sessionAuth, accountMiddleware } from '../middleware'
-import { users } from './users'
-import { accounts } from './accounts'
-import { invitationsRouter } from './invitations'
-import { audits } from './audits'
 import { storage } from './storage'
 import { openApiConfig } from './openapi'
 
+// Application API router. Identity/tenancy routes (users, accounts,
+// invitations, audit) are served by @etus/auth and mounted directly in
+// index.ts — this router carries only the boilerplate's own resources.
 const api = new OpenAPIHono<HonoEnv>()
 
-// Apply auth middleware to all routes except documentation
-api.use('/*', async (c, next) => {
-  // Skip auth for documentation endpoints
-  if (c.req.path === '/api/doc' || c.req.path === '/api/swagger') {
-    return next()
-  }
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Hono wildcard route typing
-  return sessionAuth(c, next)
-})
-api.use('/*', async (c, next) => {
-  // Skip account middleware for documentation endpoints
-  if (c.req.path === '/api/doc' || c.req.path === '/api/swagger') {
-    return next()
-  }
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Hono wildcard route typing
-  return accountMiddleware(c, next)
-})
-
-// Mount routers
-api.route('/users', users)
-api.route('/accounts', accounts)
-api.route('/invitations', invitationsRouter)
-api.route('/audits', audits)
 api.route('/storage', storage)
 
-// Register security scheme component (session-based authentication via cookies)
+// Session cookie auth scheme (issued by @etus/auth on login)
 api.openAPIRegistry.registerComponent('securitySchemes', 'SessionCookie', {
   type: 'apiKey',
   in: 'cookie',
-  name: 'sid',
-  description: 'Session cookie authentication. Login via /auth/login to obtain session.',
+  name: 'auth_sid',
+  description: 'Session cookie authentication. Login via /auth/login to obtain a session.',
 })
 
-// OpenAPI documentation
 api.doc('/doc', openApiConfig)
+api.get('/swagger', (c) => {
+  const cspNonce = NONCE(c, 'script-src')
+  const nonce = cspNonce.slice("'nonce-".length, -1)
 
-// Swagger UI
-api.get('/swagger', swaggerUI({ url: '/api/doc' }))
+  return c.html(`<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="SwaggerUI" />
+    <title>Hono Boilerplate API</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist/swagger-ui.css" />
+  </head>
+  <body>
+    <div id="swagger-ui"></div>
+    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist/swagger-ui-bundle.js" crossorigin="anonymous"></script>
+    <script nonce="${nonce}">
+      window.onload = () => {
+        window.ui = SwaggerUIBundle({
+          dom_id: '#swagger-ui',
+          url: '/api/doc',
+        })
+      }
+    </script>
+  </body>
+</html>`)
+})
 
 export { api }
-
-// Re-export individual routers for testing
-export { users } from './users'
-export { accounts } from './accounts'
-export { invitationsRouter } from './invitations'
-export { audits } from './audits'
 export { storage } from './storage'
 export { health } from './health'
-export { auth } from './auth'

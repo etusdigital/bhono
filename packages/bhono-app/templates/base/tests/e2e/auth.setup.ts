@@ -45,11 +45,14 @@ setup('authenticate', async ({ page, context, baseURL }) => {
 
         if (meResponse.ok()) {
           const userData = JSON.parse(meBodyText)
-          console.log(`Authenticated as: ${userData.email || 'unknown'}`)
+          console.log(`Authenticated as: ${userData.user?.email || userData.email || 'unknown'}`)
 
-          // Save accountId if available
-          if (userData.accounts?.[0]?.id) {
-            fs.writeFileSync(accountFile, JSON.stringify({ accountId: userData.accounts[0].id }, null, 2))
+          const accountsResponse = await context.request.get(`${baseURL}/accounts`)
+          if (accountsResponse.ok()) {
+            const accountsData = await accountsResponse.json()
+            if (accountsData.accounts?.[0]?.id) {
+              fs.writeFileSync(accountFile, JSON.stringify({ accountId: accountsData.accounts[0].id }, null, 2))
+            }
           }
 
           // Verify dashboard access

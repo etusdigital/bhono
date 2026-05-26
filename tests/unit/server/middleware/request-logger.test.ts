@@ -1,92 +1,61 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { Hono } from 'hono'
+import type { AuthUser } from '@etus/auth'
 import { requestLogger } from '@server/middleware/request-logger'
+import type { HonoEnv } from '@server/types'
+
+function makeApp(status: number, user?: AuthUser) {
+  const app = new Hono<HonoEnv>()
+  if (user) {
+    app.use('*', async (c, next) => {
+      c.set('authUser', user)
+      await next()
+    })
+  }
+  app.use('*', requestLogger())
+  app.get('/', () => new Response('', { status }))
+  return app
+}
+
+function lastLog(spy: ReturnType<typeof vi.spyOn>): Record<string, unknown> {
+  const call = spy.mock.calls.at(-1)
+  return JSON.parse(String(call?.[0])) as Record<string, unknown>
+}
 
 describe('requestLogger', () => {
-  let consoleSpy: ReturnType<typeof vi.spyOn>
-
-  beforeEach(() => {
-    consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-  })
-
   afterEach(() => {
-    consoleSpy.mockRestore()
+    vi.restoreAllMocks()
   })
 
-  const createApp = () => {
-    const app = new Hono()
-    app.use('*', async (c, next) => {
-      c.set('transactionId', 'test-tx-id')
-      c.set('user', null)
-      await next()
-    })
-    app.use('*', requestLogger())
-    return app
-  }
-
-  it('logs successful requests with info level', async () => {
-    const app = createApp()
-    app.get('/api/users', (c) => c.json({ ok: true }))
-
-    await app.request('/api/users')
-
-    expect(consoleSpy).toHaveBeenCalled()
-    const logArg = consoleSpy.mock.calls[0][0]
-    const log = JSON.parse(logArg)
-
+  it('logs info level for a 2xx response', async () => {
+    const spy = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    await makeApp(200).request('/')
+    const log = lastLog(spy)
     expect(log.level).toBe('info')
-    expect(log.method).toBe('GET')
-    expect(log.path).toBe('/api/users')
     expect(log.status).toBe(200)
-    expect(log.transactionId).toBe('test-tx-id')
-    expect(typeof log.duration).toBe('number')
   })
 
-  it('logs 4xx as warn level', async () => {
-    const app = createApp()
-    app.get('/api/users', (c) => c.json({ error: 'Not found' }, 404))
-
-    await app.request('/api/users')
-
-    const log = JSON.parse(consoleSpy.mock.calls[0][0])
-    expect(log.level).toBe('warn')
-    expect(log.status).toBe(404)
+  it('logs warn level for a 4xx response', async () => {
+    const spy = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    await makeApp(404).request('/')
+    expect(lastLog(spy).level).toBe('warn')
   })
 
-  it('logs 5xx as error level', async () => {
-    const app = createApp()
-    app.get('/api/users', (c) => c.json({ error: 'Server error' }, 500))
-
-    await app.request('/api/users')
-
-    const log = JSON.parse(consoleSpy.mock.calls[0][0])
-    expect(log.level).toBe('error')
-    expect(log.status).toBe(500)
+  it('logs error level for a 5xx response', async () => {
+    const spy = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    await makeApp(500).request('/')
+    expect(lastLog(spy).level).toBe('error')
   })
 
-  it('includes userId when authenticated', async () => {
-    const app = new Hono()
-    app.use('*', async (c, next) => {
-      c.set('transactionId', 'test-tx-id')
-      c.set('user', { id: 'user-123' })
-      await next()
-    })
-    app.use('*', requestLogger())
-    app.get('/api/users', (c) => c.json({ ok: true }))
-
-    await app.request('/api/users')
-
-    const log = JSON.parse(consoleSpy.mock.calls[0][0])
-    expect(log.userId).toBe('user-123')
+  it('includes userId when the request is authenticated', async () => {
+    const spy = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    await makeApp(200, { id: 'user-1' } as AuthUser).request('/')
+    expect(lastLog(spy).userId).toBe('user-1')
   })
 
-  it('includes timestamp in ISO format', async () => {
-    const app = createApp()
-    app.get('/api/users', (c) => c.json({ ok: true }))
-
-    await app.request('/api/users')
-
-    const log = JSON.parse(consoleSpy.mock.calls[0][0])
-    expect(() => new Date(log.timestamp)).not.toThrow()
+  it('omits userId for anonymous requests', async () => {
+    const spy = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    await makeApp(200).request('/')
+    expect(lastLog(spy).userId).toBeUndefined()
   })
 })

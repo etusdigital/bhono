@@ -3,7 +3,19 @@ title: Migrate Auth to @etus/auth
 type: refactor
 date: 2026-02-03
 deepened: 2026-02-03
+status: superseded
+superseded_by: docs/ets/brainstorms/2026-05-19-migrate-auth-etus-auth-requirements.md
+superseded_on: 2026-05-19
+superseded_reason: |
+  Plano escrito quando @etus/auth era mais limitado. A v0.4.1 (atual) entrega RBAC,
+  permissions com wildcards, multi-tenant, audit e invitations built-in.
+  Conclusões deste plano (manter custom ou hibridizar) não se aplicam mais.
+  Ver requirements doc atualizado em docs/ets/brainstorms/.
 ---
+
+> ⚠️ **SUPERSEDED 2026-05-19** — Este plano foi escrito assumindo um `@etus/auth` mais limitado.
+> A versão atual (v0.4.1) muda as premissas fundamentais.
+> **Use o requirements doc atualizado**: [`docs/ets/brainstorms/2026-05-19-migrate-auth-etus-auth-requirements.md`](../ets/brainstorms/2026-05-19-migrate-auth-etus-auth-requirements.md)
 
 # Migrate Auth to @etus/auth
 

@@ -101,8 +101,8 @@ test.describe('Error Handling @error', () => {
       // Clear any existing session
       await page.context().clearCookies()
 
-      // Try to access users API endpoint
-      const response = await page.request.get('/api/users', {
+      // Try to access a package-owned protected endpoint
+      const response = await page.request.get('/accounts', {
         failOnStatusCode: false,
       })
 

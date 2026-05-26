@@ -1,882 +1,171 @@
 <project_specification>
   <project_name>Hono Multi-Tenant SaaS Boilerplate</project_name>
   <version>1.0.0</version>
-  <last_updated>2026-01-03</last_updated>
+  <last_updated>2026-05-22</last_updated>
 
   <overview>
-    Canonical high-level overview for the architecture docs in docs/architecture/.
-    Production-ready multi-tenant SaaS boilerplate built with Hono.js on Cloudflare Workers and React.
-    Provides a complete foundation for B2B SaaS with team workspaces, RBAC, invitations,
-    audit logging, and Google OAuth authentication.
-
-    The system uses D1 (SQLite) for relational data, KV for sessions, and R2 for object storage.
-    Users can belong to multiple accounts (workspaces) with distinct roles and permissions.
-    All state changes are logged for compliance and debugging.
+    Production-ready SaaS boilerplate for Cloudflare Workers with Hono.js,
+    React, D1, KV, R2, and gateway-backed authentication through `@etus/auth`.
+    The boilerplate owns product configuration, app-specific API routes,
+    frontend integration, security middleware, and local developer helpers.
+    `@etus/auth` owns OAuth, sessions, users, accounts, memberships,
+    invitations, audit logging, and package-owned admin/account routes.
   </overview>
-
-  <goals>
-    <primary>
-      - Provide a production-ready starting point for SaaS applications
-      - Enable rapid development with pre-built auth, multi-tenancy, and RBAC
-      - Leverage edge computing for global low-latency performance
-      - Maintain strong security practices and audit compliance
-    </primary>
-    <secondary>
-      - Demonstrate best practices for Hono.js + Cloudflare Workers
-      - Provide comprehensive testing patterns (unit, integration, E2E)
-      - Enable easy customization and extension
-    </secondary>
-  </goals>
 
   <technology_stack>
     <runtime>
       <platform>Cloudflare Workers</platform>
-      <database>D1 (SQLite on edge)</database>
+      <database>D1</database>
       <sessions>KV Namespace</sessions>
       <storage>R2 Object Storage</storage>
-      <description>
-        Serverless edge runtime with ~50ms cold start, global distribution,
-        and integrated storage services. All infrastructure managed via Wrangler CLI.
-      </description>
     </runtime>
 
     <backend>
-      <framework>Hono.js 4.6</framework>
-      <orm>SQL (D1/SQLite)</orm>
+      <framework>Hono.js</framework>
+      <auth_package>@etus/auth</auth_package>
       <validation>Zod</validation>
-      <documentation>OpenAPI 3.0 / Swagger UI</documentation>
-      <description>
-        Type-safe API development with automatic schema generation.
-        SQL-first access with Cloudflare D1 (SQLite under the hood).
-        OpenAPI spec and TypeScript types can be generated locally (api:spec, api:types).
-      </description>
+      <documentation>OpenAPI/Swagger for app-owned `/api/*` routes</documentation>
     </backend>
 
     <frontend>
       <framework>React 19</framework>
-      <routing>TanStack Router (file-based)</routing>
+      <routing>TanStack Router</routing>
       <state>TanStack Query</state>
-      <styling>Tailwind CSS 4.0</styling>
-      <components>shadcn/ui pattern</components>
+      <styling>Tailwind CSS</styling>
       <forms>React Hook Form + Zod</forms>
-      <notifications>Sonner (toast)</notifications>
-      <description>
-        Modern React with file-based routing, optimistic updates,
-        and a consistent design system following shadcn/ui patterns.
-      </description>
     </frontend>
-
-    <testing>
-      <unit>Vitest</unit>
-      <integration>Vitest + Miniflare</integration>
-      <e2e>Playwright</e2e>
-      <coverage>95% server, 90% client</coverage>
-      <description>
-        Comprehensive testing strategy with isolated integration tests
-        using Miniflare for Cloudflare Workers simulation.
-      </description>
-    </testing>
-
-    <authentication>
-      <primary>Google OAuth 2.0 with PKCE</primary>
-      <sessions>Cloudflare KV (session-based cookies)</sessions>
-      <tokens>JWT access tokens (legacy support; sessions preferred)</tokens>
-      <description>
-        Session-based authentication stored in KV for persistence.
-        PKCE flow provides security for browser-based OAuth.
-      </description>
-    </authentication>
   </technology_stack>
 
-  <architecture>
-    <multi_tenancy>
-      <model>Users belong to multiple Accounts (workspaces)</model>
-      <relationship>Many-to-many via user_accounts junction table</relationship>
-      <isolation>All queries scoped by accountId in context</isolation>
-      <roles>
-        - ADMIN: Full account management, user administration
-        - MANAGER: Team management, invitations
-        - EDITOR: Content creation and modification
-        - AUTHOR: Limited content creation
-        - VIEWER: Read-only access
-        - BILLING: Financial operations (non-hierarchical)
-        - ANALYTICS: Reporting access (non-hierarchical)
-      </roles>
-    </multi_tenancy>
+  <identity_and_auth>
+    <gateway>ETUS OAuth Gateway (`ETUS_GATEWAY`, default `https://ag.etus.io`)</gateway>
+    <sessions>HTTP-only cookie backed by KV and D1 `auth_sessions`</sessions>
+    <login_flow>
+      1. Browser opens `/auth/login`.
+      2. `@etus/auth` redirects to the ETUS gateway.
+      3. Gateway callback hits `/auth/callback`.
+      4. `@etus/auth` provisions/updates `auth_users` and creates a session.
+      5. Browser is redirected to the SPA route configured in `src/server/auth/setup.ts`.
+    </login_flow>
+    <frontend_contract>
+      `useAuth()` calls `/auth/me` and expects `{ user: { id, email, name, picture, role } }`.
+      Account-specific pages fetch `/accounts`, `/accounts/:id/members`, and
+      `/accounts/:id/invitations` directly.
+    </frontend_contract>
+  </identity_and_auth>
 
-    <request_flow>
-      1. Request arrives at Cloudflare Workers edge
-      2. requestContext middleware attaches transactionId, IP, userAgent
-      3. sessionAuth middleware validates session cookie from KV
-      4. accountMiddleware extracts accountId from query/header
-      5. Route handler executes business logic via services
-      6. auditedDb functions log state changes automatically
-      7. Response returned with proper error handling
-    </request_flow>
-
-    <data_flow>
-      Frontend (React)
-        → TanStack Query
-        → Fetch API
-        → Hono Routes
-        → Services
-        → SQL (D1/SQLite)
-        → D1 Database
-    </data_flow>
-  </architecture>
-
-  <database_schema>
-    <tables>
-      <users>
-        <description>Core user entity, one per person</description>
-        <columns>
-          - id: UUID (PK)
-          - googleId: string (unique, OAuth identifier)
-          - email: string (from OAuth provider)
-          - name: string (display name)
-          - avatarUrl: string | null (profile picture URL)
-          - status: enum ['active', 'inactive']
-          - providerIds: JSON string[] (future multi-provider support)
-          - isSuperAdmin: boolean (system-wide admin flag)
-          - createdAt, updatedAt, deletedAt: timestamps
-          - createdById, updatedById, deletedById: FK to users
-        </columns>
-        <indexes>
-          - UNIQUE on googleId
-        </indexes>
-      </users>
-
-      <accounts>
-        <description>Tenant/workspace entity</description>
-        <columns>
-          - id: UUID (PK)
-          - name: string (workspace name)
-          - description: string | null
-          - domain: string | null (unique, custom domain)
-          - createdAt, updatedAt, deletedAt: timestamps
-        </columns>
-        <indexes>
-          - UNIQUE on domain (where not null)
-        </indexes>
-      </accounts>
-
-      <user_accounts>
-        <description>Junction table for user-account membership</description>
-        <columns>
-          - userId: UUID (PK, FK to users, CASCADE)
-          - accountId: UUID (PK, FK to accounts, CASCADE)
-          - role: enum ['ADMIN', 'MANAGER', 'EDITOR', 'AUTHOR', 'VIEWER', 'BILLING', 'ANALYTICS']
-        </columns>
-        <constraints>
-          - PRIMARY KEY (userId, accountId)
-          - ON DELETE CASCADE for both FKs
-        </constraints>
-      </user_accounts>
-
-      <invitations>
-        <description>Pending team invitations</description>
-        <columns>
-          - id: UUID (PK)
-          - accountId: UUID (FK to accounts)
-          - email: string (invitee email)
-          - role: enum (same as user_accounts)
-          - token: string (unique, 64 chars, valid 7 days)
-          - invitedById: UUID (FK to users)
-          - expiresAt: timestamp
-          - acceptedAt: timestamp | null
-          - createdAt: timestamp
-        </columns>
-        <indexes>
-          - UNIQUE on token
-          - UNIQUE on (accountId, email)
-        </indexes>
-      </invitations>
-
-      <audit_logs>
-        <description>Complete audit trail for compliance</description>
-        <columns>
-          - id: UUID (PK)
-          - transactionId: string (groups related operations)
-          - accountId: UUID | null (FK to accounts)
-          - userId: UUID | null (FK to users, who performed)
-          - entity: string (e.g., 'User', 'Account', 'Auth')
-          - entityId: string (ID of affected entity)
-          - action: enum ['INSERT', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'SIGNUP', 'TOKEN_REFRESH', 'LOGIN_FAILED']
-          - changes: JSON | null (before/after state)
-          - ipAddress: string | null
-          - userAgent: string | null
-          - timestamp: timestamp
-        </columns>
-        <indexes>
-          - INDEX on (accountId, timestamp)
-          - INDEX on (entity, entityId)
-          - INDEX on action
-        </indexes>
-      </audit_logs>
-
-      <refresh_tokens>
-        <description>Token storage for session refresh (legacy)</description>
-        <columns>
-          - id: UUID (PK)
-          - userId: UUID (FK to users, CASCADE)
-          - tokenHash: string (SHA-256 hash, never plaintext)
-          - expiresAt: unix epoch (integer)
-          - createdAt: unix epoch (integer)
-          - revokedAt: unix epoch (integer) | null
-        </columns>
-      </refresh_tokens>
-    </tables>
-
-    <relationships>
-      users ─────┬───→ user_accounts ←───┬───── accounts
-                 │                        │
-                 ├───→ refresh_tokens     ├───→ invitations
-                 │                        │
-                 ├───→ invitations (inviter)
-                 │                        │
-                 └───→ audit_logs ←───────┘
-    </relationships>
-  </database_schema>
+  <roles_and_permissions>
+    <product_roles>owner &gt; admin &gt; member &gt; guest</product_roles>
+    <source_of_truth>src/server/auth/matrix.ts</source_of_truth>
+    <account_membership_roles>admin | member | guest</account_membership_roles>
+    <compatibility_note>
+      `src/server/auth/package-compat.ts` validates membership role writes
+      before `@etus/auth` account routes run, because `@etus/auth@0.3.0`
+      still has hard-coded account-role behavior.
+    </compatibility_note>
+  </roles_and_permissions>
 
   <api_endpoints>
-    <authentication prefix="/auth">
-      <endpoint method="GET" path="/login">
-        <description>Initiate Google OAuth flow with PKCE</description>
-        <query>redirect: string (optional, post-login redirect)</query>
-        <response>302 Redirect to Google</response>
-        <auth>None</auth>
-      </endpoint>
+    <auth prefix="/auth">
+      <endpoint method="GET" path="/login">Start ETUS gateway OAuth flow</endpoint>
+      <endpoint method="GET" path="/callback">Handle OAuth callback and create session</endpoint>
+      <endpoint method="POST" path="/logout">Destroy current session</endpoint>
+      <endpoint method="GET" path="/me">Return current package user</endpoint>
+      <endpoint method="POST" path="/test-login">Localhost-only E2E/dev session helper</endpoint>
+    </auth>
 
-      <endpoint method="GET" path="/callback">
-        <description>Handle Google OAuth callback</description>
-        <query>code: string, state: string</query>
-        <response>302 Redirect to app with session cookie</response>
-        <auth>None (creates session)</auth>
-      </endpoint>
+    <admin_users prefix="/auth/admin">
+      <endpoint method="GET" path="/users">List product users; requires package admin role</endpoint>
+      <endpoint method="GET" path="/users/:id">Get product user</endpoint>
+      <endpoint method="POST" path="/users/invite">Invite pending product user</endpoint>
+      <endpoint method="POST" path="/users/:id/approve">Approve pending user</endpoint>
+      <endpoint method="POST" path="/users/:id/deny">Deny pending user</endpoint>
+      <endpoint method="PATCH" path="/users/:id">Update user role/status</endpoint>
+      <endpoint method="DELETE" path="/users/:id">Delete user and invalidate sessions</endpoint>
+    </admin_users>
 
-      <endpoint method="POST" path="/logout">
-        <description>Destroy session, clear cookies</description>
-        <response>200 { message: "Logged out successfully" }</response>
-        <auth>Session required</auth>
-        <audit>LOGOUT event logged</audit>
-      </endpoint>
-
-      <endpoint method="GET" path="/me">
-        <description>Get current authenticated user</description>
-        <response>200 { user: { id, email, name, avatarUrl, isSuperAdmin } }</response>
-        <auth>Session required</auth>
-      </endpoint>
-
-      <endpoint method="GET" path="/invite/:token">
-        <description>Accept invitation, store token, redirect to login</description>
-        <params>token: string (invitation token)</params>
-        <response>302 Redirect to /auth/login</response>
-        <auth>None</auth>
-      </endpoint>
-    </authentication>
-
-    <users prefix="/api/users">
-      <endpoint method="GET" path="/">
-        <description>List users (paginated, searchable)</description>
-        <query>page, limit, query (search email/name)</query>
-        <response>200 { data: User[], meta: { total, page, pages, hasMore } }</response>
-        <auth>Session + Account member</auth>
-      </endpoint>
-
-      <endpoint method="GET" path="/:id">
-        <description>Get user by ID</description>
-        <response>200 { user: User }</response>
-        <auth>Session + Account member</auth>
-      </endpoint>
-
-      <endpoint method="PATCH" path="/:id">
-        <description>Update user (name, status)</description>
-        <body>{ name?: string, status?: 'active' | 'inactive' }</body>
-        <response>200 { user: User }</response>
-        <auth>Session + ADMIN role</auth>
-        <audit>UPDATE event logged</audit>
-      </endpoint>
-
-      <endpoint method="DELETE" path="/:id">
-        <description>Soft delete user</description>
-        <response>204 No Content</response>
-        <auth>Session + ADMIN role</auth>
-        <audit>DELETE event logged</audit>
-      </endpoint>
-
-      <endpoint method="POST" path="/:id/restore">
-        <description>Restore soft-deleted user</description>
-        <response>200 { user: User }</response>
-        <auth>Session + Super Admin</auth>
-        <audit>UPDATE event logged</audit>
-      </endpoint>
-
-      <endpoint method="POST" path="/accounts">
-        <description>Bulk assign users to accounts</description>
-        <body>{ items: [{ userId, accountId, role }] }</body>
-        <response>200 { count: number }</response>
-        <auth>Session + MANAGER role</auth>
-      </endpoint>
-
-      <endpoint method="DELETE" path="/accounts">
-        <description>Bulk remove users from accounts</description>
-        <body>{ items: [{ userId, accountId }] }</body>
-        <response>200 { count: number }</response>
-        <auth>Session + MANAGER role</auth>
-      </endpoint>
-    </users>
-
-    <accounts prefix="/api/accounts">
-      <endpoint method="GET" path="/">
-        <description>List user's accounts</description>
-        <query>page, limit</query>
-        <response>200 { data: Account[], meta }</response>
-        <auth>Session</auth>
-      </endpoint>
-
-      <endpoint method="GET" path="/:id">
-        <description>Get account by ID</description>
-        <response>200 { account: Account }</response>
-        <auth>Session + Account member</auth>
-      </endpoint>
-
-      <endpoint method="POST" path="/">
-        <description>Create new account</description>
-        <body>{ name: string, description?: string }</body>
-        <response>201 { account: Account }</response>
-        <auth>Session + Super Admin</auth>
-        <audit>INSERT event logged</audit>
-      </endpoint>
-
-      <endpoint method="PATCH" path="/:id">
-        <description>Update account</description>
-        <body>{ name?: string, description?: string }</body>
-        <response>200 { account: Account }</response>
-        <auth>Session + Account ADMIN</auth>
-        <audit>UPDATE event logged</audit>
-      </endpoint>
-
-      <endpoint method="DELETE" path="/:id">
-        <description>Soft delete account</description>
-        <response>204 No Content</response>
-        <auth>Session + Super Admin</auth>
-        <audit>DELETE event logged</audit>
-      </endpoint>
-
-      <endpoint method="POST" path="/:id/restore">
-        <description>Restore soft-deleted account</description>
-        <response>200 { account: Account }</response>
-        <auth>Session + Super Admin</auth>
-        <audit>UPDATE event logged</audit>
-      </endpoint>
+    <accounts prefix="/accounts">
+      <endpoint method="GET" path="/">List accounts for current user; returns `{ accounts }`</endpoint>
+      <endpoint method="POST" path="/">Create account; creator membership role is `admin`</endpoint>
+      <endpoint method="GET" path="/:id">Return `{ account, membership }`</endpoint>
+      <endpoint method="PATCH" path="/:id">Update account; owner only</endpoint>
+      <endpoint method="DELETE" path="/:id">Delete account; owner only</endpoint>
+      <endpoint method="GET" path="/:id/members">List active members; returns `{ members }`</endpoint>
+      <endpoint method="POST" path="/:id/members/invite">Create pending invitation; role required</endpoint>
+      <endpoint method="PATCH" path="/:id/members/:userId">Update membership role</endpoint>
+      <endpoint method="DELETE" path="/:id/members/:userId">Remove member</endpoint>
+      <endpoint method="GET" path="/:id/invitations">List pending invitations</endpoint>
+      <endpoint method="DELETE" path="/:id/invitations/:invitationId">Revoke invitation</endpoint>
     </accounts>
 
-    <invitations prefix="/api/invitations">
-      <endpoint method="POST" path="/">
-        <description>Create invitation or link existing user</description>
-        <body>{ email: string, role: Role }</body>
-        <response>201 { invitation } or 200 { linked: true }</response>
-        <auth>Session + Account member</auth>
-        <notes>
-          - If user exists: links immediately to account
-          - If user not found: sends email with invitation link
-          - Token valid for 7 days
-        </notes>
-        <audit>INSERT event logged</audit>
-      </endpoint>
-
-      <endpoint method="GET" path="/">
-        <description>List pending invitations for current account</description>
-        <response>200 { data: Invitation[] }</response>
-        <auth>Session + Account member</auth>
-      </endpoint>
-
-      <endpoint method="DELETE" path="/:id">
-        <description>Revoke pending invitation</description>
-        <response>204 No Content</response>
-        <auth>Session + MANAGER role</auth>
-        <audit>DELETE event logged</audit>
-      </endpoint>
+    <invitations prefix="/invitations">
+      <endpoint method="POST" path="/:token/accept">Accept a pending invitation</endpoint>
     </invitations>
 
-    <audits prefix="/api/audits">
-      <endpoint method="GET" path="/">
-        <description>Query audit logs with filters</description>
-        <query>
-          - page, limit (pagination)
-          - entity (filter by entity type)
-          - entityId (filter by entity ID)
-          - action (filter by action type)
-        </query>
-        <response>200 { data: AuditLog[], meta }</response>
-        <auth>Session + ADMIN or ANALYTICS role</auth>
-        <notes>Super admin sees all accounts, others see only their account</notes>
+    <audit prefix="/audit">
+      <endpoint method="GET" path="/logs">
+        Query audit logs; supports `eventType`, `actorId`, `accountId`,
+        `startDate`, `endDate`, `limit`, and `offset`.
       </endpoint>
-    </audits>
+      <endpoint method="POST" path="/cleanup">Delete logs past retention window</endpoint>
+    </audit>
 
-    <storage prefix="/api/storage">
-      <endpoint method="POST" path="/upload-url">
-        <description>Generate upload URL for internal API upload endpoint</description>
-        <body>{ filename: string, contentType: string }</body>
-        <response>200 { url: string, name: string, publicUrl: string }</response>
-        <auth>Session</auth>
-        <notes>URL points to /api/storage/upload/:key; not a direct R2 presigned URL</notes>
-      </endpoint>
-
-      <endpoint method="PUT" path="/upload/:key">
-        <description>Upload file via API and store in R2</description>
-        <body>Binary file data</body>
-        <response>200 { success: true, key: string, publicUrl: string }</response>
-        <auth>Session</auth>
-      </endpoint>
-
-      <endpoint method="DELETE" path="/:key">
-        <description>Delete file from R2</description>
-        <response>204 No Content</response>
-        <auth>Session</auth>
-      </endpoint>
-    </storage>
-
-    <health prefix="/health">
-      <endpoint method="GET" path="/">
-        <description>Health check endpoint</description>
-        <response>200 { status: "ok", timestamp, environment }</response>
-        <auth>None</auth>
-      </endpoint>
-    </health>
-
-    <documentation>
-      <endpoint method="GET" path="/api/doc">OpenAPI JSON schema</endpoint>
-      <endpoint method="GET" path="/api/swagger">Swagger UI</endpoint>
-    </documentation>
+    <app_api prefix="/api">
+      <endpoint method="GET" path="/doc">OpenAPI JSON for app-owned API routes</endpoint>
+      <endpoint method="GET" path="/swagger">Swagger UI</endpoint>
+      <endpoint method="POST" path="/storage/upload-url">Create internal upload URL</endpoint>
+      <endpoint method="PUT" path="/storage/upload/:key">Upload file body to R2</endpoint>
+      <endpoint method="GET" path="/storage/files/:key">Read file metadata/download target</endpoint>
+      <endpoint method="DELETE" path="/storage/files/:key">Delete file from R2</endpoint>
+    </app_api>
   </api_endpoints>
 
-  <frontend_pages>
-    <public_routes>
-      <route path="/">
-        <name>Landing Page</name>
-        <description>Marketing homepage with hero section and feature highlights</description>
-        <components>Hero, Features, CTA</components>
-      </route>
-
-      <route path="/login">
-        <name>Login Page</name>
-        <description>Google OAuth login button, redirects to /auth/login</description>
-        <components>LoginCard, GoogleButton</components>
-      </route>
-
-      <route path="/invite/:token">
-        <name>Invitation Page</name>
-        <description>Accept invitation, validates token, redirects to login</description>
-        <components>InvitationCard, AcceptButton</components>
-      </route>
-    </public_routes>
-
-    <authenticated_routes layout="_authenticated">
-      <route path="/dashboard">
-        <name>Dashboard</name>
-        <description>Main workspace overview with stats and quick actions</description>
-        <sections>
-          - Welcome message with user's first name
-          - Stats cards (users, accounts, API requests, uptime)
-          - Quick action cards (invite team, database, security)
-          - Recent activity feed (placeholder)
-        </sections>
-      </route>
-
-      <route path="/team">
-        <name>Team Management</name>
-        <description>Manage team members and invitations</description>
-        <sections>
-          - Active members list with roles
-          - Search/filter members by name/email
-          - Invite member dialog (email + role selector)
-          - Pending invitations with expiry countdown
-          - Resend/revoke invitation buttons
-        </sections>
-        <dialogs>InviteMemberDialog</dialogs>
-      </route>
-
-      <route path="/settings">
-        <name>User Settings</name>
-        <description>Personal profile and preferences</description>
-        <sections>
-          - Profile card (avatar, name, email)
-          - Edit profile form
-          - Connected accounts (Google, future: GitHub)
-          - Notification preferences (toggles)
-          - Account deletion
-        </sections>
-        <dialogs>DeleteAccountDialog</dialogs>
-      </route>
-
-      <route path="/account">
-        <name>Account Security</name>
-        <description>Security settings and session management</description>
-        <sections>
-          - Connected OAuth accounts
-          - Two-factor authentication (future)
-          - Password management (OAuth-only note)
-          - Active sessions list with device/location
-          - API keys management (future)
-          - Danger zone (export data, delete account)
-        </sections>
-        <dialogs>DeleteAccountDialog</dialogs>
-      </route>
-
-      <route path="/integrations">
-        <name>Integrations</name>
-        <description>Third-party connections and webhooks</description>
-        <sections>
-          - Integration grid (Slack, Discord, Stripe, GitHub, Linear, Zapier)
-          - Filter by category
-          - Search integrations
-          - Webhooks configuration
-          - Create webhook dialog
-        </sections>
-        <dialogs>CreateWebhookDialog</dialogs>
-      </route>
-    </authenticated_routes>
-  </frontend_pages>
-
-  <ui_components>
-    <layout>
-      <sidebar>
-        - Navigation links (Dashboard, Team, Settings, Account, Integrations)
-        - User profile card with avatar and name
-        - Logout button
-        - Collapsible on mobile
-      </sidebar>
-      <main_content>
-        - Container with max-width constraint
-        - Responsive padding
-        - Page header with title and description
-      </main_content>
-    </layout>
-
-    <primitives>
-      <button variants="default, secondary, outline, destructive, ghost, link" />
-      <input types="text, email, password, search" />
-      <badge variants="default, secondary, outline, destructive" />
-      <avatar fallback="initials from name" />
-      <card sections="header, content, footer" />
-      <dialog modal="true, with overlay" />
-      <tabs orientation="horizontal" />
-      <separator orientation="horizontal, vertical" />
-      <skeleton loading_state="true" />
-    </primitives>
-
-    <forms>
-      <pattern>React Hook Form + Zod validation</pattern>
-      <components>Form, FormField, FormItem, FormLabel, FormControl, FormMessage</components>
-      <error_handling>Inline validation messages</error_handling>
-    </forms>
-
-    <feedback>
-      <toast provider="Sonner">
-        - Success (green)
-        - Error (red)
-        - Info (blue)
-        - Warning (yellow)
-      </toast>
-      <error_fallback>
-        - Error message display
-        - Retry button
-        - Go back button
-        - Go home button
-      </error_fallback>
-    </feedback>
-  </ui_components>
-
-  <design_system>
-    <colors>
-      <light_mode>
-        - Background: white (#ffffff)
-        - Foreground: near-black (#0a0a0a)
-        - Card: white (#ffffff)
-        - Border: light gray (#e5e5e5)
-        - Primary: brand color
-        - Muted: gray (#f5f5f5)
-        - Destructive: red (#dc2626)
-      </light_mode>
-      <dark_mode>
-        - Background: near-black (#0a0a0a)
-        - Foreground: off-white (#fafafa)
-        - Card: dark gray (#0a0a0a)
-        - Border: dark gray (#262626)
-        - Primary: brand color (adjusted)
-        - Muted: dark gray (#262626)
-        - Destructive: red (#dc2626)
-      </dark_mode>
-    </colors>
-
-    <typography>
-      <font_family>Inter, system-ui, sans-serif</font_family>
-      <font_mono>JetBrains Mono, Consolas, monospace</font_mono>
-      <scale>
-        - text-xs: 0.75rem
-        - text-sm: 0.875rem
-        - text-base: 1rem
-        - text-lg: 1.125rem
-        - text-xl: 1.25rem
-        - text-2xl: 1.5rem
-        - text-3xl: 1.875rem
-      </scale>
-    </typography>
-
-    <spacing>
-      <scale>4px base (0.25rem)</scale>
-      <common>
-        - p-2: 8px
-        - p-4: 16px
-        - p-6: 24px
-        - p-8: 32px
-        - gap-2, gap-4, gap-6
-      </common>
-    </spacing>
-
-    <borders>
-      <radius>
-        - rounded-sm: 2px
-        - rounded: 4px
-        - rounded-md: 6px
-        - rounded-lg: 8px
-        - rounded-xl: 12px
-        - rounded-full: 9999px
-      </radius>
-    </borders>
-
-    <shadows>
-      <elevation>
-        - shadow-sm: subtle depth
-        - shadow: default cards
-        - shadow-md: elevated elements
-        - shadow-lg: modals, dropdowns
-      </elevation>
-    </shadows>
-
-    <animations>
-      <transitions>150ms ease-in-out default</transitions>
-      <patterns>
-        - Fade in for page transitions
-        - Slide in for sidebars/panels
-        - Scale for modals
-        - Skeleton pulse for loading
-      </patterns>
-    </animations>
-  </design_system>
-
   <security>
-    <authentication>
-      - OAuth 2.0 with PKCE (no client secret in browser)
-      - Session cookies: httpOnly, secure, sameSite=Lax
-      - Session stored in KV with expiration
-      - Refresh tokens hashed before storage (SHA-256)
-    </authentication>
-
-    <authorization>
-      - Role-based access control (RBAC)
-      - Hierarchical roles with level comparison
-      - Account-scoped permissions
-      - Super admin bypass for system operations
-    </authorization>
-
-    <data_protection>
-      - Soft deletes preserve data integrity
-      - Audit logging for all state changes
-      - Request context (IP, User-Agent) captured
-      - Transaction IDs for operation correlation
-    </data_protection>
-
-    <api_security>
-      - Input validation with Zod schemas
-      - CORS configuration per environment
-      - Error messages sanitized (no stack traces in prod)
-      - Rate limiting (Cloudflare default)
-    </api_security>
+    <csrf>
+      State-changing browser requests require trusted Origin/Referer,
+      and JSON content type for JSON APIs. The boilerplate intentionally does
+      not send a decorative CSRF token header.
+    </csrf>
+    <headers>
+      CSP, Trusted Types, HSTS, frame denial, nosniff, referrer policy, and
+      restrictive permissions policy are applied by `securityHeaders()`.
+    </headers>
+    <app_api_auth>
+      App-owned `/api/*` routes, except docs, run through `auth.middleware()`
+      and `auth.accountMiddleware()`.
+    </app_api_auth>
   </security>
-
-  <implementation_status>
-    <completed>
-      - Google OAuth login with PKCE flow
-      - Session management (KV + cookies)
-      - Multi-tenant user/account system
-      - User-account relationships with roles
-      - Invitation system with email sending
-      - Audit logging (all CRUD + auth events)
-      - Soft delete with restore functionality
-      - File storage (R2) with presigned URLs
-      - OpenAPI/Swagger documentation
-      - Error handling + validation
-      - Role-based access control
-      - Pagination + search
-      - Super admin pre-registration
-      - Logout with redirect
-      - 95% test coverage (server)
-      - 90% test coverage (client)
-    </completed>
-
-    <partial>
-      - Webhooks (schema exists, storage not implemented)
-      - Integrations page (UI mockups only)
-      - Dashboard analytics (placeholder data)
-    </partial>
-
-    <planned>
-      - Two-factor authentication (TOTP)
-      - GitHub OAuth integration
-      - API keys management
-      - Payment/billing integration (Stripe)
-      - Email templates customization
-      - Real-time notifications (WebSocket)
-      - Activity feed with actual data
-      - Export data functionality
-      - Account switching UI
-    </planned>
-  </implementation_status>
 
   <environment_variables>
     <required>
-      GOOGLE_CLIENT_ID       # Google OAuth client ID
-      GOOGLE_CLIENT_SECRET   # Google OAuth client secret
-      GOOGLE_REDIRECT_URI    # OAuth callback URL
-      APP_URL                # Application base URL
-      JWT_SECRET             # Session signing key (min 32 chars)
-      SENDGRID_API_KEY       # SendGrid API key for emails
-      SENDGRID_FROM_EMAIL    # Sender email address
+      ENVIRONMENT
+      APP_URL
+      ETUS_GATEWAY
+      ETUS_CLIENT_ID
+      ETUS_ALLOWED_DOMAINS
+      ETUS_ADMIN_EMAILS
     </required>
-
+    <secrets>
+      ETUS_CLIENT_SECRET
+      SENDGRID_API_KEY
+    </secrets>
     <optional>
-      ENVIRONMENT            # production | staging | development
-      SUPER_ADMIN_EMAILS     # Comma-separated admin emails
-      CORS_ORIGINS           # Comma-separated allowed origins
-      R2_PUBLIC_URL          # R2 bucket public URL
-      JWT_EXPIRY_MINUTES     # Access token expiry (default: 15)
-      REFRESH_TOKEN_EXPIRY_DAYS  # Refresh token expiry (default: 30)
+      CORS_ORIGINS
+      R2_PUBLIC_URL
+      SENDGRID_FROM_EMAIL
     </optional>
-
-    <cloudflare_bindings>
-      DB          # D1 Database binding
-      SESSIONS    # KV Namespace for sessions
-      R2_BUCKET   # R2 Bucket for file storage
-      ASSETS      # Static assets binding
-    </cloudflare_bindings>
   </environment_variables>
 
-  <development>
-    <commands>
-      npm run dev              # Start dev server (Vite + Wrangler)
-      npm run build            # Build for production
-      npm run deploy           # Deploy to Cloudflare Workers
-
-      npm run db:schema:local    # Apply schema.sql locally
-      npm run db:schema:remote   # Apply schema.sql to production (optional)
-      npm run db:seed            # Generate seed.sql
-      npm run db:seed:local      # Generate + seed locally
-      npm run db:reset:local     # Apply schema.sql + seed (local)
-
-      npm run test:unit:server   # Backend unit tests
-      npm run test:unit:client   # Frontend tests
-      npm run test:integration   # Integration tests
-      npm run test:e2e           # Playwright E2E tests
-      npm run test:e2e:ui        # Playwright interactive UI
-
-      npm run lint             # ESLint
-      npm run cf-typegen       # Generate Cloudflare types
-    </commands>
-
-    <path_aliases>
-      @/     → src/client/
-      @shared/ → src/shared/
-      @server/ → src/server/
-    </path_aliases>
-
-    <workflow>
-      1. Make changes
-      2. Run unit tests for affected area
-      3. Run lint to check code style
-      4. Run E2E tests for critical paths
-      5. Verify build succeeds
-      6. Deploy with `npm run deploy`
-    </workflow>
-  </development>
-
-  <file_structure>
-    src/
-    ├── server/                     # Backend (Hono.js)
-    │   ├── routes/                 # API endpoints
-    │   │   ├── auth/               # OAuth, logout, me
-    │   │   ├── users/              # User CRUD
-    │   │   ├── accounts/           # Account CRUD
-    │   │   ├── invitations/        # Team invites
-    │   │   ├── audits/             # Audit log queries
-    │   │   ├── storage/            # R2 file operations
-    │   │   └── health/             # Health check
-    │   ├── services/               # Business logic
-    │   ├── middleware/             # Auth, CORS, logging
-    │   ├── db/
-    │   │   ├── records.ts          # DB record types for SQL mapping
-    │   │   └── seed.ts             # Seed generator (outputs seed.sql)
-    │   ├── lib/                    # Utilities
-    │   └── auth/                   # RBAC guards
-    │
-    ├── client/                     # Frontend (React)
-    │   ├── routes/                 # TanStack file-based routing
-    │   │   ├── _authenticated/     # Protected pages
-    │   │   └── *.tsx               # Public pages
-    │   ├── components/
-    │   │   └── ui/                 # Reusable UI components
-    │   └── hooks/                  # React hooks
-    │
-    ├── shared/                     # Shared between client/server
-    │   ├── schemas/                # Zod validation schemas
-    │   └── types/                  # TypeScript types
-    │
-    └── e2e/                        # Playwright E2E tests
-  </file_structure>
-
-  <key_files>
-    src/server/index.ts              # Hono app entry
-    src/server/routes/index.ts       # API router
-    src/server/db/records.ts         # Database record types
-    src/client/routes/__root.tsx     # React app root
-    src/client/routes/_authenticated.tsx  # Auth layout
-    wrangler.json                    # Cloudflare config
-    schema.sql                        # SQL schema (source of truth)
-    seed.sql                          # Generated seed data (output)
-    playwright.config.ts             # E2E test config
-    vitest.config.ts                 # Unit test config
-  </key_files>
-
-  <success_criteria>
-    <functionality>
-      - OAuth authentication works smoothly
-      - Multi-tenant isolation is enforced
-      - Role-based access control is accurate
-      - Invitation system sends emails correctly
-      - Audit logging captures all events
-      - File uploads to R2 work reliably
-    </functionality>
-
-    <performance>
-      - Page loads under 500ms (edge deployment)
-      - API responses under 100ms
-      - No blocking operations in critical path
-      - Efficient database queries with indexes
-    </performance>
-
-    <reliability>
-      - 95%+ test coverage on server
-      - 90%+ test coverage on client
-      - Error boundaries prevent crashes
-      - Graceful degradation for network issues
-    </reliability>
-
-    <security>
-      - No sensitive data in logs
-      - Proper CORS configuration
-      - Session security (httpOnly, secure)
-      - Input validation on all endpoints
-    </security>
-  </success_criteria>
+  <known_package_gaps>
+    <gap>
+      `@etus/auth@0.3.0` persists invitations but does not send invitation
+      emails. The boilerplate currently creates/revokes invitations through the
+      package routes; delivery should be implemented in `@etus/auth` or via a
+      small package-supported hook before products depend on email delivery.
+    </gap>
+    <gap>
+      Account membership role defaults are still hard-coded in the package.
+      The boilerplate validates writes locally and should remove that adapter
+      once `@etus/auth` exposes `multiTenant.roles/defaultRole`.
+    </gap>
+  </known_package_gaps>
 </project_specification>

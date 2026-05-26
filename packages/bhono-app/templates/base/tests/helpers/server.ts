@@ -1,7 +1,6 @@
 // tests/helpers/server.ts
 import { vi, beforeEach, afterEach } from 'vitest'
 import type { Env } from '@server/env'
-import type { SessionData } from '@server/types'
 import { createMockD1, createMockD1AsD1Database, type MockD1Database } from '@tests/mocks/db'
 import {
   createMockKV,
@@ -22,16 +21,15 @@ export * from '@tests/mocks/r2'
 export const DEFAULT_TEST_ENV = {
   ENVIRONMENT: 'test',
   APP_URL: 'http://localhost:8787',
-  JWT_SECRET: 'test-jwt-secret-key-for-testing-only',
-  JWT_EXPIRY_MINUTES: '15',
-  GOOGLE_CLIENT_ID: 'test-google-client-id',
-  GOOGLE_CLIENT_SECRET: 'test-google-client-secret',
-  GOOGLE_REDIRECT_URI: 'http://localhost:8787/api/auth/google/callback',
-  REFRESH_TOKEN_EXPIRY_DAYS: '30',
+  ETUS_GATEWAY: 'https://ag.etus.io',
+  ETUS_CLIENT_ID: 'test-client-id',
+  ETUS_CLIENT_SECRET: 'test-client-secret',
+  ETUS_ALLOWED_DOMAINS: 'example.com',
+  ETUS_ADMIN_EMAILS: 'admin@example.com',
   SENDGRID_API_KEY: 'test-sendgrid-api-key',
   SENDGRID_FROM_EMAIL: 'test@example.com',
   R2_PUBLIC_URL: 'https://r2-test.example.com',
-  CORS_ORIGINS: 'http://localhost:3000,http://localhost:5173',
+  CORS_ORIGINS: 'http://localhost:3000,http://localhost:8787',
 } as const
 
 /**
@@ -41,6 +39,17 @@ export interface MockEnv extends Env {
   DB: D1Database & { _mock: MockD1Database }
   SESSIONS: KVNamespace & { _mock: MockKVNamespace }
   R2_BUCKET: R2Bucket & { _mock: MockR2Bucket }
+}
+
+interface TestAuthSession {
+  id: string
+  userId: string
+  expiresAt: number
+  createdAt: number
+  fingerprint?: {
+    ip: string
+    userAgent: string
+  }
 }
 
 /**
@@ -95,7 +104,7 @@ export function createMockEnv(overrides?: Partial<Env>): MockEnv {
  */
 export function createAuthHeaders(sessionToken: string, accountId?: string): Headers {
   const headers = new Headers()
-  headers.set('Cookie', `sid=${sessionToken}`)
+  headers.set('Cookie', `auth_sid=${sessionToken}`)
 
   if (accountId) {
     headers.set('X-Account-ID', accountId)
@@ -116,22 +125,22 @@ export async function createMockSession(
   kv: MockKVNamespace | KVNamespace,
   token: string,
   userId: string,
-  sessionData: Partial<Omit<SessionData, 'userId'>> = {},
+  sessionData: Partial<Omit<TestAuthSession, 'id' | 'userId'>> = {},
   ttlSeconds = 86400
 ): Promise<void> {
-  const data: SessionData = {
+  const now = Date.now()
+  const data: TestAuthSession = {
+    id: token,
     userId,
-    email: sessionData.email ?? `user-${userId}@example.com`,
-    name: sessionData.name ?? `User ${userId}`,
-    avatarUrl: sessionData.avatarUrl ?? null,
-    isSuperAdmin: sessionData.isSuperAdmin ?? false,
+    expiresAt: sessionData.expiresAt ?? now + ttlSeconds * 1000,
+    createdAt: sessionData.createdAt ?? now,
     fingerprint: sessionData.fingerprint ?? {
       ip: '127.0.0.1',
       userAgent: 'TestAgent/1.0',
     },
   }
 
-  const key = `sid:${token}`
+  const key = `auth_sid:${token}`
   await kv.put(key, JSON.stringify(data), { expirationTtl: ttlSeconds })
 }
 
@@ -146,21 +155,21 @@ export async function createExpiredSession(
   kv: MockKVNamespace | KVNamespace,
   token: string,
   userId: string,
-  sessionData: Partial<Omit<SessionData, 'userId'>> = {}
+  sessionData: Partial<Omit<TestAuthSession, 'id' | 'userId'>> = {}
 ): Promise<void> {
-  const data: SessionData = {
+  const now = Date.now()
+  const data: TestAuthSession = {
+    id: token,
     userId,
-    email: sessionData.email ?? `user-${userId}@example.com`,
-    name: sessionData.name ?? `User ${userId}`,
-    avatarUrl: sessionData.avatarUrl ?? null,
-    isSuperAdmin: sessionData.isSuperAdmin ?? false,
+    expiresAt: sessionData.expiresAt ?? now - 1000,
+    createdAt: sessionData.createdAt ?? now - 2000,
     fingerprint: sessionData.fingerprint ?? {
       ip: '127.0.0.1',
       userAgent: 'TestAgent/1.0',
     },
   }
 
-  const key = `sid:${token}`
+  const key = `auth_sid:${token}`
 
   // For MockKVNamespace, we can directly set with past expiration
   if ('_store' in kv) {
@@ -239,7 +248,7 @@ export function createMockRequest(
 
   // Add session cookie
   if (options?.sessionToken) {
-    headers.set('Cookie', `sid=${options.sessionToken}`)
+    headers.set('Cookie', `auth_sid=${options.sessionToken}`)
   }
 
   // Add account ID header

@@ -28,7 +28,7 @@ export const requestLogger = () =>
 
     const duration = Date.now() - start
     const status = c.res.status
-    const user = c.get('user')
+    const user = c.get('authUser')
 
     const log: RequestLog = {
       level: getLogLevel(status),

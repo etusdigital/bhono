@@ -38,20 +38,6 @@ function generateToken(): string {
 // SEED DATA
 // ============================================================================
 
-// Accounts
-const accountIds = {
-  default: uuid(),
-  acme: uuid(),
-  startup: uuid(),
-}
-
-const accountsData = [
-  { id: accountIds.default, name: 'Default Account', domain: 'default.local', description: 'Default testing account' },
-  { id: accountIds.acme, name: 'Acme Corporation', domain: 'acme.local', description: 'Enterprise client' },
-  { id: accountIds.startup, name: 'Tech Startup', domain: 'startup.local', description: 'Small team account' },
-]
-
-// Users
 const userIds = {
   superadmin: uuid(),
   admin: uuid(),
@@ -65,57 +51,73 @@ const userIds = {
   user2: uuid(),
 }
 
-const usersData = [
-  { id: userIds.superadmin, email: 'superadmin@example.com', name: 'Super Admin', googleId: 'google-seed-superadmin-001', isSuperAdmin: true },
-  { id: userIds.admin, email: 'admin@example.com', name: 'Admin User', googleId: 'google-seed-admin-002', isSuperAdmin: false },
-  { id: userIds.manager, email: 'manager@example.com', name: 'Manager User', googleId: 'google-seed-manager-003', isSuperAdmin: false },
-  { id: userIds.editor, email: 'editor@example.com', name: 'Editor User', googleId: 'google-seed-editor-004', isSuperAdmin: false },
-  { id: userIds.author, email: 'author@example.com', name: 'Author User', googleId: 'google-seed-author-005', isSuperAdmin: false },
-  { id: userIds.viewer, email: 'viewer@example.com', name: 'Viewer User', googleId: 'google-seed-viewer-006', isSuperAdmin: false },
-  { id: userIds.billing, email: 'billing@example.com', name: 'Billing User', googleId: 'google-seed-billing-007', isSuperAdmin: false },
-  { id: userIds.analytics, email: 'analytics@example.com', name: 'Analytics User', googleId: 'google-seed-analytics-008', isSuperAdmin: false },
-  { id: userIds.user1, email: 'user1@example.com', name: 'Test User 1', googleId: 'google-seed-user1-009', isSuperAdmin: false },
-  { id: userIds.user2, email: 'user2@example.com', name: 'Test User 2', googleId: 'google-seed-user2-010', isSuperAdmin: false },
+// Accounts
+const accountIds = {
+  default: uuid(),
+  acme: uuid(),
+  startup: uuid(),
+}
+
+const accountsData = [
+  { id: accountIds.default, name: 'Default Account', slug: 'default', ownerId: userIds.superadmin },
+  { id: accountIds.acme, name: 'Acme Corporation', slug: 'acme', ownerId: userIds.admin },
+  { id: accountIds.startup, name: 'Tech Startup', slug: 'startup', ownerId: userIds.manager },
 ]
 
-// User-Account relationships
-const userAccountsData = [
+// Users
+const usersData = [
+  { id: userIds.superadmin, email: 'superadmin@example.com', name: 'Super Admin', gatewayUserId: 'gateway-seed-superadmin-001', role: 'owner' },
+  { id: userIds.admin, email: 'admin@example.com', name: 'Admin User', gatewayUserId: 'gateway-seed-admin-002', role: 'admin' },
+  { id: userIds.manager, email: 'manager@example.com', name: 'Manager User', gatewayUserId: 'gateway-seed-manager-003', role: 'admin' },
+  { id: userIds.editor, email: 'editor@example.com', name: 'Editor User', gatewayUserId: 'gateway-seed-editor-004', role: 'member' },
+  { id: userIds.author, email: 'author@example.com', name: 'Author User', gatewayUserId: 'gateway-seed-author-005', role: 'member' },
+  { id: userIds.viewer, email: 'viewer@example.com', name: 'Viewer User', gatewayUserId: 'gateway-seed-viewer-006', role: 'guest' },
+  { id: userIds.billing, email: 'billing@example.com', name: 'Billing User', gatewayUserId: 'gateway-seed-billing-007', role: 'member' },
+  { id: userIds.analytics, email: 'analytics@example.com', name: 'Analytics User', gatewayUserId: 'gateway-seed-analytics-008', role: 'member' },
+  { id: userIds.user1, email: 'user1@example.com', name: 'Test User 1', gatewayUserId: 'gateway-seed-user1-009', role: 'guest' },
+  { id: userIds.user2, email: 'user2@example.com', name: 'Test User 2', gatewayUserId: 'gateway-seed-user2-010', role: 'guest' },
+]
+
+// Account memberships. @etus/auth account routes currently use membership role
+// "admin" for workspace administration; global owner/admin still live on
+// auth_users.role and the product RBAC matrix.
+const membershipsData = [
   // Default Account
-  { userId: userIds.superadmin, accountId: accountIds.default, role: 'ADMIN' },
-  { userId: userIds.admin, accountId: accountIds.default, role: 'ADMIN' },
-  { userId: userIds.manager, accountId: accountIds.default, role: 'MANAGER' },
-  { userId: userIds.editor, accountId: accountIds.default, role: 'EDITOR' },
-  { userId: userIds.viewer, accountId: accountIds.default, role: 'VIEWER' },
-  { userId: userIds.user1, accountId: accountIds.default, role: 'AUTHOR' },
+  { id: uuid(), userId: userIds.superadmin, accountId: accountIds.default, role: 'admin' },
+  { id: uuid(), userId: userIds.admin, accountId: accountIds.default, role: 'admin' },
+  { id: uuid(), userId: userIds.manager, accountId: accountIds.default, role: 'admin' },
+  { id: uuid(), userId: userIds.editor, accountId: accountIds.default, role: 'member' },
+  { id: uuid(), userId: userIds.viewer, accountId: accountIds.default, role: 'guest' },
+  { id: uuid(), userId: userIds.user1, accountId: accountIds.default, role: 'guest' },
   // Acme Corporation
-  { userId: userIds.admin, accountId: accountIds.acme, role: 'ADMIN' },
-  { userId: userIds.author, accountId: accountIds.acme, role: 'AUTHOR' },
-  { userId: userIds.billing, accountId: accountIds.acme, role: 'BILLING' },
-  { userId: userIds.user2, accountId: accountIds.acme, role: 'VIEWER' },
+  { id: uuid(), userId: userIds.admin, accountId: accountIds.acme, role: 'admin' },
+  { id: uuid(), userId: userIds.author, accountId: accountIds.acme, role: 'member' },
+  { id: uuid(), userId: userIds.billing, accountId: accountIds.acme, role: 'member' },
+  { id: uuid(), userId: userIds.user2, accountId: accountIds.acme, role: 'guest' },
   // Tech Startup
-  { userId: userIds.manager, accountId: accountIds.startup, role: 'MANAGER' },
-  { userId: userIds.analytics, accountId: accountIds.startup, role: 'ANALYTICS' },
+  { id: uuid(), userId: userIds.manager, accountId: accountIds.startup, role: 'admin' },
+  { id: uuid(), userId: userIds.analytics, accountId: accountIds.startup, role: 'member' },
 ]
 
 // Pending Invitations
 const invitationsData = [
-  { id: uuid(), accountId: accountIds.startup, email: 'invited1@example.com', role: 'EDITOR', token: generateToken(), invitedById: userIds.manager },
-  { id: uuid(), accountId: accountIds.startup, email: 'invited2@example.com', role: 'AUTHOR', token: generateToken(), invitedById: userIds.manager },
-  { id: uuid(), accountId: accountIds.acme, email: 'invited3@example.com', role: 'VIEWER', token: generateToken(), invitedById: userIds.admin },
+  { id: uuid(), accountId: accountIds.startup, email: 'invited1@example.com', role: 'member', token: generateToken(), invitedById: userIds.manager },
+  { id: uuid(), accountId: accountIds.startup, email: 'invited2@example.com', role: 'member', token: generateToken(), invitedById: userIds.manager },
+  { id: uuid(), accountId: accountIds.acme, email: 'invited3@example.com', role: 'guest', token: generateToken(), invitedById: userIds.admin },
 ]
 
 // Audit Logs
 const auditLogsData = [
-  { id: uuid(), transactionId: uuid(), accountId: accountIds.default, userId: userIds.superadmin, entity: 'User', entityId: userIds.superadmin, action: 'SIGNUP', changes: { email: 'superadmin@example.com', provider: 'google' } },
-  { id: uuid(), transactionId: uuid(), accountId: accountIds.default, userId: userIds.admin, entity: 'User', entityId: userIds.admin, action: 'SIGNUP', changes: { email: 'admin@example.com', provider: 'google' } },
-  { id: uuid(), transactionId: uuid(), accountId: accountIds.default, userId: userIds.superadmin, entity: 'User', entityId: userIds.superadmin, action: 'LOGIN', changes: { email: 'superadmin@example.com' } },
-  { id: uuid(), transactionId: uuid(), accountId: accountIds.default, userId: userIds.admin, entity: 'User', entityId: userIds.admin, action: 'LOGIN', changes: { email: 'admin@example.com' } },
-  { id: uuid(), transactionId: uuid(), accountId: accountIds.acme, userId: userIds.admin, entity: 'Account', entityId: accountIds.acme, action: 'UPDATE', changes: { name: { old: 'Acme Inc', new: 'Acme Corporation' } } },
-  { id: uuid(), transactionId: uuid(), accountId: accountIds.default, userId: userIds.manager, entity: 'User', entityId: userIds.viewer, action: 'UPDATE', changes: { status: { old: 'inactive', new: 'active' } } },
-  { id: uuid(), transactionId: uuid(), accountId: accountIds.startup, userId: userIds.manager, entity: 'Invitation', entityId: 'inv-001', action: 'INSERT', changes: { email: 'invited1@example.com', role: 'EDITOR' } },
-  { id: uuid(), transactionId: uuid(), accountId: accountIds.default, userId: userIds.editor, entity: 'User', entityId: userIds.editor, action: 'LOGIN', changes: {} },
-  { id: uuid(), transactionId: uuid(), accountId: null, userId: null, entity: 'User', entityId: 'unknown', action: 'LOGIN_FAILED', changes: { email: 'hacker@evil.com', reason: 'Invalid credentials' } },
-  { id: uuid(), transactionId: uuid(), accountId: accountIds.acme, userId: userIds.billing, entity: 'User', entityId: userIds.billing, action: 'LOGIN', changes: { email: 'billing@example.com' } },
+  { id: uuid(), eventType: 'user.created', actorId: userIds.superadmin, actorEmail: 'superadmin@example.com', targetId: userIds.superadmin, targetType: 'user', accountId: accountIds.default, metadata: { email: 'superadmin@example.com', provider: 'etus-gateway' } },
+  { id: uuid(), eventType: 'user.created', actorId: userIds.admin, actorEmail: 'admin@example.com', targetId: userIds.admin, targetType: 'user', accountId: accountIds.default, metadata: { email: 'admin@example.com', provider: 'etus-gateway' } },
+  { id: uuid(), eventType: 'auth.login', actorId: userIds.superadmin, actorEmail: 'superadmin@example.com', targetId: userIds.superadmin, targetType: 'user', accountId: accountIds.default, metadata: { email: 'superadmin@example.com' } },
+  { id: uuid(), eventType: 'auth.login', actorId: userIds.admin, actorEmail: 'admin@example.com', targetId: userIds.admin, targetType: 'user', accountId: accountIds.default, metadata: { email: 'admin@example.com' } },
+  { id: uuid(), eventType: 'account.updated', actorId: userIds.admin, actorEmail: 'admin@example.com', targetId: accountIds.acme, targetType: 'account', accountId: accountIds.acme, metadata: { name: { old: 'Acme Inc', new: 'Acme Corporation' } } },
+  { id: uuid(), eventType: 'user.updated', actorId: userIds.manager, actorEmail: 'manager@example.com', targetId: userIds.viewer, targetType: 'user', accountId: accountIds.default, metadata: { status: { old: 'pending', new: 'active' } } },
+  { id: uuid(), eventType: 'account.invitation_sent', actorId: userIds.manager, actorEmail: 'manager@example.com', targetId: invitationsData[0].id, targetType: 'invitation', accountId: accountIds.startup, metadata: { email: 'invited1@example.com', role: 'member' } },
+  { id: uuid(), eventType: 'auth.login', actorId: userIds.editor, actorEmail: 'editor@example.com', targetId: userIds.editor, targetType: 'user', accountId: accountIds.default, metadata: {} },
+  { id: uuid(), eventType: 'auth.login_failed', actorId: null, actorEmail: 'hacker@evil.com', targetId: 'unknown', targetType: 'user', accountId: null, metadata: { email: 'hacker@evil.com', reason: 'Gateway rejected credentials' } },
+  { id: uuid(), eventType: 'auth.login', actorId: userIds.billing, actorEmail: 'billing@example.com', targetId: userIds.billing, targetType: 'user', accountId: accountIds.acme, metadata: { email: 'billing@example.com' } },
 ]
 
 // ============================================================================
@@ -149,51 +151,54 @@ function generateSQL(): string {
   lines.push('-- ============================================================================')
   lines.push('')
   lines.push('-- Clear existing data (optional - comment out if you want to keep existing data)')
-  lines.push('DELETE FROM audit_logs;')
-  lines.push('DELETE FROM invitations;')
-  lines.push('DELETE FROM user_accounts;')
-  lines.push('DELETE FROM users;')
-  lines.push('DELETE FROM accounts;')
-  lines.push('')
-
-  // Accounts
-  lines.push('-- Accounts')
-  for (const account of accountsData) {
-    lines.push(`INSERT INTO accounts (id, name, domain, description, created_at, updated_at) VALUES (${toSqlValue(account.id)}, ${toSqlValue(account.name)}, ${toSqlValue(account.domain)}, ${toSqlValue(account.description)}, ${toSqlValue(timestamp)}, ${toSqlValue(timestamp)});`)
-  }
+  lines.push('DELETE FROM auth_resource_permissions;')
+  lines.push('DELETE FROM auth_user_permissions;')
+  lines.push('DELETE FROM auth_audit_logs;')
+  lines.push('DELETE FROM auth_invitations;')
+  lines.push('DELETE FROM auth_memberships;')
+  lines.push('DELETE FROM auth_sessions;')
+  lines.push('DELETE FROM auth_accounts;')
+  lines.push('DELETE FROM auth_users;')
   lines.push('')
 
   // Users
   lines.push('-- Users')
   for (const user of usersData) {
-    lines.push(`INSERT INTO users (id, email, name, google_id, is_super_admin, status, created_at, updated_at) VALUES (${toSqlValue(user.id)}, ${toSqlValue(user.email)}, ${toSqlValue(user.name)}, ${toSqlValue(user.googleId)}, ${toSqlValue(user.isSuperAdmin)}, 'active', ${toSqlValue(timestamp)}, ${toSqlValue(timestamp)});`)
+    lines.push(`INSERT INTO auth_users (id, gateway_user_id, email, name, picture, role, status, invited_by, created_at, last_login_at) VALUES (${toSqlValue(user.id)}, ${toSqlValue(user.gatewayUserId)}, ${toSqlValue(user.email)}, ${toSqlValue(user.name)}, NULL, ${toSqlValue(user.role)}, 'active', NULL, ${toSqlValue(timestamp)}, ${toSqlValue(timestamp)});`)
   }
   lines.push('')
 
-  // User-Accounts
-  lines.push('-- User-Account Relationships')
-  for (const ua of userAccountsData) {
-    lines.push(`INSERT INTO user_accounts (user_id, account_id, role) VALUES (${toSqlValue(ua.userId)}, ${toSqlValue(ua.accountId)}, ${toSqlValue(ua.role)});`)
+  // Accounts
+  lines.push('-- Accounts')
+  for (const account of accountsData) {
+    lines.push(`INSERT INTO auth_accounts (id, name, slug, owner_id, created_at, updated_at) VALUES (${toSqlValue(account.id)}, ${toSqlValue(account.name)}, ${toSqlValue(account.slug)}, ${toSqlValue(account.ownerId)}, ${toSqlValue(timestamp)}, ${toSqlValue(timestamp)});`)
+  }
+  lines.push('')
+
+  // Memberships
+  lines.push('-- Account Memberships')
+  for (const membership of membershipsData) {
+    lines.push(`INSERT INTO auth_memberships (id, account_id, user_id, role, status, invited_by, invited_at, joined_at, created_at) VALUES (${toSqlValue(membership.id)}, ${toSqlValue(membership.accountId)}, ${toSqlValue(membership.userId)}, ${toSqlValue(membership.role)}, 'active', NULL, NULL, ${toSqlValue(timestamp)}, ${toSqlValue(timestamp)});`)
   }
   lines.push('')
 
   // Invitations
   lines.push('-- Pending Invitations')
   for (const inv of invitationsData) {
-    lines.push(`INSERT INTO invitations (id, account_id, email, role, token, invited_by_id, expires_at, created_at) VALUES (${toSqlValue(inv.id)}, ${toSqlValue(inv.accountId)}, ${toSqlValue(inv.email)}, ${toSqlValue(inv.role)}, ${toSqlValue(inv.token)}, ${toSqlValue(inv.invitedById)}, ${toSqlValue(expiry)}, ${toSqlValue(timestamp)});`)
+    lines.push(`INSERT INTO auth_invitations (id, account_id, email, role, invited_by, token, expires_at, accepted_at, created_at) VALUES (${toSqlValue(inv.id)}, ${toSqlValue(inv.accountId)}, ${toSqlValue(inv.email)}, ${toSqlValue(inv.role)}, ${toSqlValue(inv.invitedById)}, ${toSqlValue(inv.token)}, ${toSqlValue(expiry)}, NULL, ${toSqlValue(timestamp)});`)
   }
   lines.push('')
 
   // Audit Logs
   lines.push('-- Audit Logs')
   for (const log of auditLogsData) {
-    lines.push(`INSERT INTO audit_logs (id, transaction_id, account_id, user_id, entity, entity_id, action, changes, timestamp) VALUES (${toSqlValue(log.id)}, ${toSqlValue(log.transactionId)}, ${toSqlValue(log.accountId)}, ${toSqlValue(log.userId)}, ${toSqlValue(log.entity)}, ${toSqlValue(log.entityId)}, ${toSqlValue(log.action)}, ${toSqlValue(log.changes)}, ${toSqlValue(timestamp)});`)
+    lines.push(`INSERT INTO auth_audit_logs (id, event_type, actor_id, actor_email, target_id, target_type, account_id, ip, user_agent, metadata, created_at) VALUES (${toSqlValue(log.id)}, ${toSqlValue(log.eventType)}, ${toSqlValue(log.actorId)}, ${toSqlValue(log.actorEmail)}, ${toSqlValue(log.targetId)}, ${toSqlValue(log.targetType)}, ${toSqlValue(log.accountId)}, NULL, NULL, ${toSqlValue(log.metadata)}, ${toSqlValue(timestamp)});`)
   }
   lines.push('')
 
   lines.push('-- ============================================================================')
   lines.push('-- SEED COMPLETE')
-  lines.push(`-- Created: ${String(accountsData.length)} accounts, ${String(usersData.length)} users, ${String(userAccountsData.length)} user-accounts, ${String(invitationsData.length)} invitations, ${String(auditLogsData.length)} audit logs`)
+  lines.push(`-- Created: ${String(accountsData.length)} accounts, ${String(usersData.length)} users, ${String(membershipsData.length)} memberships, ${String(invitationsData.length)} invitations, ${String(auditLogsData.length)} audit logs`)
   lines.push('-- ============================================================================')
 
   return lines.join('\n')
@@ -209,21 +214,21 @@ function printSummary(): void {
 
   console.log('📁 Accounts:')
   for (const account of accountsData) {
-    console.log(`   • ${account.name} (${account.domain})`)
+    console.log(`   • ${account.name} (${account.slug})`)
   }
 
   console.log('\n👤 Users:')
   for (const user of usersData) {
-    console.log(`   • ${user.email} - ${user.name}${user.isSuperAdmin ? ' [SUPER ADMIN]' : ''}`)
+    console.log(`   • ${user.email} - ${user.name} (${user.role})`)
   }
 
-  console.log('\n🔗 User-Account Relationships:')
+  console.log('\n🔗 Account Memberships:')
   const byAccount = new Map<string, string[]>()
-  for (const ua of userAccountsData) {
-    const accountName = accountsData.find(a => a.id === ua.accountId)?.name ?? 'Unknown'
-    const userName = usersData.find(u => u.id === ua.userId)?.name ?? 'Unknown'
+  for (const membership of membershipsData) {
+    const accountName = accountsData.find(a => a.id === membership.accountId)?.name ?? 'Unknown'
+    const userName = usersData.find(u => u.id === membership.userId)?.name ?? 'Unknown'
     if (!byAccount.has(accountName)) byAccount.set(accountName, [])
-    byAccount.get(accountName)?.push(`${userName} (${ua.role})`)
+    byAccount.get(accountName)?.push(`${userName} (${membership.role})`)
   }
   for (const [account, users] of byAccount.entries()) {
     console.log(`   ${account}:`)

@@ -1,162 +1,105 @@
 import { describe, it, expect } from 'vitest'
 import { Hono } from 'hono'
-import { requireRole, requirePermission } from '@server/auth/guards'
+import type { AuthUser } from '@etus/auth'
+import { protectAccountOwner, requirePermission } from '@server/auth/guards'
 import type { HonoEnv } from '@server/types'
+import { createMockD1AsD1Database, setMockQueryResult } from '@tests/mocks/db'
 
-describe('guards', () => {
-  describe('requireRole', () => {
-    it('should throw 401 when user is not authenticated', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', requireRole('ADMIN'))
-      app.get('/', (c) => c.json({ ok: true }))
-
-      const res = await app.request('/')
-      expect(res.status).toBe(401)
+describe('requirePermission', () => {
+  function makeApp(permissions: string[], required: string) {
+    const app = new Hono<HonoEnv>()
+    app.use('/x', async (c, next) => {
+      c.set('authPermissions', permissions)
+      await next()
     })
+    app.use('/x', requirePermission(required))
+    app.get('/x', (c) => c.json({ ok: true }))
+    return app
+  }
 
-    it('should allow access when user is system admin', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test' } as any)
-        c.set('isSystemAdminAccess', true)
-        return next()
-      })
-      app.use('*', requireRole('ADMIN'))
-      app.get('/', (c) => c.json({ ok: true }))
-
-      const res = await app.request('/')
-      expect(res.status).toBe(200)
-    })
-
-    it('should throw 403 when user has no role assigned', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test' } as any)
-        c.set('isSystemAdminAccess', false)
-        c.set('userRole', undefined)
-        return next()
-      })
-      app.use('*', requireRole('ADMIN'))
-      app.get('/', (c) => c.json({ ok: true }))
-
-      const res = await app.request('/')
-      expect(res.status).toBe(403)
-    })
-
-    it('should throw 403 when user has insufficient role', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test' } as any)
-        c.set('isSystemAdminAccess', false)
-        c.set('userRole', 'VIEWER')
-        return next()
-      })
-      app.use('*', requireRole('ADMIN'))
-      app.get('/', (c) => c.json({ ok: true }))
-
-      const res = await app.request('/')
-      expect(res.status).toBe(403)
-    })
-
-    it('should allow access when user has sufficient role', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test' } as any)
-        c.set('isSystemAdminAccess', false)
-        c.set('userRole', 'ADMIN')
-        return next()
-      })
-      app.use('*', requireRole('ADMIN'))
-      app.get('/', (c) => c.json({ ok: true }))
-
-      const res = await app.request('/')
-      expect(res.status).toBe(200)
-    })
-
-    it('should allow access with additional roles', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test' } as any)
-        c.set('isSystemAdminAccess', false)
-        c.set('userRole', 'BILLING')
-        return next()
-      })
-      app.use('*', requireRole('EDITOR', ['BILLING']))
-      app.get('/', (c) => c.json({ ok: true }))
-
-      const res = await app.request('/')
-      expect(res.status).toBe(200)
-    })
+  it('allows a request that holds the exact permission', async () => {
+    const res = await makeApp(['resources:read'], 'resources:read').request('/x')
+    expect(res.status).toBe(200)
   })
 
-  describe('requirePermission', () => {
-    it('should throw 401 when user is not authenticated', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', requirePermission('accounts:manage'))
-      app.get('/', (c) => c.json({ ok: true }))
+  it('rejects a request missing the permission with 403', async () => {
+    const res = await makeApp(['resources:read'], 'resources:delete').request('/x')
+    expect(res.status).toBe(403)
+  })
 
-      const res = await app.request('/')
-      expect(res.status).toBe(401)
-    })
+  it('honors the full wildcard *', async () => {
+    const res = await makeApp(['*'], 'resources:delete').request('/x')
+    expect(res.status).toBe(200)
+  })
 
-    it('should allow access when user is system admin', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test' } as any)
-        c.set('isSystemAdminAccess', true)
-        return next()
-      })
-      app.use('*', requirePermission('accounts:manage'))
-      app.get('/', (c) => c.json({ ok: true }))
+  it('honors a resource wildcard (resources:*)', async () => {
+    const res = await makeApp(['resources:*'], 'resources:delete').request('/x')
+    expect(res.status).toBe(200)
+  })
 
-      const res = await app.request('/')
-      expect(res.status).toBe(200)
-    })
+  it('rejects when the permission set is empty', async () => {
+    const res = await makeApp([], 'resources:read').request('/x')
+    expect(res.status).toBe(403)
+  })
+})
 
-    it('should throw 403 when user has no role assigned', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test' } as any)
-        c.set('isSystemAdminAccess', false)
-        c.set('userRole', undefined)
-        return next()
-      })
-      app.use('*', requirePermission('accounts:manage'))
-      app.get('/', (c) => c.json({ ok: true }))
+// Builds a minimal app: a stand-in for optionalMiddleware sets authUser,
+// then the guard runs, then a handler that 200s if the guard let it through.
+function makeApp(authUser: AuthUser | null) {
+  const app = new Hono<HonoEnv>()
+  app.use('/accounts/:id/members/:userId', async (c, next) => {
+    c.set('authUser', authUser)
+    return protectAccountOwner()(c, next)
+  })
+  app.patch('/accounts/:id/members/:userId', (c) => c.json({ ok: true }))
+  app.get('/accounts/:id/members/:userId', (c) => c.json({ ok: true }))
+  return app
+}
 
-      const res = await app.request('/')
-      expect(res.status).toBe(403)
-    })
+const asUser = (id: string) => ({ id }) as AuthUser
 
-    it('should throw 403 when user lacks permission', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test' } as any)
-        c.set('isSystemAdminAccess', false)
-        c.set('userRole', 'VIEWER')
-        return next()
-      })
-      app.use('*', requirePermission('accounts:manage'))
-      app.get('/', (c) => c.json({ ok: true }))
+describe('protectAccountOwner', () => {
+  it('rejects an admin trying to modify the account owner membership', async () => {
+    const db = createMockD1AsD1Database()
+    setMockQueryResult(db, ['acc-1'], { owner_id: 'owner-1' })
+    const res = await makeApp(asUser('admin-9')).request(
+      '/accounts/acc-1/members/owner-1',
+      { method: 'PATCH' },
+      { DB: db },
+    )
+    expect(res.status).toBe(403)
+  })
 
-      const res = await app.request('/')
-      expect(res.status).toBe(403)
-    })
+  it('allows the owner to modify their own membership', async () => {
+    const db = createMockD1AsD1Database()
+    setMockQueryResult(db, ['acc-1'], { owner_id: 'owner-1' })
+    const res = await makeApp(asUser('owner-1')).request(
+      '/accounts/acc-1/members/owner-1',
+      { method: 'PATCH' },
+      { DB: db },
+    )
+    expect(res.status).toBe(200)
+  })
 
-    it('should allow access when user has permission via role', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test' } as any)
-        c.set('isSystemAdminAccess', false)
-        c.set('userRole', 'ADMIN')
-        return next()
-      })
-      // ADMIN has VIEW_ALL_USERS permission
-      app.use('*', requirePermission('VIEW_ALL_USERS'))
-      app.get('/', (c) => c.json({ ok: true }))
+  it('allows modifying a non-owner member', async () => {
+    const db = createMockD1AsD1Database()
+    setMockQueryResult(db, ['acc-1'], { owner_id: 'owner-1' })
+    const res = await makeApp(asUser('admin-9')).request(
+      '/accounts/acc-1/members/member-3',
+      { method: 'PATCH' },
+      { DB: db },
+    )
+    expect(res.status).toBe(200)
+  })
 
-      const res = await app.request('/')
-      expect(res.status).toBe(200)
-    })
+  it('ignores non-PATCH methods', async () => {
+    const db = createMockD1AsD1Database()
+    setMockQueryResult(db, ['acc-1'], { owner_id: 'owner-1' })
+    const res = await makeApp(null).request(
+      '/accounts/acc-1/members/owner-1',
+      { method: 'GET' },
+      { DB: db },
+    )
+    expect(res.status).toBe(200)
   })
 })

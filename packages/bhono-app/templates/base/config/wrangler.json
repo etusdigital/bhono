@@ -6,7 +6,7 @@
   "compatibility_date": "2025-01-01",
   "compatibility_flags": ["nodejs_compat"],
   "dev": {
-    "port": 3000
+    "port": 8787
   },
   "d1_databases": [
     {
@@ -33,14 +33,24 @@
     "binding": "ASSETS",
     "run_worker_first": [
       "/api/*",
-      "/auth/*"
+      "/auth/*",
+      "/accounts",
+      "/accounts/*",
+      "/invitations",
+      "/invitations/*",
+      "/audit",
+      "/audit/*",
+      "/health"
     ]
   },
   "vars": {
     "ENVIRONMENT": "production",
     "APP_URL": "https://hono-boilerplate.a3s.workers.dev",
-    "GOOGLE_REDIRECT_URI": "https://hono-boilerplate.a3s.workers.dev/auth/callback",
-    "R2_PUBLIC_URL": "https://pub-your-bucket-id.r2.dev"
+    "R2_PUBLIC_URL": "https://pub-your-bucket-id.r2.dev",
+    "ETUS_GATEWAY": "https://ag.etus.io",
+    "ETUS_CLIENT_ID": "boilerplate-hono",
+    "ETUS_ALLOWED_DOMAINS": "brius.com.br,etus.com.br",
+    "ETUS_ADMIN_EMAILS": "admin@etus.com.br"
   },
   "env": {
     "staging": {
@@ -67,8 +77,11 @@
       "vars": {
         "ENVIRONMENT": "staging",
         "APP_URL": "https://hono-boilerplate-staging.a3s.workers.dev",
-        "GOOGLE_REDIRECT_URI": "https://hono-boilerplate-staging.a3s.workers.dev/auth/callback",
-        "R2_PUBLIC_URL": "https://pub-your-bucket-id.r2.dev"
+        "R2_PUBLIC_URL": "https://pub-your-bucket-id.r2.dev",
+        "ETUS_GATEWAY": "https://ag.etus.io",
+        "ETUS_CLIENT_ID": "boilerplate-hono",
+        "ETUS_ALLOWED_DOMAINS": "brius.com.br,etus.com.br",
+        "ETUS_ADMIN_EMAILS": "admin@etus.com.br"
       }
     }
   }

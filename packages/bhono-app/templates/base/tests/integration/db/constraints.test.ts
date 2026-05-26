@@ -1,695 +1,343 @@
 /**
  * Database Constraints Integration Tests
  *
- * Tests database-level constraints:
- * - Unique constraints (google_id, account domain, invitation email per account)
- * - Foreign key constraints
- * - Check constraints (role values, status values, action values)
- * - Cascade delete behavior
+ * These tests intentionally mirror the @etus/auth-owned auth_* schema. They
+ * validate constraints that actually exist in schema.sql instead of preserving
+ * assumptions from the legacy local auth tables.
  */
 
-import { describe, it, expect, beforeAll } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { getSqlite } from '../setup'
-import { createUser, createAccount, addUserToAccount, createInvitation } from '../fixtures'
+
+function insertUser(data: {
+  id?: string
+  email?: string
+  gatewayUserId?: string | null
+  role?: string
+  status?: string
+} = {}): string {
+  const db = getSqlite()
+  const id = data.id ?? crypto.randomUUID()
+
+  db.prepare(`
+    INSERT INTO auth_users (id, gateway_user_id, email, name, picture, role, status)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    id,
+    data.gatewayUserId ?? `gateway_${id}`,
+    data.email ?? `${id}@example.com`,
+    'Test User',
+    null,
+    data.role ?? 'member',
+    data.status ?? 'active',
+  )
+
+  return id
+}
+
+function insertAccount(data: {
+  id?: string
+  name?: string
+  slug?: string | null
+  ownerId?: string
+} = {}): string {
+  const db = getSqlite()
+  const id = data.id ?? crypto.randomUUID()
+
+  db.prepare(`
+    INSERT INTO auth_accounts (id, name, slug, owner_id)
+    VALUES (?, ?, ?, ?)
+  `).run(id, data.name ?? 'Test Account', data.slug ?? null, data.ownerId ?? 'owner-id')
+
+  return id
+}
+
+function insertMembership(data: {
+  accountId: string
+  userId: string
+  role?: string
+}): string {
+  const db = getSqlite()
+  const id = crypto.randomUUID()
+
+  db.prepare(`
+    INSERT INTO auth_memberships (id, account_id, user_id, role, status)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(id, data.accountId, data.userId, data.role ?? 'member', 'active')
+
+  return id
+}
+
+function insertInvitation(data: {
+  accountId: string
+  invitedBy: string
+  email?: string
+  role?: string
+  token?: string
+}): string {
+  const db = getSqlite()
+  const id = crypto.randomUUID()
+
+  db.prepare(`
+    INSERT INTO auth_invitations (id, account_id, email, role, invited_by, token, expires_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    id,
+    data.accountId,
+    data.email ?? `${id}@example.com`,
+    data.role ?? 'guest',
+    data.invitedBy,
+    data.token ?? crypto.randomUUID(),
+    new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+  )
+
+  return id
+}
 
 describe('Database Constraints Integration Tests', () => {
-  // ============================================================================
-  // UNIQUE CONSTRAINTS
-  // ============================================================================
+  describe('auth_users', () => {
+    it('rejects duplicate emails because email is the local identity key', () => {
+      insertUser({ email: 'unique@example.com' })
 
-  describe('Unique constraints', () => {
-    describe('users.google_id unique constraint', () => {
-      it('should reject duplicate google_id', async () => {
-        const user = await createUser({
-          email: 'first-user@example.com',
-          name: 'First User',
-        })
-
-        const sqlite = getSqlite()
-
-        // Try to insert another user with the same google_id
-        expect(() => {
-          sqlite
-            .prepare(
-              `
-            INSERT INTO users (id, google_id, email, name, status, is_super_admin)
-            VALUES (?, ?, ?, ?, ?, ?)
-          `
-            )
-            .run(crypto.randomUUID(), user.googleId, 'different-email@example.com', 'Different User', 'active', 0)
-        }).toThrow(/UNIQUE constraint failed/)
-      })
-
-      it('should allow different google_ids for different users', async () => {
-        await createUser({
-          email: 'user-a@example.com',
-          name: 'User A',
-        })
-
-        // Different google_id should work
-        const userB = await createUser({
-          email: 'user-b@example.com',
-          name: 'User B',
-        })
-
-        expect(userB.id).toBeDefined()
-      })
+      expect(() => {
+        insertUser({ email: 'unique@example.com' })
+      }).toThrow(/UNIQUE constraint failed/)
     })
 
-    describe('accounts.domain unique constraint', () => {
-      it('should reject duplicate domain', async () => {
-        await createAccount({
-          name: 'Account 1',
-          domain: 'unique-domain.com',
-        })
+    it('allows duplicate gateway_user_id because the package indexes but does not constrain it', () => {
+      const gatewayUserId = 'gateway_shared'
 
-        const sqlite = getSqlite()
+      insertUser({ email: 'first@example.com', gatewayUserId })
+      const secondUserId = insertUser({ email: 'second@example.com', gatewayUserId })
 
-        // Try to create another account with same domain
-        expect(() => {
-          sqlite
-            .prepare(
-              `
-            INSERT INTO accounts (id, name, domain)
-            VALUES (?, ?, ?)
-          `
-            )
-            .run(crypto.randomUUID(), 'Account 2', 'unique-domain.com')
-        }).toThrow(/UNIQUE constraint failed/)
-      })
-
-      it('should allow null domains (not subject to unique constraint)', async () => {
-        await createAccount({
-          name: 'Account Without Domain 1',
-        })
-
-        const account2 = await createAccount({
-          name: 'Account Without Domain 2',
-        })
-
-        expect(account2.id).toBeDefined()
-      })
-
-      it('should allow different domains', async () => {
-        await createAccount({
-          name: 'Account Domain A',
-          domain: 'domain-a.com',
-        })
-
-        const accountB = await createAccount({
-          name: 'Account Domain B',
-          domain: 'domain-b.com',
-        })
-
-        expect(accountB.id).toBeDefined()
-      })
+      expect(secondUserId).toBeDefined()
     })
 
-    describe('invitations unique constraint (account_id, email)', () => {
-      it('should reject duplicate invitation to same email in same account', async () => {
-        const user = await createUser({ email: 'inviter@example.com', name: 'Inviter' })
-        const account = await createAccount({ name: 'Invitation Account' })
-        await addUserToAccount(user.id, account.id, 'ADMIN')
+    it('defaults product role to guest when a role is omitted', () => {
+      const db = getSqlite()
+      const id = crypto.randomUUID()
 
-        await createInvitation({
-          accountId: account.id,
-          email: 'invitee@example.com',
-          role: 'VIEWER',
-          invitedById: user.id,
-        })
+      db.prepare(`
+        INSERT INTO auth_users (id, gateway_user_id, email, name, picture, status)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(id, `gateway_${id}`, 'default-role@example.com', 'Default Role', null, 'pending')
 
-        const sqlite = getSqlite()
-
-        // Try to create another invitation with same email in same account
-        expect(() => {
-          sqlite
-            .prepare(
-              `
-            INSERT INTO invitations (id, account_id, email, role, token, invited_by_id, expires_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-          `
-            )
-            .run(
-              crypto.randomUUID(),
-              account.id,
-              'invitee@example.com',
-              'EDITOR',
-              crypto.randomUUID(),
-              user.id,
-              new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-            )
-        }).toThrow(/UNIQUE constraint failed/)
-      })
-
-      it('should allow same email to be invited to different accounts', async () => {
-        const user = await createUser({ email: 'multi-inviter@example.com', name: 'Multi Inviter' })
-
-        const account1 = await createAccount({ name: 'Account for Invite 1' })
-        await addUserToAccount(user.id, account1.id, 'ADMIN')
-
-        const account2 = await createAccount({ name: 'Account for Invite 2' })
-        await addUserToAccount(user.id, account2.id, 'ADMIN')
-
-        // Invite same email to account 1
-        await createInvitation({
-          accountId: account1.id,
-          email: 'multi-invitee@example.com',
-          role: 'VIEWER',
-          invitedById: user.id,
-        })
-
-        // Invite same email to account 2 - should succeed
-        const invite2 = await createInvitation({
-          accountId: account2.id,
-          email: 'multi-invitee@example.com',
-          role: 'VIEWER',
-          invitedById: user.id,
-        })
-
-        expect(invite2.id).toBeDefined()
-      })
-    })
-
-    describe('invitations.token unique constraint', () => {
-      it('should reject duplicate invitation tokens', async () => {
-        const user = await createUser({ email: 'token-inviter@example.com', name: 'Token Inviter' })
-        const account = await createAccount({ name: 'Token Account' })
-        await addUserToAccount(user.id, account.id, 'ADMIN')
-
-        const sqlite = getSqlite()
-        const duplicateToken = crypto.randomUUID()
-
-        // Create first invitation with specific token
-        sqlite
-          .prepare(
-            `
-          INSERT INTO invitations (id, account_id, email, role, token, invited_by_id, expires_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
-        `
-          )
-          .run(
-            crypto.randomUUID(),
-            account.id,
-            'token-test-1@example.com',
-            'VIEWER',
-            duplicateToken,
-            user.id,
-            new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-          )
-
-        // Try to create another invitation with same token
-        expect(() => {
-          sqlite
-            .prepare(
-              `
-            INSERT INTO invitations (id, account_id, email, role, token, invited_by_id, expires_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-          `
-            )
-            .run(
-              crypto.randomUUID(),
-              account.id,
-              'token-test-2@example.com',
-              'VIEWER',
-              duplicateToken,
-              user.id,
-              new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-            )
-        }).toThrow(/UNIQUE constraint failed/)
-      })
-    })
-
-    describe('user_accounts primary key constraint', () => {
-      it('should reject duplicate user-account combination', async () => {
-        const user = await createUser({ email: 'dup-role@example.com', name: 'Dup Role User' })
-        const account = await createAccount({ name: 'Dup Role Account' })
-
-        await addUserToAccount(user.id, account.id, 'ADMIN')
-
-        const sqlite = getSqlite()
-
-        // Try to add same user to same account again
-        expect(() => {
-          sqlite
-            .prepare(
-              `
-            INSERT INTO user_accounts (user_id, account_id, role)
-            VALUES (?, ?, ?)
-          `
-            )
-            .run(user.id, account.id, 'VIEWER')
-        }).toThrow(/UNIQUE constraint failed|PRIMARY KEY constraint/)
-      })
+      const row = db.prepare('SELECT role FROM auth_users WHERE id = ?').get(id) as { role: string }
+      expect(row.role).toBe('guest')
     })
   })
 
-  // ============================================================================
-  // FOREIGN KEY CONSTRAINTS
-  // ============================================================================
+  describe('auth_accounts', () => {
+    it('rejects duplicate slugs because account URLs need stable lookup keys', () => {
+      insertAccount({ name: 'First Account', slug: 'acme' })
 
-  describe('Foreign key constraints', () => {
-    describe('user_accounts foreign keys', () => {
-      it('should reject non-existent user_id', () => {
-        const sqlite = getSqlite()
-        const fakeUserId = crypto.randomUUID()
-
-        // Create a real account first
-        const accountId = crypto.randomUUID()
-        sqlite
-          .prepare(
-            `
-          INSERT INTO accounts (id, name)
-          VALUES (?, ?)
-        `
-          )
-          .run(accountId, 'FK Test Account')
-
-        expect(() => {
-          sqlite
-            .prepare(
-              `
-            INSERT INTO user_accounts (user_id, account_id, role)
-            VALUES (?, ?, ?)
-          `
-            )
-            .run(fakeUserId, accountId, 'VIEWER')
-        }).toThrow(/FOREIGN KEY constraint failed/)
-      })
-
-      it('should reject non-existent account_id', async () => {
-        const user = await createUser({ email: 'fk-user@example.com', name: 'FK User' })
-        const fakeAccountId = crypto.randomUUID()
-
-        const sqlite = getSqlite()
-
-        expect(() => {
-          sqlite
-            .prepare(
-              `
-            INSERT INTO user_accounts (user_id, account_id, role)
-            VALUES (?, ?, ?)
-          `
-            )
-            .run(user.id, fakeAccountId, 'VIEWER')
-        }).toThrow(/FOREIGN KEY constraint failed/)
-      })
+      expect(() => {
+        insertAccount({ name: 'Second Account', slug: 'acme' })
+      }).toThrow(/UNIQUE constraint failed/)
     })
 
-    describe('invitations foreign keys', () => {
-      it('should reject non-existent account_id', async () => {
-        const user = await createUser({ email: 'fk-inviter@example.com', name: 'FK Inviter' })
-        const fakeAccountId = crypto.randomUUID()
+    it('allows multiple accounts without slugs while onboarding is incomplete', () => {
+      insertAccount({ name: 'No Slug A' })
+      const secondAccountId = insertAccount({ name: 'No Slug B' })
 
-        const sqlite = getSqlite()
-
-        expect(() => {
-          sqlite
-            .prepare(
-              `
-            INSERT INTO invitations (id, account_id, email, role, token, invited_by_id, expires_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-          `
-            )
-            .run(
-              crypto.randomUUID(),
-              fakeAccountId,
-              'test@example.com',
-              'VIEWER',
-              crypto.randomUUID(),
-              user.id,
-              new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-            )
-        }).toThrow(/FOREIGN KEY constraint failed/)
-      })
-
-      it('should reject non-existent invited_by_id', async () => {
-        const account = await createAccount({ name: 'FK Invite Account' })
-        const fakeUserId = crypto.randomUUID()
-
-        const sqlite = getSqlite()
-
-        expect(() => {
-          sqlite
-            .prepare(
-              `
-            INSERT INTO invitations (id, account_id, email, role, token, invited_by_id, expires_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-          `
-            )
-            .run(
-              crypto.randomUUID(),
-              account.id,
-              'test@example.com',
-              'VIEWER',
-              crypto.randomUUID(),
-              fakeUserId,
-              new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-            )
-        }).toThrow(/FOREIGN KEY constraint failed/)
-      })
-    })
-
-    describe('refresh_tokens foreign keys', () => {
-      it('should reject non-existent user_id', () => {
-        const sqlite = getSqlite()
-        const fakeUserId = crypto.randomUUID()
-
-        expect(() => {
-          sqlite
-            .prepare(
-              `
-            INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, created_at)
-            VALUES (?, ?, ?, ?, ?)
-          `
-            )
-            .run(
-              crypto.randomUUID(),
-              fakeUserId,
-              'somehash',
-              Math.floor(Date.now() / 1000) + 3600,
-              Math.floor(Date.now() / 1000)
-            )
-        }).toThrow(/FOREIGN KEY constraint failed/)
-      })
-    })
-
-    describe('audit_logs foreign keys', () => {
-      it('should accept null account_id (for system-wide events)', () => {
-        const sqlite = getSqlite()
-
-        // Should not throw - null account_id is allowed
-        expect(() => {
-          sqlite
-            .prepare(
-              `
-            INSERT INTO audit_logs (id, transaction_id, account_id, user_id, entity, entity_id, action)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-          `
-            )
-            .run(crypto.randomUUID(), crypto.randomUUID(), null, null, 'System', 'system', 'INSERT')
-        }).not.toThrow()
-      })
+      expect(secondAccountId).toBeDefined()
     })
   })
 
-  // ============================================================================
-  // CHECK CONSTRAINTS
-  // ============================================================================
+  describe('auth_memberships', () => {
+    it('rejects duplicate account/user memberships so one role owns the account context', () => {
+      const userId = insertUser({ email: 'member@example.com' })
+      const accountId = insertAccount({ ownerId: userId })
 
-  describe('Check constraints', () => {
-    describe('users.status check constraint', () => {
-      it('should accept valid status values', async () => {
-        const activeUser = await createUser({
-          email: 'active-status@example.com',
-          name: 'Active User',
-          status: 'active',
-        })
-        expect(activeUser.status).toBe('active')
+      insertMembership({ userId, accountId, role: 'admin' })
 
-        const inactiveUser = await createUser({
-          email: 'inactive-status@example.com',
-          name: 'Inactive User',
-          status: 'inactive',
-        })
-        expect(inactiveUser.status).toBe('inactive')
-      })
-
-      it('should reject invalid status values', () => {
-        const sqlite = getSqlite()
-
-        expect(() => {
-          sqlite
-            .prepare(
-              `
-            INSERT INTO users (id, google_id, email, name, status, is_super_admin)
-            VALUES (?, ?, ?, ?, ?, ?)
-          `
-            )
-            .run(crypto.randomUUID(), crypto.randomUUID(), 'invalid-status@example.com', 'Invalid Status User', 'invalid_status', 0)
-        }).toThrow(/CHECK constraint failed/)
-      })
+      expect(() => {
+        insertMembership({ userId, accountId, role: 'guest' })
+      }).toThrow(/UNIQUE constraint failed/)
     })
 
-    describe('user_accounts.role check constraint', () => {
-      it('should accept valid role values', async () => {
-        const user = await createUser({ email: 'role-check@example.com', name: 'Role Check User' })
-        const account = await createAccount({ name: 'Role Check Account' })
+    it('defaults membership role to guest when a role is omitted', () => {
+      const db = getSqlite()
+      const userId = insertUser({ email: 'membership-default@example.com' })
+      const accountId = insertAccount({ ownerId: userId })
+      const membershipId = crypto.randomUUID()
 
-        const validRoles = ['ADMIN', 'MANAGER', 'EDITOR', 'AUTHOR', 'VIEWER', 'BILLING', 'ANALYTICS']
+      db.prepare(`
+        INSERT INTO auth_memberships (id, account_id, user_id, status)
+        VALUES (?, ?, ?, ?)
+      `).run(membershipId, accountId, userId, 'active')
 
-        for (const role of validRoles) {
-          const sqlite = getSqlite()
-          // First remove any existing association
-          sqlite.prepare('DELETE FROM user_accounts WHERE user_id = ? AND account_id = ?').run(user.id, account.id)
-
-          // Then add with new role
-          expect(() => {
-            sqlite
-              .prepare(
-                `
-              INSERT INTO user_accounts (user_id, account_id, role)
-              VALUES (?, ?, ?)
-            `
-              )
-              .run(user.id, account.id, role)
-          }).not.toThrow()
-        }
-      })
-
-      it('should reject invalid role values', async () => {
-        const user = await createUser({ email: 'invalid-role@example.com', name: 'Invalid Role User' })
-        const account = await createAccount({ name: 'Invalid Role Account' })
-
-        const sqlite = getSqlite()
-
-        expect(() => {
-          sqlite
-            .prepare(
-              `
-            INSERT INTO user_accounts (user_id, account_id, role)
-            VALUES (?, ?, ?)
-          `
-            )
-            .run(user.id, account.id, 'SUPER_ADMIN')
-        }).toThrow(/CHECK constraint failed/)
-
-        expect(() => {
-          sqlite
-            .prepare(
-              `
-            INSERT INTO user_accounts (user_id, account_id, role)
-            VALUES (?, ?, ?)
-          `
-            )
-            .run(user.id, account.id, 'invalid_role')
-        }).toThrow(/CHECK constraint failed/)
-      })
-    })
-
-    describe('invitations.role check constraint', () => {
-      it('should accept valid invitation role values', async () => {
-        const user = await createUser({ email: 'invite-role-check@example.com', name: 'Invite Role Check' })
-        const account = await createAccount({ name: 'Invite Role Account' })
-        await addUserToAccount(user.id, account.id, 'ADMIN')
-
-        const validRoles = ['ADMIN', 'MANAGER', 'EDITOR', 'AUTHOR', 'VIEWER', 'BILLING', 'ANALYTICS']
-
-        for (let i = 0; i < validRoles.length; i++) {
-          const invitation = await createInvitation({
-            accountId: account.id,
-            email: `invite-role-${i}@example.com`,
-            role: validRoles[i] as any,
-            invitedById: user.id,
-          })
-          expect(invitation.role).toBe(validRoles[i])
-        }
-      })
-
-      it('should reject invalid invitation role values', async () => {
-        const user = await createUser({ email: 'invalid-invite-role@example.com', name: 'Invalid Invite Role' })
-        const account = await createAccount({ name: 'Invalid Invite Role Account' })
-        await addUserToAccount(user.id, account.id, 'ADMIN')
-
-        const sqlite = getSqlite()
-
-        expect(() => {
-          sqlite
-            .prepare(
-              `
-            INSERT INTO invitations (id, account_id, email, role, token, invited_by_id, expires_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-          `
-            )
-            .run(
-              crypto.randomUUID(),
-              account.id,
-              'invalid-role-invite@example.com',
-              'OWNER',
-              crypto.randomUUID(),
-              user.id,
-              new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-            )
-        }).toThrow(/CHECK constraint failed/)
-      })
-    })
-
-    describe('audit_logs.action check constraint', () => {
-      it('should accept valid action values', () => {
-        const sqlite = getSqlite()
-        const validActions = ['INSERT', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'SIGNUP', 'TOKEN_REFRESH', 'LOGIN_FAILED']
-
-        for (const action of validActions) {
-          expect(() => {
-            sqlite
-              .prepare(
-                `
-              INSERT INTO audit_logs (id, transaction_id, entity, entity_id, action)
-              VALUES (?, ?, ?, ?, ?)
-            `
-              )
-              .run(crypto.randomUUID(), crypto.randomUUID(), 'Test', crypto.randomUUID(), action)
-          }).not.toThrow()
-        }
-      })
-
-      it('should reject invalid action values', () => {
-        const sqlite = getSqlite()
-
-        expect(() => {
-          sqlite
-            .prepare(
-              `
-            INSERT INTO audit_logs (id, transaction_id, entity, entity_id, action)
-            VALUES (?, ?, ?, ?, ?)
-          `
-            )
-            .run(crypto.randomUUID(), crypto.randomUUID(), 'Test', crypto.randomUUID(), 'INVALID_ACTION')
-        }).toThrow(/CHECK constraint failed/)
-      })
+      const row = db
+        .prepare('SELECT role FROM auth_memberships WHERE id = ?')
+        .get(membershipId) as { role: string }
+      expect(row.role).toBe('guest')
     })
   })
 
-  // ============================================================================
-  // CASCADE DELETE
-  // ============================================================================
+  describe('auth_invitations', () => {
+    it('rejects duplicate tokens because invitation acceptance is token-addressed', () => {
+      const inviterId = insertUser({ email: 'inviter@example.com' })
+      const accountId = insertAccount({ ownerId: inviterId })
+      const token = crypto.randomUUID()
 
-  describe('Cascade delete behavior', () => {
-    describe('user deletion cascades', () => {
-      it('should cascade delete user_accounts when user is deleted', async () => {
-        const user = await createUser({ email: 'cascade-user@example.com', name: 'Cascade User' })
-        const account = await createAccount({ name: 'Cascade Account' })
-        await addUserToAccount(user.id, account.id, 'ADMIN')
+      insertInvitation({ accountId, invitedBy: inviterId, email: 'one@example.com', token })
 
-        const sqlite = getSqlite()
+      expect(() => {
+        insertInvitation({ accountId, invitedBy: inviterId, email: 'two@example.com', token })
+      }).toThrow(/UNIQUE constraint failed/)
+    })
 
-        // Verify user_account exists
-        const before = sqlite
-          .prepare('SELECT * FROM user_accounts WHERE user_id = ?')
-          .all(user.id) as any[]
-        expect(before.length).toBe(1)
-
-        // Delete user
-        sqlite.prepare('DELETE FROM users WHERE id = ?').run(user.id)
-
-        // Verify user_account is deleted
-        const after = sqlite
-          .prepare('SELECT * FROM user_accounts WHERE user_id = ?')
-          .all(user.id) as any[]
-        expect(after.length).toBe(0)
+    it('defaults invitation role to guest when a role is omitted', () => {
+      const inviterId = insertUser({ email: 'invite-default@example.com' })
+      const accountId = insertAccount({ ownerId: inviterId })
+      const invitationId = insertInvitation({
+        accountId,
+        invitedBy: inviterId,
+        email: 'guest-invite@example.com',
       })
 
-      it('should cascade delete refresh_tokens when user is deleted', async () => {
-        const user = await createUser({ email: 'cascade-token@example.com', name: 'Cascade Token User' })
+      const row = getSqlite()
+        .prepare('SELECT role FROM auth_invitations WHERE id = ?')
+        .get(invitationId) as { role: string }
+      expect(row.role).toBe('guest')
+    })
+  })
 
-        const sqlite = getSqlite()
+  describe('auth_sessions', () => {
+    it('rejects sessions for unknown users so cookies cannot point at missing principals', () => {
+      const db = getSqlite()
 
-        // Create refresh token
-        sqlite
-          .prepare(
-            `
-          INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, created_at)
+      expect(() => {
+        db.prepare(`
+          INSERT INTO auth_sessions (id, user_id, expires_at, created_at)
+          VALUES (?, ?, ?, ?)
+        `).run(crypto.randomUUID(), 'missing-user', Date.now() + 1000, Date.now())
+      }).toThrow(/FOREIGN KEY constraint failed/)
+    })
+
+    it('cascades sessions when a user is deleted', () => {
+      const db = getSqlite()
+      const userId = insertUser({ email: 'session-cascade@example.com' })
+      const sessionId = crypto.randomUUID()
+
+      db.prepare(`
+        INSERT INTO auth_sessions (id, user_id, expires_at, created_at)
+        VALUES (?, ?, ?, ?)
+      `).run(sessionId, userId, Date.now() + 1000, Date.now())
+
+      db.prepare('DELETE FROM auth_users WHERE id = ?').run(userId)
+
+      const row = db.prepare('SELECT id FROM auth_sessions WHERE id = ?').get(sessionId)
+      expect(row).toBeUndefined()
+    })
+  })
+
+  describe('permission grants', () => {
+    it('rejects duplicate global user permission grants', () => {
+      const db = getSqlite()
+      const userId = insertUser({ email: 'permission@example.com' })
+
+      db.prepare(`
+        INSERT INTO auth_user_permissions (id, user_id, permission)
+        VALUES (?, ?, ?)
+      `).run(crypto.randomUUID(), userId, 'resources:read')
+
+      expect(() => {
+        db.prepare(`
+          INSERT INTO auth_user_permissions (id, user_id, permission)
+          VALUES (?, ?, ?)
+        `).run(crypto.randomUUID(), userId, 'resources:read')
+      }).toThrow(/UNIQUE constraint failed/)
+    })
+
+    it('allows the same user permission scoped to different accounts', () => {
+      const db = getSqlite()
+      const userId = insertUser({ email: 'scoped-permission@example.com' })
+
+      db.prepare(`
+        INSERT INTO auth_user_permissions (id, user_id, permission, account_id)
+        VALUES (?, ?, ?, ?)
+      `).run(crypto.randomUUID(), userId, 'resources:read', 'account-a')
+
+      const { changes } = db.prepare(`
+        INSERT INTO auth_user_permissions (id, user_id, permission, account_id)
+        VALUES (?, ?, ?, ?)
+      `).run(crypto.randomUUID(), userId, 'resources:read', 'account-b')
+
+      expect(changes).toBe(1)
+    })
+
+    it('rejects resource permissions for unknown users', () => {
+      const db = getSqlite()
+
+      expect(() => {
+        db.prepare(`
+          INSERT INTO auth_resource_permissions
+            (id, user_id, resource_type, resource_id, permission)
           VALUES (?, ?, ?, ?, ?)
-        `
-          )
-          .run(
-            crypto.randomUUID(),
-            user.id,
-            'somehash123',
-            Math.floor(Date.now() / 1000) + 3600,
-            Math.floor(Date.now() / 1000)
-          )
-
-        // Verify token exists
-        const before = sqlite
-          .prepare('SELECT * FROM refresh_tokens WHERE user_id = ?')
-          .all(user.id) as any[]
-        expect(before.length).toBe(1)
-
-        // Delete user
-        sqlite.prepare('DELETE FROM users WHERE id = ?').run(user.id)
-
-        // Verify token is deleted
-        const after = sqlite
-          .prepare('SELECT * FROM refresh_tokens WHERE user_id = ?')
-          .all(user.id) as any[]
-        expect(after.length).toBe(0)
-      })
+        `).run(crypto.randomUUID(), 'missing-user', 'document', 'doc-1', 'resources:read')
+      }).toThrow(/FOREIGN KEY constraint failed/)
     })
 
-    describe('account deletion cascades', () => {
-      it('should cascade delete user_accounts when account is deleted', async () => {
-        const user = await createUser({ email: 'cascade-acct@example.com', name: 'Cascade Acct User' })
-        const account = await createAccount({ name: 'Cascade Delete Account' })
-        await addUserToAccount(user.id, account.id, 'ADMIN')
+    it('rejects duplicate resource permission grants for the same resource scope', () => {
+      const db = getSqlite()
+      const userId = insertUser({ email: 'resource-permission@example.com' })
 
-        const sqlite = getSqlite()
+      db.prepare(`
+        INSERT INTO auth_resource_permissions
+          (id, user_id, resource_type, resource_id, permission)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(crypto.randomUUID(), userId, 'document', 'doc-1', 'resources:read')
 
-        // Verify user_account exists
-        const before = sqlite
-          .prepare('SELECT * FROM user_accounts WHERE account_id = ?')
-          .all(account.id) as any[]
-        expect(before.length).toBe(1)
+      expect(() => {
+        db.prepare(`
+          INSERT INTO auth_resource_permissions
+            (id, user_id, resource_type, resource_id, permission)
+          VALUES (?, ?, ?, ?, ?)
+        `).run(crypto.randomUUID(), userId, 'document', 'doc-1', 'resources:read')
+      }).toThrow(/UNIQUE constraint failed/)
+    })
 
-        // Delete account
-        sqlite.prepare('DELETE FROM accounts WHERE id = ?').run(account.id)
+    it('cascades direct permission grants when a user is deleted', () => {
+      const db = getSqlite()
+      const userId = insertUser({ email: 'permission-cascade@example.com' })
+      const userPermissionId = crypto.randomUUID()
+      const resourcePermissionId = crypto.randomUUID()
 
-        // Verify user_account is deleted
-        const after = sqlite
-          .prepare('SELECT * FROM user_accounts WHERE account_id = ?')
-          .all(account.id) as any[]
-        expect(after.length).toBe(0)
-      })
+      db.prepare(`
+        INSERT INTO auth_user_permissions (id, user_id, permission)
+        VALUES (?, ?, ?)
+      `).run(userPermissionId, userId, 'resources:read')
+      db.prepare(`
+        INSERT INTO auth_resource_permissions
+          (id, user_id, resource_type, resource_id, permission)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(resourcePermissionId, userId, 'document', 'doc-1', 'resources:read')
 
-      it('should cascade delete invitations when account is deleted', async () => {
-        const user = await createUser({ email: 'cascade-invite@example.com', name: 'Cascade Invite User' })
-        const account = await createAccount({ name: 'Cascade Invite Account' })
-        await addUserToAccount(user.id, account.id, 'ADMIN')
+      db.prepare('DELETE FROM auth_users WHERE id = ?').run(userId)
 
-        await createInvitation({
-          accountId: account.id,
-          email: 'cascade-invitee@example.com',
-          role: 'VIEWER',
-          invitedById: user.id,
-        })
+      const directGrant = db
+        .prepare('SELECT id FROM auth_user_permissions WHERE id = ?')
+        .get(userPermissionId)
+      const resourceGrant = db
+        .prepare('SELECT id FROM auth_resource_permissions WHERE id = ?')
+        .get(resourcePermissionId)
 
-        const sqlite = getSqlite()
+      expect(directGrant).toBeUndefined()
+      expect(resourceGrant).toBeUndefined()
+    })
+  })
 
-        // Verify invitation exists
-        const before = sqlite
-          .prepare('SELECT * FROM invitations WHERE account_id = ?')
-          .all(account.id) as any[]
-        expect(before.length).toBe(1)
+  describe('auth_audit_logs', () => {
+    it('accepts system events without actor or account because audit can record anonymous failures', () => {
+      const db = getSqlite()
 
-        // Delete account (need to delete user_accounts first due to FK on invitations.invited_by_id)
-        sqlite.prepare('DELETE FROM user_accounts WHERE account_id = ?').run(account.id)
-        sqlite.prepare('DELETE FROM accounts WHERE id = ?').run(account.id)
+      const { changes } = db.prepare(`
+        INSERT INTO auth_audit_logs (id, event_type, metadata)
+        VALUES (?, ?, ?)
+      `).run(crypto.randomUUID(), 'auth.oauth_error', JSON.stringify({ reason: 'bad_state' }))
 
-        // Verify invitation is deleted
-        const after = sqlite
-          .prepare('SELECT * FROM invitations WHERE account_id = ?')
-          .all(account.id) as any[]
-        expect(after.length).toBe(0)
-      })
+      expect(changes).toBe(1)
     })
   })
 })

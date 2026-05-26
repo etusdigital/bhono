@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest"
 import { render, screen } from "@tests/helpers/client-test-utils"
 import { createRef } from "react"
-import { Skeleton } from "../skeleton"
+import { Skeleton } from "@/components/ui/skeleton"
 
 describe("Skeleton", () => {
   it("renders a skeleton element", () => {

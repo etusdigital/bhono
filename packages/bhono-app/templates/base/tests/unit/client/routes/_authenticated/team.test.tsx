@@ -1,16 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { renderRoute } from '@tests/helpers/client-test-utils'
-
-// Mock user for authenticated tests
-const mockUser = {
-  id: 'test-user-id',
-  email: 'test@example.com',
-  name: 'Test User',
-  isSuperAdmin: false,
-  avatarUrl: null,
-}
+import { renderRoute, setupFetchMock } from '@tests/helpers/client-test-utils'
 
 // Default waitFor options with extended timeout
 const waitOptions = { timeout: 5000 }
@@ -18,19 +9,7 @@ const waitOptions = { timeout: 5000 }
 describe('Team Page', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    // Mock fetch to return authenticated user
-    vi.spyOn(global, 'fetch').mockImplementation((url) => {
-      if (url === '/auth/me') {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ user: mockUser }),
-        } as Response)
-      }
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({}),
-      } as Response)
-    })
+    setupFetchMock()
   })
 
   it('should render page with correct title and description', async () => {
@@ -48,9 +27,8 @@ describe('Team Page', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Active Members')).toBeInTheDocument()
+      expect(screen.getByText(/1 member in your workspace/i)).toBeInTheDocument()
     }, waitOptions)
-
-    expect(screen.getByText(/1 member in your workspace/i)).toBeInTheDocument()
   })
 
   it('should show current user with "(you)" indicator and role badge', async () => {
@@ -58,8 +36,7 @@ describe('Team Page', () => {
 
     await waitFor(() => {
       expect(screen.getByText('(you)')).toBeInTheDocument()
-      // Check owner role badge
-      expect(screen.getByText('owner')).toBeInTheDocument()
+      expect(screen.getByText('admin')).toBeInTheDocument()
     }, waitOptions)
   })
 
@@ -108,8 +85,7 @@ describe('Team Page', () => {
     // Check expiration info
     expect(screen.getByText(/expires in \d+ days?/i)).toBeInTheDocument()
 
-    // Check action buttons
-    expect(screen.getByRole('button', { name: /resend/i })).toBeInTheDocument()
+    // Check action button
     expect(screen.getByRole('button', { name: /revoke/i })).toBeInTheDocument()
   })
 
@@ -222,31 +198,16 @@ describe('Team Page', () => {
       // Submit form
       await user.click(screen.getByRole('button', { name: /send invitation/i }))
 
-      // Should show submitting state (spinner appears)
       await waitFor(() => {
-        const submitButton = screen.getByRole('button', { name: /send invitation/i })
-        expect(submitButton).toBeDisabled()
+        expect(global.fetch).toHaveBeenCalledWith(
+          '/accounts/test-account-id/members/invite',
+          expect.objectContaining({ method: 'POST' }),
+        )
       })
     })
   })
 
   describe('InvitationRow actions', () => {
-    it('should handle resend button click', async () => {
-      const user = userEvent.setup()
-      renderRoute({ initialEntries: ['/team'] })
-
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /resend/i })).toBeInTheDocument()
-      }, waitOptions)
-
-      // Click resend
-      const resendButton = screen.getByRole('button', { name: /resend/i })
-      await user.click(resendButton)
-
-      // Button should be disabled during action
-      expect(resendButton).toBeDisabled()
-    })
-
     it('should handle revoke button click', async () => {
       const user = userEvent.setup()
       renderRoute({ initialEntries: ['/team'] })
@@ -259,8 +220,12 @@ describe('Team Page', () => {
       const revokeButton = screen.getByRole('button', { name: /revoke/i })
       await user.click(revokeButton)
 
-      // Button should be disabled during action
-      expect(revokeButton).toBeDisabled()
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          '/accounts/test-account-id/invitations/test-invitation-id',
+          expect.objectContaining({ method: 'DELETE' }),
+        )
+      })
     })
   })
 
@@ -278,8 +243,8 @@ describe('Team Page', () => {
       renderRoute({ initialEntries: ['/team'] })
 
       await waitFor(() => {
-        const ownerBadge = screen.getByText('owner')
-        expect(ownerBadge).toBeInTheDocument()
+        const adminBadge = screen.getByText('admin')
+        expect(adminBadge).toBeInTheDocument()
       }, waitOptions)
     })
   })

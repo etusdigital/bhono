@@ -32,28 +32,28 @@ test.describe('Accessibility Tests @a11y', () => {
       await page.goto('/login')
 
       // OAuth button should be focusable
-      const googleButton = page.getByRole('button', { name: /continue with google/i })
-      await expect(googleButton).toBeVisible()
-      await expect(googleButton).toBeEnabled()
+      const authButton = page.getByRole('button', { name: /continue with etus/i })
+      await expect(authButton).toBeVisible()
+      await expect(authButton).toBeEnabled()
 
       // Focus the button
-      await googleButton.focus()
-      await expect(googleButton).toBeFocused()
+      await authButton.focus()
+      await expect(authButton).toBeFocused()
 
       // Button should have accessible name
-      await expect(googleButton).toHaveAccessibleName(/continue with google/i)
+      await expect(authButton).toHaveAccessibleName(/continue with etus/i)
     })
 
     test('login page supports keyboard navigation', async ({ page }) => {
       await page.goto('/login')
 
       // Verify the OAuth button is keyboard accessible
-      const googleButton = page.getByRole('button', { name: /continue with google/i })
-      await expect(googleButton).toBeVisible()
+      const authButton = page.getByRole('button', { name: /continue with etus/i })
+      await expect(authButton).toBeVisible()
 
       // Focus the button directly to verify it can receive focus
-      await googleButton.focus()
-      await expect(googleButton).toBeFocused()
+      await authButton.focus()
+      await expect(authButton).toBeFocused()
 
       // Tab to next element and verify focus moves
       await page.keyboard.press('Tab')
@@ -62,7 +62,7 @@ test.describe('Accessibility Tests @a11y', () => {
 
       // Verify we can navigate back with Shift+Tab
       await page.keyboard.press('Shift+Tab')
-      await expect(googleButton).toBeFocused()
+      await expect(authButton).toBeFocused()
     })
 
     test('login page links have proper focus indicators', async ({ page }) => {

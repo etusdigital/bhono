@@ -274,7 +274,7 @@ test.describe('Navigation and Routing @routing', () => {
 
       // Should show login page content
       await expect(page.getByText('Welcome back')).toBeVisible()
-      await expect(page.getByRole('button', { name: /continue with google/i })).toBeVisible()
+      await expect(page.getByRole('button', { name: /continue with etus/i })).toBeVisible()
     })
 
     test('should handle redirect query parameter in login URL', async ({ page }) => {
@@ -283,7 +283,7 @@ test.describe('Navigation and Routing @routing', () => {
 
       // Login page should still load correctly
       await expect(page.getByText('Welcome back')).toBeVisible()
-      await expect(page.getByRole('button', { name: /continue with google/i })).toBeVisible()
+      await expect(page.getByRole('button', { name: /continue with etus/i })).toBeVisible()
 
       // URL should contain the redirect parameter
       const url = page.url()

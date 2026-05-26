@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { getEnv, type Env } from '@server/env'
+import { describe, it, expect, vi } from 'vitest'
+import { getEnv, parseUploadBytes, validateEnv, type Env } from '@server/env'
 
 // Note: The old process.env-based tests were removed as the env module
 // now uses Cloudflare Workers bindings (passed to getEnv function)
@@ -14,12 +14,11 @@ describe('getEnv', () => {
       R2_PUBLIC_URL: 'https://r2.example.com',
       ENVIRONMENT: 'test',
       APP_URL: 'https://app.example.com',
-      JWT_SECRET: 'test-secret',
-      JWT_EXPIRY_MINUTES: '15',
-      GOOGLE_CLIENT_ID: 'test-client-id',
-      GOOGLE_CLIENT_SECRET: 'test-client-secret',
-      GOOGLE_REDIRECT_URI: 'https://app.example.com/auth/callback',
-      REFRESH_TOKEN_EXPIRY_DAYS: '30',
+      ETUS_GATEWAY: 'https://ag.etus.io',
+      ETUS_CLIENT_ID: 'test-client-id',
+      ETUS_CLIENT_SECRET: 'test-client-secret',
+      ETUS_ALLOWED_DOMAINS: 'example.com',
+      ETUS_ADMIN_EMAILS: 'admin@example.com',
       SENDGRID_API_KEY: 'test-api-key',
       SENDGRID_FROM_EMAIL: 'test@example.com',
     } as Env
@@ -41,12 +40,11 @@ describe('getEnv', () => {
       R2_PUBLIC_URL: 'https://r2.example.com',
       ENVIRONMENT: 'test',
       APP_URL: 'https://app.example.com',
-      JWT_SECRET: 'test-secret',
-      JWT_EXPIRY_MINUTES: '15',
-      GOOGLE_CLIENT_ID: 'test-client-id',
-      GOOGLE_CLIENT_SECRET: 'test-client-secret',
-      GOOGLE_REDIRECT_URI: 'https://app.example.com/auth/callback',
-      REFRESH_TOKEN_EXPIRY_DAYS: '30',
+      ETUS_GATEWAY: 'https://ag.etus.io',
+      ETUS_CLIENT_ID: 'test-client-id',
+      ETUS_CLIENT_SECRET: 'test-client-secret',
+      ETUS_ALLOWED_DOMAINS: 'example.com',
+      ETUS_ADMIN_EMAILS: 'admin@example.com',
       SENDGRID_API_KEY: 'test-api-key',
       SENDGRID_FROM_EMAIL: 'test@example.com',
     } as Env
@@ -67,12 +65,11 @@ describe('getEnv', () => {
       R2_PUBLIC_URL: 'https://r2.example.com',
       ENVIRONMENT: 'test',
       APP_URL: 'https://app.example.com',
-      JWT_SECRET: 'test-secret',
-      JWT_EXPIRY_MINUTES: '15',
-      GOOGLE_CLIENT_ID: 'test-client-id',
-      GOOGLE_CLIENT_SECRET: 'test-client-secret',
-      GOOGLE_REDIRECT_URI: 'https://app.example.com/auth/callback',
-      REFRESH_TOKEN_EXPIRY_DAYS: '30',
+      ETUS_GATEWAY: 'https://ag.etus.io',
+      ETUS_CLIENT_ID: 'test-client-id',
+      ETUS_CLIENT_SECRET: 'test-client-secret',
+      ETUS_ALLOWED_DOMAINS: 'example.com',
+      ETUS_ADMIN_EMAILS: 'admin@example.com',
       SENDGRID_API_KEY: 'test-api-key',
       SENDGRID_FROM_EMAIL: 'test@example.com',
     } as Env
@@ -80,5 +77,132 @@ describe('getEnv', () => {
     const result = getEnv(mockEnv)
 
     expect(result.CORS_ORIGINS_LIST).toEqual([])
+  })
+})
+
+describe('validateEnv', () => {
+  const validEnv = {
+    ENVIRONMENT: 'production',
+    APP_URL: 'https://app.example.com',
+    ETUS_GATEWAY: 'https://ag.etus.io',
+    ETUS_CLIENT_ID: 'test-client-id',
+    ETUS_CLIENT_SECRET: 'test-client-secret',
+    ETUS_ALLOWED_DOMAINS: 'example.com',
+    ETUS_ADMIN_EMAILS: 'admin@example.com',
+    SENDGRID_API_KEY: 'test-api-key',
+    SENDGRID_FROM_EMAIL: 'test@example.com',
+  } as Env
+
+  it('accepts a production CORS allowlist', () => {
+    expect(() => {
+      validateEnv({ ...validEnv, CORS_ORIGINS: 'https://app.example.com' })
+    }).not.toThrow()
+  })
+
+  it('rejects wildcard CORS in production because credentials are enabled', () => {
+    expect(() => {
+      validateEnv({ ...validEnv, CORS_ORIGINS: '*' })
+    }).toThrow('CORS_ORIGINS must not contain * in production')
+  })
+
+  it('allows wildcard CORS only outside production for local debugging', () => {
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      expect(() => {
+        validateEnv({ ...validEnv, ENVIRONMENT: 'development', CORS_ORIGINS: '*' })
+      }).not.toThrow()
+    } finally {
+      spy.mockRestore()
+    }
+  })
+
+  it('warns when CORS_ORIGINS contains * outside production so operators know csrf drops it', () => {
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      validateEnv({ ...validEnv, ENVIRONMENT: 'development', CORS_ORIGINS: '*' })
+      expect(spy).toHaveBeenCalledWith(expect.stringMatching(/wildcard is ignored/i))
+    } finally {
+      spy.mockRestore()
+    }
+  })
+
+  it('does not warn when CORS_ORIGINS is a concrete list', () => {
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      validateEnv({
+        ...validEnv,
+        ENVIRONMENT: 'development',
+        CORS_ORIGINS: 'http://localhost:5173',
+      })
+      expect(spy).not.toHaveBeenCalled()
+    } finally {
+      spy.mockRestore()
+    }
+  })
+
+  it('rejects missing ETUS client secret outside local/test environments', () => {
+    expect(() => {
+      validateEnv({ ...validEnv, ETUS_CLIENT_SECRET: '' })
+    }).toThrow('ETUS_CLIENT_SECRET is required')
+  })
+
+  it('allows missing ETUS client secret in development so test-login can run locally', () => {
+    expect(() => {
+      validateEnv({ ...validEnv, ENVIRONMENT: 'development', ETUS_CLIENT_SECRET: '' })
+    }).not.toThrow()
+  })
+
+  it('allows missing ETUS client secret for loopback-only local runtime checks', () => {
+    expect(() => {
+      validateEnv({ ...validEnv, ETUS_CLIENT_SECRET: '' }, { allowMissingClientSecret: true })
+    }).not.toThrow()
+  })
+
+  it('rejects empty allowed domain lists before @etus/auth initialization', () => {
+    expect(() => {
+      validateEnv({ ...validEnv, ETUS_ALLOWED_DOMAINS: ' , ' })
+    }).toThrow('ETUS_ALLOWED_DOMAINS must include at least one domain')
+  })
+
+  it('rejects empty admin email lists before @etus/auth initialization', () => {
+    expect(() => {
+      validateEnv({ ...validEnv, ETUS_ADMIN_EMAILS: '' })
+    }).toThrow('ETUS_ADMIN_EMAILS must include at least one admin email')
+  })
+
+  it('rejects an invalid MAX_UPLOAD_BYTES so operators see the problem at boot, not on first upload', () => {
+    expect(() => {
+      validateEnv({ ...validEnv, MAX_UPLOAD_BYTES: 'not-a-number' })
+    }).toThrow('MAX_UPLOAD_BYTES must be a positive integer in bytes')
+  })
+})
+
+describe('parseUploadBytes', () => {
+  it('falls back to the 25 MiB default when the env var is unset', () => {
+    expect(parseUploadBytes(undefined)).toBe(25 * 1024 * 1024)
+    expect(parseUploadBytes('')).toBe(25 * 1024 * 1024)
+  })
+
+  it('returns the configured value when a positive integer string is provided', () => {
+    expect(parseUploadBytes('1048576')).toBe(1048576)
+    expect(parseUploadBytes('52428800')).toBe(50 * 1024 * 1024)
+  })
+
+  it('throws on negative, zero, fractional, or non-numeric values to fail fast at boot', () => {
+    expect(() => parseUploadBytes('0')).toThrow(/positive integer/)
+    expect(() => parseUploadBytes('-1024')).toThrow(/positive integer/)
+    expect(() => parseUploadBytes('1024.5')).toThrow(/positive integer/)
+    expect(() => parseUploadBytes('abc')).toThrow(/positive integer/)
+  })
+
+  it('rejects values above the Workers ~500 MiB body cap so a typo is caught at boot', () => {
+    // 10 GiB — a realistic typo (extra zeros) the previous guards accepted.
+    expect(() => parseUploadBytes('10000000000')).toThrow(/exceeds the Cloudflare Workers body cap/)
+    // 1 GiB — also above the runtime cap.
+    expect(() => parseUploadBytes(String(1024 * 1024 * 1024))).toThrow(/exceeds/)
+  })
+
+  it('accepts values up to and including the 500 MiB cap', () => {
+    expect(parseUploadBytes(String(500 * 1024 * 1024))).toBe(500 * 1024 * 1024)
   })
 })

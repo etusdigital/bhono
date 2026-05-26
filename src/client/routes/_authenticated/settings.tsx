@@ -83,7 +83,7 @@ function SettingsPage() {
             </CardHeader>
             <CardContent className="flex items-center gap-6">
               <Avatar className="h-20 w-20">
-                <AvatarImage src={user?.avatarUrl ?? undefined} alt={user?.name ?? ''} />
+                <AvatarImage src={user?.picture ?? undefined} alt={user?.name ?? ''} />
                 <AvatarFallback className="text-lg">{initials}</AvatarFallback>
               </Avatar>
               <div className="space-y-2">

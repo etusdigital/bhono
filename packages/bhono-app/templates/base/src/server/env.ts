@@ -19,60 +19,112 @@ export interface Env {
   // App URL
   APP_URL: string
 
-  // JWT
-  JWT_SECRET: string
-  JWT_EXPIRY_MINUTES: string
+  // ETUS Auth (OAuth Gateway — @etus/auth)
+  ETUS_GATEWAY: string
+  ETUS_CLIENT_ID: string
+  ETUS_CLIENT_SECRET?: string
+  ETUS_ALLOWED_DOMAINS: string
+  ETUS_ADMIN_EMAILS: string
 
-  // Google OAuth
-  GOOGLE_CLIENT_ID: string
-  GOOGLE_CLIENT_SECRET: string
-  GOOGLE_REDIRECT_URI: string
-
-  // Refresh Token
-  REFRESH_TOKEN_EXPIRY_DAYS: string
-
-  // SendGrid
+  // SendGrid (invitations)
   SENDGRID_API_KEY: string
   SENDGRID_FROM_EMAIL: string
 
   // CORS
   CORS_ORIGINS?: string
 
-  // Super Admin emails (comma-separated)
-  SUPER_ADMIN_EMAILS?: string
+  // Max body size for direct R2 uploads (PUT /api/storage/upload/*).
+  // Accepts a positive integer in bytes. Defaults to 25 MiB when unset.
+  MAX_UPLOAD_BYTES?: string
 }
 
-// Helper to get env with defaults
+const DEFAULT_UPLOAD_BYTES = 25 * 1024 * 1024
+// Workers (paid plan) caps request body at 500 MiB; anything above that is
+// either a typo (e.g. MAX_UPLOAD_BYTES=10000000000) or a value the runtime
+// will reject anyway. Treat it as a config error so the operator sees a
+// clear message at boot instead of opaque 524/cancelled-request later.
+const MAX_REASONABLE_UPLOAD_BYTES = 500 * 1024 * 1024
+
+/**
+ * Parse MAX_UPLOAD_BYTES env var into a positive integer.
+ * Returns the default (25 MiB) when unset; throws when set to garbage or
+ * to a value the Workers runtime cannot honor (> 500 MiB).
+ */
+export function parseUploadBytes(raw: string | undefined): number {
+  if (raw === undefined || raw === '') return DEFAULT_UPLOAD_BYTES
+  const parsed = Number(raw)
+  if (!Number.isFinite(parsed) || parsed <= 0 || !Number.isInteger(parsed)) {
+    throw new Error(`MAX_UPLOAD_BYTES must be a positive integer in bytes, got: ${raw}`)
+  }
+  if (parsed > MAX_REASONABLE_UPLOAD_BYTES) {
+    throw new Error(
+      `MAX_UPLOAD_BYTES=${String(parsed)} exceeds the Cloudflare Workers body cap (~500 MiB). ` +
+        'Likely a typo — use a value in bytes (e.g. 26214400 for 25 MiB).',
+    )
+  }
+  return parsed
+}
+
+// Helper to get env with derived values
 export function getEnv(env: Env) {
   return {
     ...env,
-    JWT_EXPIRY_MINUTES: Number.parseInt(env.JWT_EXPIRY_MINUTES || '15', 10),
-    REFRESH_TOKEN_EXPIRY_DAYS: Number.parseInt(env.REFRESH_TOKEN_EXPIRY_DAYS || '30', 10),
-    CORS_ORIGINS_LIST: env.CORS_ORIGINS
-      ? env.CORS_ORIGINS.split(',').map((o) => o.trim())
-      : [],
-    SUPER_ADMIN_EMAILS_LIST: env.SUPER_ADMIN_EMAILS
-      ? env.SUPER_ADMIN_EMAILS.split(',').map((e) => e.trim().toLowerCase())
-      : [],
+    CORS_ORIGINS_LIST: parseList(env.CORS_ORIGINS),
   }
 }
 
-// Check if email is a super admin
-export function isSuperAdminEmail(env: Env, email: string): boolean {
-  const { SUPER_ADMIN_EMAILS_LIST } = getEnv(env)
-  return SUPER_ADMIN_EMAILS_LIST.includes(email.toLowerCase())
+function parseList(csv: string | undefined): string[] {
+  return (csv ?? '')
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean)
 }
-
-// Minimum required length for JWT_SECRET (security requirement)
-export const JWT_SECRET_MIN_LENGTH = 32
 
 /**
- * Validate environment variables at startup
- * Throws an error if validation fails
+ * Validate environment variables at startup.
+ * Throws an error if the auth gateway configuration is missing.
  */
-export function validateEnv(env: Env): void {
-  // JWT_SECRET must be at least 32 characters for security
-  if (!env.JWT_SECRET || env.JWT_SECRET.length < JWT_SECRET_MIN_LENGTH) {
-    throw new Error(`JWT_SECRET must be at least ${String(JWT_SECRET_MIN_LENGTH)} characters`)
+export function validateEnv(env: Env, options: { allowMissingClientSecret?: boolean } = {}): void {
+  if (!env.ETUS_GATEWAY) {
+    throw new Error('ETUS_GATEWAY is required')
   }
+  if (!env.ETUS_CLIENT_ID) {
+    throw new Error('ETUS_CLIENT_ID is required')
+  }
+  const requiresGatewaySecret = env.ENVIRONMENT === 'production' || env.ENVIRONMENT === 'staging'
+  if (requiresGatewaySecret && !env.ETUS_CLIENT_SECRET && !options.allowMissingClientSecret) {
+    throw new Error('ETUS_CLIENT_SECRET is required')
+  }
+  if (parseList(env.ETUS_ALLOWED_DOMAINS).length === 0) {
+    throw new Error('ETUS_ALLOWED_DOMAINS must include at least one domain')
+  }
+  if (parseList(env.ETUS_ADMIN_EMAILS).length === 0) {
+    throw new Error('ETUS_ADMIN_EMAILS must include at least one admin email')
+  }
+  if (env.ENVIRONMENT === 'production' && parseList(env.CORS_ORIGINS).includes('*')) {
+    throw new Error('CORS_ORIGINS must not contain * in production')
+  }
+  if (env.ENVIRONMENT !== 'production' && parseList(env.CORS_ORIGINS).includes('*')) {
+    // csrfProtection requires exact-origin matches; '*' is silently dropped by
+    // the normalizer. Surface this so dev/staging operators don't lose hours
+    // debugging cross-origin requests that were rejected for a stripped wildcard.
+    //
+    // validateEnv runs per-request in the boot middleware — memoize per env
+    // object so we warn once per isolate (the Worker reuses one env), and once
+    // per test (each test constructs a fresh env).
+    warnWildcardCorsOnce(env)
+  }
+  // Validate MAX_UPLOAD_BYTES eagerly so we fail in validateEnv with a clear
+  // message instead of crashing when the first oversized upload arrives.
+  parseUploadBytes(env.MAX_UPLOAD_BYTES)
+}
+
+const wildcardCorsWarnedFor = new WeakSet<Env>()
+
+function warnWildcardCorsOnce(env: Env): void {
+  if (wildcardCorsWarnedFor.has(env)) return
+  wildcardCorsWarnedFor.add(env)
+  console.warn(
+    "CORS_ORIGINS includes '*' but csrfProtection requires exact origin matches — the wildcard is ignored. List each origin explicitly.",
+  )
 }

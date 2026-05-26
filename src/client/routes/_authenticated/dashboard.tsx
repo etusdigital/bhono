@@ -94,7 +94,7 @@ function DashboardPage() {
               Security
             </CardTitle>
             <CardDescription>
-              OAuth 2.0 authentication with secure JWT tokens.
+              OAuth authentication with HTTP-only session cookies.
             </CardDescription>
           </CardHeader>
           <CardContent>

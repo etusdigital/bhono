@@ -1,485 +1,105 @@
 import { describe, it, expect } from 'vitest'
 import { Hono } from 'hono'
-import { requireRole, requirePermission, requireAnyPermission, requireAllPermissions, requireSuperAdmin } from '@server/auth/guards'
-import { Permission } from '@server/auth/permissions'
+import type { AuthUser } from '@etus/auth'
+import { protectAccountOwner, requirePermission } from '@server/auth/guards'
 import type { HonoEnv } from '@server/types'
+import { createMockD1AsD1Database, setMockQueryResult } from '@tests/mocks/db'
 
-describe('guards', () => {
-  describe('requireRole', () => {
-    it('should throw 401 when user is not authenticated', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', requireRole('admin'))
-      app.get('/', (c) => c.json({ ok: true }))
-
-      const res = await app.request('/')
-      expect(res.status).toBe(401)
+describe('requirePermission', () => {
+  function makeApp(permissions: string[], required: string) {
+    const app = new Hono<HonoEnv>()
+    app.use('/x', async (c, next) => {
+      c.set('authPermissions', permissions)
+      await next()
     })
+    app.use('/x', requirePermission(required))
+    app.get('/x', (c) => c.json({ ok: true }))
+    return app
+  }
 
-    it('should allow access when user is system admin', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test' } as any)
-        c.set('isSystemAdminAccess', true)
-        return next()
-      })
-      app.use('*', requireRole('admin'))
-      app.get('/', (c) => c.json({ ok: true }))
-
-      const res = await app.request('/')
-      expect(res.status).toBe(200)
-    })
-
-    it('should throw 403 when user has no role assigned', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test' } as any)
-        c.set('isSystemAdminAccess', false)
-        c.set('userRole', undefined)
-        return next()
-      })
-      app.use('*', requireRole('admin'))
-      app.get('/', (c) => c.json({ ok: true }))
-
-      const res = await app.request('/')
-      expect(res.status).toBe(403)
-    })
-
-    it('should throw 403 when user has insufficient role', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test' } as any)
-        c.set('isSystemAdminAccess', false)
-        c.set('userRole', 'viewer')
-        return next()
-      })
-      app.use('*', requireRole('admin'))
-      app.get('/', (c) => c.json({ ok: true }))
-
-      const res = await app.request('/')
-      expect(res.status).toBe(403)
-    })
-
-    it('should allow access when user has sufficient role', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test' } as any)
-        c.set('isSystemAdminAccess', false)
-        c.set('userRole', 'admin')
-        return next()
-      })
-      app.use('*', requireRole('admin'))
-      app.get('/', (c) => c.json({ ok: true }))
-
-      const res = await app.request('/')
-      expect(res.status).toBe(200)
-    })
-
-    it('should allow access when user has higher role than required', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test' } as any)
-        c.set('isSystemAdminAccess', false)
-        c.set('userRole', 'admin')
-        return next()
-      })
-      // Admin role should have access to user-required endpoints
-      app.use('*', requireRole('user'))
-      app.get('/', (c) => c.json({ ok: true }))
-
-      const res = await app.request('/')
-      expect(res.status).toBe(200)
-    })
-
-    it('should deny access when user has lower role than required', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test' } as any)
-        c.set('isSystemAdminAccess', false)
-        c.set('userRole', 'user')
-        return next()
-      })
-      // user role should NOT have access to manager-required endpoints
-      app.use('*', requireRole('manager'))
-      app.get('/', (c) => c.json({ ok: true }))
-
-      const res = await app.request('/')
-      expect(res.status).toBe(403)
-    })
+  it('allows a request that holds the exact permission', async () => {
+    const res = await makeApp(['resources:read'], 'resources:read').request('/x')
+    expect(res.status).toBe(200)
   })
 
-  describe('requirePermission', () => {
-    it('should throw 401 when user is not authenticated', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', requirePermission(Permission.ACCOUNT_UPDATE))
-      app.get('/', (c) => c.json({ ok: true }))
-
-      const res = await app.request('/')
-      expect(res.status).toBe(401)
-    })
-
-    it('should allow access when user is system admin', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test' } as any)
-        c.set('isSystemAdminAccess', true)
-        return next()
-      })
-      app.use('*', requirePermission(Permission.ACCOUNT_UPDATE))
-      app.get('/', (c) => c.json({ ok: true }))
-
-      const res = await app.request('/')
-      expect(res.status).toBe(200)
-    })
-
-    it('should throw 403 when user has no role assigned', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test' } as any)
-        c.set('isSystemAdminAccess', false)
-        c.set('userRole', undefined)
-        return next()
-      })
-      app.use('*', requirePermission(Permission.ACCOUNT_UPDATE))
-      app.get('/', (c) => c.json({ ok: true }))
-
-      const res = await app.request('/')
-      expect(res.status).toBe(403)
-    })
-
-    it('should throw 403 when user lacks permission', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test' } as any)
-        c.set('isSystemAdminAccess', false)
-        c.set('userRole', 'viewer')
-        return next()
-      })
-      // viewer does not have DATA_CREATE permission
-      app.use('*', requirePermission(Permission.DATA_CREATE))
-      app.get('/', (c) => c.json({ ok: true }))
-
-      const res = await app.request('/')
-      expect(res.status).toBe(403)
-    })
-
-    it('should allow access when user has permission via role', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test' } as any)
-        c.set('isSystemAdminAccess', false)
-        c.set('userRole', 'admin')
-        return next()
-      })
-      // admin has ACCOUNT_UPDATE permission
-      app.use('*', requirePermission(Permission.ACCOUNT_UPDATE))
-      app.get('/', (c) => c.json({ ok: true }))
-
-      const res = await app.request('/')
-      expect(res.status).toBe(200)
-    })
-
-    it('should block write operations when read-only mode is enabled', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test' } as any)
-        c.set('isSystemAdminAccess', false)
-        c.set('userRole', 'admin')
-        c.set('readOnly', true) // Suspended account
-        return next()
-      })
-      // DATA_CREATE is a write operation
-      app.use('*', requirePermission(Permission.DATA_CREATE))
-      app.get('/', (c) => c.json({ ok: true }))
-
-      const res = await app.request('/')
-      expect(res.status).toBe(403)
-    })
-
-    it('should allow read operations when read-only mode is enabled', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test' } as any)
-        c.set('isSystemAdminAccess', false)
-        c.set('userRole', 'viewer')
-        c.set('readOnly', true) // Suspended account
-        return next()
-      })
-      // DATA_READ is a read operation
-      app.use('*', requirePermission(Permission.DATA_READ))
-      app.get('/', (c) => c.json({ ok: true }))
-
-      const res = await app.request('/')
-      expect(res.status).toBe(200)
-    })
+  it('rejects a request missing the permission with 403', async () => {
+    const res = await makeApp(['resources:read'], 'resources:delete').request('/x')
+    expect(res.status).toBe(403)
   })
 
-  describe('requireAnyPermission', () => {
-    it('should allow access when user has any of the permissions', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test' } as any)
-        c.set('isSystemAdminAccess', false)
-        c.set('userRole', 'user')
-        return next()
-      })
-      // user has DATA_READ but not ACCOUNT_UPDATE
-      app.use('*', requireAnyPermission(Permission.DATA_READ, Permission.ACCOUNT_UPDATE))
-      app.get('/', (c) => c.json({ ok: true }))
-
-      const res = await app.request('/')
-      expect(res.status).toBe(200)
-    })
-
-    it('should deny access when user has none of the permissions', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test' } as any)
-        c.set('isSystemAdminAccess', false)
-        c.set('userRole', 'viewer')
-        return next()
-      })
-      // viewer has neither DATA_CREATE nor ACCOUNT_UPDATE
-      app.use('*', requireAnyPermission(Permission.DATA_CREATE, Permission.ACCOUNT_UPDATE))
-      app.get('/', (c) => c.json({ ok: true }))
-
-      const res = await app.request('/')
-      expect(res.status).toBe(403)
-    })
-
-    it('should throw 401 when user is not authenticated', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', requireAnyPermission(Permission.DATA_READ, Permission.ACCOUNT_UPDATE))
-      app.get('/', (c) => c.json({ ok: true }))
-
-      const res = await app.request('/')
-      expect(res.status).toBe(401)
-    })
-
-    it('should allow access when user is system admin (lines 247-248)', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test' } as any)
-        c.set('isSystemAdminAccess', true)
-        // No userRole set - system admin should bypass role check entirely
-        return next()
-      })
-      app.use('*', requireAnyPermission(Permission.ACCOUNT_UPDATE, Permission.BILLING_MANAGE))
-      app.get('/', (c) => c.json({ ok: true }))
-
-      const res = await app.request('/')
-      expect(res.status).toBe(200)
-    })
-
-    it('should throw 403 when user has no role assigned (line 254)', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test' } as any)
-        c.set('isSystemAdminAccess', false)
-        c.set('userRole', undefined)
-        return next()
-      })
-      app.use('*', requireAnyPermission(Permission.DATA_READ, Permission.DATA_CREATE))
-      app.get('/', (c) => c.json({ ok: true }))
-
-      const res = await app.request('/')
-      expect(res.status).toBe(403)
-    })
-
-    it('should block all write permissions in read-only mode when all are write', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test' } as any)
-        c.set('isSystemAdminAccess', false)
-        c.set('userRole', 'admin')
-        c.set('readOnly', true) // Suspended account
-        return next()
-      })
-      // All write permissions - should be blocked
-      app.use('*', requireAnyPermission(Permission.DATA_CREATE, Permission.DATA_UPDATE, Permission.DATA_DELETE))
-      app.get('/', (c) => c.json({ ok: true }))
-
-      const res = await app.request('/')
-      expect(res.status).toBe(403)
-    })
-
-    it('should skip write permissions and check read permissions in read-only mode (line 263)', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test' } as any)
-        c.set('isSystemAdminAccess', false)
-        c.set('userRole', 'viewer')
-        c.set('readOnly', true) // Suspended account
-        return next()
-      })
-      // Mixed permissions - DATA_CREATE is write (should be skipped), DATA_READ is read (viewer has it)
-      app.use('*', requireAnyPermission(Permission.DATA_CREATE, Permission.DATA_READ))
-      app.get('/', (c) => c.json({ ok: true }))
-
-      const res = await app.request('/')
-      // Should succeed because DATA_READ is available even though DATA_CREATE is filtered out
-      expect(res.status).toBe(200)
-    })
-
-    it('should deny when read permissions exist but user lacks them in read-only mode', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test' } as any)
-        c.set('isSystemAdminAccess', false)
-        c.set('userRole', 'viewer')
-        c.set('readOnly', true) // Suspended account
-        return next()
-      })
-      // Mixed: DATA_CREATE (write, filtered), BILLING_READ (read, viewer doesn't have)
-      app.use('*', requireAnyPermission(Permission.DATA_CREATE, Permission.BILLING_READ))
-      app.get('/', (c) => c.json({ ok: true }))
-
-      const res = await app.request('/')
-      // Should fail because write is filtered and viewer lacks BILLING_READ
-      expect(res.status).toBe(403)
-    })
+  it('honors the full wildcard *', async () => {
+    const res = await makeApp(['*'], 'resources:delete').request('/x')
+    expect(res.status).toBe(200)
   })
 
-  describe('requireAllPermissions', () => {
-    it('should allow access when user has all permissions', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test' } as any)
-        c.set('isSystemAdminAccess', false)
-        c.set('userRole', 'user')
-        return next()
-      })
-      // user has both DATA_READ and DATA_CREATE
-      app.use('*', requireAllPermissions(Permission.DATA_READ, Permission.DATA_CREATE))
-      app.get('/', (c) => c.json({ ok: true }))
-
-      const res = await app.request('/')
-      expect(res.status).toBe(200)
-    })
-
-    it('should deny access when user is missing any permission', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test' } as any)
-        c.set('isSystemAdminAccess', false)
-        c.set('userRole', 'viewer')
-        return next()
-      })
-      // viewer has DATA_READ but not DATA_CREATE
-      app.use('*', requireAllPermissions(Permission.DATA_READ, Permission.DATA_CREATE))
-      app.get('/', (c) => c.json({ ok: true }))
-
-      const res = await app.request('/')
-      expect(res.status).toBe(403)
-    })
-
-    it('should throw 401 when user is not authenticated', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', requireAllPermissions(Permission.DATA_READ, Permission.DATA_CREATE))
-      app.get('/', (c) => c.json({ ok: true }))
-
-      const res = await app.request('/')
-      expect(res.status).toBe(401)
-    })
-
-    it('should allow access when user is system admin (lines 160-161)', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test' } as any)
-        c.set('isSystemAdminAccess', true)
-        // No userRole set - system admin should bypass entirely
-        return next()
-      })
-      app.use('*', requireAllPermissions(Permission.ACCOUNT_UPDATE, Permission.BILLING_MANAGE))
-      app.get('/', (c) => c.json({ ok: true }))
-
-      const res = await app.request('/')
-      expect(res.status).toBe(200)
-    })
-
-    it('should throw 403 when user has no role assigned (line 167)', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test' } as any)
-        c.set('isSystemAdminAccess', false)
-        c.set('userRole', undefined)
-        return next()
-      })
-      app.use('*', requireAllPermissions(Permission.DATA_READ, Permission.DATA_CREATE))
-      app.get('/', (c) => c.json({ ok: true }))
-
-      const res = await app.request('/')
-      expect(res.status).toBe(403)
-    })
-
-    it('should block write permissions in read-only mode (lines 145-149)', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test' } as any)
-        c.set('isSystemAdminAccess', false)
-        c.set('userRole', 'admin')
-        c.set('readOnly', true) // Suspended account
-        return next()
-      })
-      // All required, includes write permission DATA_CREATE
-      app.use('*', requireAllPermissions(Permission.DATA_READ, Permission.DATA_CREATE))
-      app.get('/', (c) => c.json({ ok: true }))
-
-      const res = await app.request('/')
-      expect(res.status).toBe(403)
-    })
-
-    it('should allow read-only permissions in read-only mode', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test' } as any)
-        c.set('isSystemAdminAccess', false)
-        c.set('userRole', 'viewer')
-        c.set('readOnly', true) // Suspended account
-        return next()
-      })
-      // Both are read permissions - should be allowed
-      app.use('*', requireAllPermissions(Permission.DATA_READ, Permission.DASHBOARD_READ))
-      app.get('/', (c) => c.json({ ok: true }))
-
-      const res = await app.request('/')
-      expect(res.status).toBe(200)
-    })
+  it('honors a resource wildcard (resources:*)', async () => {
+    const res = await makeApp(['resources:*'], 'resources:delete').request('/x')
+    expect(res.status).toBe(200)
   })
 
-  describe('requireSuperAdmin', () => {
-    it('should throw 401 when user is not authenticated', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', requireSuperAdmin())
-      app.get('/', (c) => c.json({ ok: true }))
+  it('rejects when the permission set is empty', async () => {
+    const res = await makeApp([], 'resources:read').request('/x')
+    expect(res.status).toBe(403)
+  })
+})
 
-      const res = await app.request('/')
-      expect(res.status).toBe(401)
-    })
+// Builds a minimal app: a stand-in for optionalMiddleware sets authUser,
+// then the guard runs, then a handler that 200s if the guard let it through.
+function makeApp(authUser: AuthUser | null) {
+  const app = new Hono<HonoEnv>()
+  app.use('/accounts/:id/members/:userId', async (c, next) => {
+    c.set('authUser', authUser)
+    return protectAccountOwner()(c, next)
+  })
+  app.patch('/accounts/:id/members/:userId', (c) => c.json({ ok: true }))
+  app.get('/accounts/:id/members/:userId', (c) => c.json({ ok: true }))
+  return app
+}
 
-    it('should throw 403 when user is not a super admin', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test', isSuperAdmin: false } as any)
-        return next()
-      })
-      app.use('*', requireSuperAdmin())
-      app.get('/', (c) => c.json({ ok: true }))
+const asUser = (id: string) => ({ id }) as AuthUser
 
-      const res = await app.request('/')
-      expect(res.status).toBe(403)
-    })
+describe('protectAccountOwner', () => {
+  it('rejects an admin trying to modify the account owner membership', async () => {
+    const db = createMockD1AsD1Database()
+    setMockQueryResult(db, ['acc-1'], { owner_id: 'owner-1' })
+    const res = await makeApp(asUser('admin-9')).request(
+      '/accounts/acc-1/members/owner-1',
+      { method: 'PATCH' },
+      { DB: db },
+    )
+    expect(res.status).toBe(403)
+  })
 
-    it('should allow access when user is a super admin', async () => {
-      const app = new Hono<HonoEnv>()
-      app.use('*', (c, next) => {
-        c.set('user', { id: 'test-id', email: 'test@test.com', name: 'Test', isSuperAdmin: true } as any)
-        return next()
-      })
-      app.use('*', requireSuperAdmin())
-      app.get('/', (c) => c.json({ ok: true }))
+  it('allows the owner to modify their own membership', async () => {
+    const db = createMockD1AsD1Database()
+    setMockQueryResult(db, ['acc-1'], { owner_id: 'owner-1' })
+    const res = await makeApp(asUser('owner-1')).request(
+      '/accounts/acc-1/members/owner-1',
+      { method: 'PATCH' },
+      { DB: db },
+    )
+    expect(res.status).toBe(200)
+  })
 
-      const res = await app.request('/')
-      expect(res.status).toBe(200)
-    })
+  it('allows modifying a non-owner member', async () => {
+    const db = createMockD1AsD1Database()
+    setMockQueryResult(db, ['acc-1'], { owner_id: 'owner-1' })
+    const res = await makeApp(asUser('admin-9')).request(
+      '/accounts/acc-1/members/member-3',
+      { method: 'PATCH' },
+      { DB: db },
+    )
+    expect(res.status).toBe(200)
+  })
+
+  it('ignores non-PATCH methods', async () => {
+    const db = createMockD1AsD1Database()
+    setMockQueryResult(db, ['acc-1'], { owner_id: 'owner-1' })
+    const res = await makeApp(null).request(
+      '/accounts/acc-1/members/owner-1',
+      { method: 'GET' },
+      { DB: db },
+    )
+    expect(res.status).toBe(200)
   })
 })

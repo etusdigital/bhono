@@ -1,90 +1,66 @@
-// src/auth/guards.ts
+// Permission guard for app routes.
+//
+// @etus/auth's middleware resolves the user's effective permissions into the
+// `authPermissions` context variable (role matrix + hierarchy). This guard
+// reads that variable — it never needs the AuthInstance, so route files stay
+// module-scoped. Wildcards ('resources:*', '*') are honored by hasPermission.
+
 import { createMiddleware } from 'hono/factory'
 import { HTTPException } from 'hono/http-exception'
+import { hasPermission } from '@etus/auth'
 import type { HonoEnv } from '../types'
-import type { Role } from './roles'
-import type { Permission } from './permissions'
-import { hasMinimumRole } from './roles'
-import { hasPermission } from './permissions'
 
-/**
- * Middleware factory that requires a minimum role level.
- * Users with the minimum role or higher in the hierarchy can access the route.
- * Super-admins bypass all role checks.
- *
- * @param minRole - The minimum role required to access the route
- * @param additionalRoles - Optional array of non-hierarchical roles that also grant access
- */
-export const requireRole = (minRole: Role, additionalRoles: Role[] = []) => {
+export function requirePermission(permission: string) {
   return createMiddleware<HonoEnv>(async (c, next) => {
-    const user = c.get('user')
-
-    if (!user) {
-      throw new HTTPException(401, {
-        message: 'Unauthorized: User not authenticated',
-      })
+    const permissions = c.get('authPermissions') ?? []
+    if (!hasPermission(permission, permissions)) {
+      throw new HTTPException(403, { message: `Missing permission: ${permission}` })
     }
-
-    // Super-admin bypass
-    if (c.get('isSystemAdminAccess')) {
-      await next()
-      return
-    }
-
-    const userRole = c.get('userRole')
-
-    if (!userRole) {
-      throw new HTTPException(403, {
-        message: 'Forbidden: No role assigned for this account',
-      })
-    }
-
-    // Check if user has minimum role (userRole is guaranteed to be Role here)
-    if (!hasMinimumRole(userRole, minRole, additionalRoles)) {
-      throw new HTTPException(403, {
-        message: `Forbidden: Requires ${minRole} role or higher`,
-      })
-    }
-
     await next()
   })
 }
 
-/**
- * Middleware factory that requires a specific permission.
- * Super-admins bypass all permission checks.
- *
- * @param permission - The permission required to access the route
- */
-export const requirePermission = (permission: Permission) => {
+// Interceptor for PATCH /accounts/:id/members/:userId.
+//
+// @etus/auth's accountRoutes lets any account `admin` change any member's
+// role (it only protects against removing the last admin). That leaves the
+// account owner demotable by an admin. This guard runs before accountRoutes
+// and rejects any attempt to modify the owner's membership unless the
+// requester IS the owner. Mount with the parametric path so :id / :userId
+// are parsed.
+export function protectAccountOwner() {
   return createMiddleware<HonoEnv>(async (c, next) => {
-    const user = c.get('user')
-
-    if (!user) {
-      throw new HTTPException(401, {
-        message: 'Unauthorized: User not authenticated',
-      })
-    }
-
-    // Super-admin bypass
-    if (c.get('isSystemAdminAccess')) {
+    if (c.req.method !== 'PATCH') {
       await next()
       return
     }
 
-    const userRole = c.get('userRole')
-
-    if (!userRole) {
-      throw new HTTPException(403, {
-        message: 'Forbidden: No role assigned for this account',
-      })
+    const accountId = c.req.param('id')
+    const targetUserId = c.req.param('userId')
+    const db = c.env.DB
+    if (!accountId || !targetUserId || !db) {
+      await next()
+      return
     }
 
-    // Check if user's role has the required permission (userRole is guaranteed to be Role here)
-    if (!hasPermission(userRole, permission)) {
-      throw new HTTPException(403, {
-        message: `Forbidden: Requires ${permission} permission`,
-      })
+    const account = await db
+      .prepare('SELECT owner_id FROM auth_accounts WHERE id = ?')
+      .bind(accountId)
+      .first<{ owner_id: string }>()
+
+    // Unknown account — let accountRoutes return its own 404.
+    if (!account) {
+      await next()
+      return
+    }
+
+    if (targetUserId === account.owner_id) {
+      const requester = c.get('authUser')
+      if (requester?.id !== account.owner_id) {
+        throw new HTTPException(403, {
+          message: "Only the account owner can modify the owner's membership",
+        })
+      }
     }
 
     await next()

@@ -4,7 +4,7 @@ import { test, expect, isAuthenticated, waitForNavigation } from './fixtures'
  * Authenticated User Tests
  *
  * These tests require authentication via auth.setup.ts which creates session state.
- * Since we can't actually authenticate with Google OAuth in E2E tests without credentials,
+ * Since we can't actually authenticate with the ETUS OAuth gateway in E2E tests without credentials,
  * tests will check for session availability and skip if not authenticated.
  *
  * Run with authenticated project: npx playwright test --project=chromium

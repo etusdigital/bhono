@@ -33,11 +33,11 @@ describe('Login Page', () => {
     expect(screen.getByText('Sign in to your account to continue')).toBeInTheDocument()
   })
 
-  it('should display Google OAuth login button', async () => {
+  it('should display ETUS Auth login button', async () => {
     renderRoute({ initialEntries: ['/login'] })
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /continue with google/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /continue with etus/i })).toBeInTheDocument()
     })
   })
 
@@ -51,7 +51,7 @@ describe('Login Page', () => {
     })
 
     // All interactive elements should be available immediately
-    expect(screen.getByRole('button', { name: /continue with google/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /continue with etus/i })).toBeInTheDocument()
     expect(screen.getByText('Sign in to your account to continue')).toBeInTheDocument()
 
     // Should not show any loading indicators
@@ -77,10 +77,10 @@ describe('Login Page', () => {
       renderRoute({ initialEntries: ['/login'] })
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /continue with google/i })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /continue with etus/i })).toBeInTheDocument()
       })
 
-      await user.click(screen.getByRole('button', { name: /continue with google/i }))
+      await user.click(screen.getByRole('button', { name: /continue with etus/i }))
 
       expect(window.location.href).toBe('/auth/login')
     } finally {

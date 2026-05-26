@@ -1,15 +1,21 @@
-# JWT Configuration
-JWT_SECRET=your-jwt-secret-key-min-32-chars-here
-JWT_EXPIRY_MINUTES=15
+# Local Worker variables used by `pnpm dev`.
 
-# Google OAuth
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-GOOGLE_REDIRECT_URI=http://localhost:3000/auth/callback
+ENVIRONMENT=development
+APP_URL=http://localhost:8787
+CORS_ORIGINS=http://localhost:3000,http://localhost:8787
 
-# Refresh Token
-REFRESH_TOKEN_EXPIRY_DAYS=30
+# ETUS Auth (OAuth Gateway via @etus/auth)
+ETUS_GATEWAY=https://ag.etus.io
+ETUS_CLIENT_ID=your-client-id-from-npx-etus-auth-init
+ETUS_CLIENT_SECRET=your-client-secret-from-npx-etus-auth-init
+ETUS_ALLOWED_DOMAINS=yourdomain.com,anotherdomain.com
+ETUS_ADMIN_EMAILS=admin@yourdomain.com
 
 # SendGrid
 SENDGRID_API_KEY=your-sendgrid-api-key
-SENDGRID_FROM_EMAIL=noreply@example.com
+SENDGRID_FROM_EMAIL=noreply@yourdomain.com
+
+# R2
+R2_PUBLIC_URL=https://pub-your-bucket-id.r2.dev
+# Max body size for direct R2 uploads (bytes). Defaults to 25 MiB when unset.
+# MAX_UPLOAD_BYTES=26214400

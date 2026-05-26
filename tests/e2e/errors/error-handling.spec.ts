@@ -18,12 +18,12 @@ test.describe('API Error Handling @error @api', () => {
   test('API returns proper error format for invalid UUID', async ({ page }) => {
     // Request with invalid UUID format
     const invalidId = 'invalid-uuid-format'
-    const response = await page.request.get(`/api/users/${invalidId}`, {
+    const response = await page.request.get(`/auth/admin/users/${invalidId}`, {
       failOnStatusCode: false,
     })
 
-    // Should return 400 for validation error
-    expect(response.status()).toBe(400)
+    // @etus/auth admin ids are opaque strings; malformed ids simply miss.
+    expect(response.status()).toBe(404)
 
     const body = await response.json()
 
@@ -34,12 +34,11 @@ test.describe('API Error Handling @error @api', () => {
   test('API returns proper error format for non-existent resource', async ({ page }) => {
     // Request a user that doesn't exist (valid UUID format)
     const nonExistentId = '00000000-0000-0000-0000-000000000000'
-    const response = await page.request.get(`/api/users/${nonExistentId}`, {
+    const response = await page.request.get(`/auth/admin/users/${nonExistentId}`, {
       failOnStatusCode: false,
     })
 
-    // API may return 400 (bad request) or 404 (not found)
-    expect([400, 404]).toContain(response.status())
+    expect(response.status()).toBe(404)
 
     const body = await response.json()
     expect(body).toHaveProperty('error')

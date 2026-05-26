@@ -40,12 +40,14 @@ describe('Integration Test Infrastructure', () => {
 
       const tableNames = tables.map((t) => t.name)
 
-      expect(tableNames).toContain('users')
-      expect(tableNames).toContain('accounts')
-      expect(tableNames).toContain('user_accounts')
-      expect(tableNames).toContain('refresh_tokens')
-      expect(tableNames).toContain('invitations')
-      expect(tableNames).toContain('audit_logs')
+      expect(tableNames).toContain('auth_users')
+      expect(tableNames).toContain('auth_sessions')
+      expect(tableNames).toContain('auth_audit_logs')
+      expect(tableNames).toContain('auth_accounts')
+      expect(tableNames).toContain('auth_memberships')
+      expect(tableNames).toContain('auth_invitations')
+      expect(tableNames).toContain('auth_user_permissions')
+      expect(tableNames).toContain('auth_resource_permissions')
     })
 
     it('should support foreign key constraints', () => {
@@ -159,9 +161,11 @@ describe('Integration Test Infrastructure', () => {
 
       expect(env.ENVIRONMENT).toBe('test')
       expect(env.APP_URL).toBe('http://localhost:8787')
-      expect(env.JWT_SECRET).toBeDefined()
-      expect(env.GOOGLE_CLIENT_ID).toBeDefined()
-      expect(env.GOOGLE_CLIENT_SECRET).toBeDefined()
+      expect(env.ETUS_GATEWAY).toBeDefined()
+      expect(env.ETUS_CLIENT_ID).toBeDefined()
+      expect(env.ETUS_CLIENT_SECRET).toBeDefined()
+      expect(env.ETUS_ALLOWED_DOMAINS).toBeDefined()
+      expect(env.ETUS_ADMIN_EMAILS).toBeDefined()
       expect(env.SENDGRID_API_KEY).toBeDefined()
     })
 
@@ -195,7 +199,7 @@ describe('Integration Test Infrastructure', () => {
 
       // Verify in database
       const sqlite = getSqlite()
-      const row = sqlite.prepare('SELECT * FROM users WHERE id = ?').get(user.id) as Record<
+      const row = sqlite.prepare('SELECT * FROM auth_users WHERE id = ?').get(user.id) as Record<
         string,
         unknown
       >
@@ -214,10 +218,9 @@ describe('Integration Test Infrastructure', () => {
 
       // Verify in database
       const sqlite = getSqlite()
-      const row = sqlite.prepare('SELECT * FROM accounts WHERE id = ?').get(account.id) as Record<
-        string,
-        unknown
-      >
+      const row = sqlite
+        .prepare('SELECT * FROM auth_accounts WHERE id = ?')
+        .get(account.id) as Record<string, unknown>
       expect(row).toBeDefined()
       expect(row.name).toBe('Test Account')
     })
@@ -229,17 +232,17 @@ describe('Integration Test Infrastructure', () => {
       await seedUserAccount({
         userId: user.id,
         accountId: account.id,
-        role: 'ADMIN',
+        role: 'admin',
       })
 
       // Verify in database
       const sqlite = getSqlite()
       const row = sqlite
-        .prepare('SELECT * FROM user_accounts WHERE user_id = ? AND account_id = ?')
+        .prepare('SELECT * FROM auth_memberships WHERE user_id = ? AND account_id = ?')
         .get(user.id, account.id) as Record<string, unknown>
 
       expect(row).toBeDefined()
-      expect(row.role).toBe('ADMIN')
+      expect(row.role).toBe('admin')
     })
   })
 
@@ -247,18 +250,14 @@ describe('Integration Test Infrastructure', () => {
     it('should create a session in KV storage', async () => {
       const user = await seedUser({ email: 'session@example.com', name: 'Session User' })
 
-      const { sessionId, sessionData } = await createSession(user.id, {
-        email: 'session@example.com',
-        name: 'Session User',
-      })
+      const { sessionId, sessionData } = await createSession(user.id)
 
       expect(sessionId).toBeDefined()
       expect(sessionData.userId).toBe(user.id)
-      expect(sessionData.email).toBe('session@example.com')
 
       // Verify in KV
       const kv = getKV()
-      const stored = await kv.get(`sid:${sessionId}`, { type: 'json' })
+      const stored = await kv.get(`auth_sid:${sessionId}`, { type: 'json' })
       expect(stored).toBeDefined()
       expect((stored as { userId: string }).userId).toBe(user.id)
     })
@@ -275,10 +274,10 @@ describe('Integration Test Infrastructure', () => {
 
       // Verify tables are empty
       const sqlite = getSqlite()
-      const usersCount = sqlite.prepare('SELECT COUNT(*) as count FROM users').get() as {
+      const usersCount = sqlite.prepare('SELECT COUNT(*) as count FROM auth_users').get() as {
         count: number
       }
-      const accountsCount = sqlite.prepare('SELECT COUNT(*) as count FROM accounts').get() as {
+      const accountsCount = sqlite.prepare('SELECT COUNT(*) as count FROM auth_accounts').get() as {
         count: number
       }
 
