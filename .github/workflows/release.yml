@@ -52,8 +52,13 @@ jobs:
       - name: Upgrade npm to >=11.5.1 (trusted-publisher support)
         run: npm install -g npm@latest
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Install CLI dependencies only
+        # --filter '@etus/bhono...' scopes the install to the CLI workspace
+        # and its transitive deps. The boilerplate's @etus/auth dep (consumed
+        # only by src/server/*, never by the CLI) is never fetched here, so
+        # publish doesn't need a token with @etus read scope. OIDC trusted
+        # publisher handles publish auth on its own.
+        run: pnpm install --frozen-lockfile --filter '@etus/bhono...'
 
       # Quality gates — block the publish if any of these fail.
       # `build` runs tsc, which doubles as typecheck for the CLI.

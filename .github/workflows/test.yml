@@ -1,16 +1,21 @@
 name: CI
 
+# Quality gates for the @etus/bhono CLI — the only deliverable shipped from
+# this monorepo. The boilerplate code under src/ is template material that
+# gets scaffolded into new projects; its quality is enforced locally via the
+# pre-push hook (typecheck + tests) where the developer's own ~/.npmrc has
+# @etus scope access. CI deliberately stays scoped to the CLI so no
+# NPM_TOKEN with @etus read access is needed in GitHub Actions secrets.
+
 on:
   push:
     branches: [main, master, develop]
   pull_request:
     branches: [main, master, develop]
 
-# Principle of least privilege
 permissions:
   contents: read
 
-# Cancel in-progress runs when a new commit is pushed
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -21,9 +26,8 @@ env:
   PNPM_VERSION: '10.15.1'
 
 jobs:
-  # All checks consolidated - tests already ran locally via pre-push
-  ci:
-    name: Code Quality
+  cli:
+    name: Code Quality (CLI)
     runs-on: ubuntu-24.04
     timeout-minutes: 10
 
@@ -41,26 +45,15 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
-          # registry-url makes setup-node write a ~/.npmrc that pnpm reads —
-          # the _authToken interpolates from NODE_AUTH_TOKEN at install time,
-          # so the secret never lands on disk in plaintext.
-          registry-url: 'https://registry.npmjs.org/'
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-        env:
-          # Required so the runner can fetch @etus/* packages (restricted on npmjs).
-          # NPM_TOKEN must be a granular token with read access on the @etus scope.
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Install CLI dependencies only
+        # --filter '@etus/bhono...' restricts the install to the CLI workspace
+        # and its transitive deps — the boilerplate's @etus/auth dep is never
+        # fetched in CI, so no NPM_TOKEN with @etus read scope is needed.
+        run: pnpm install --frozen-lockfile --filter '@etus/bhono...'
 
-      - name: Lint
-        run: pnpm lint
+      - name: Test CLI
+        run: pnpm -C packages/bhono-app test:run
 
-      - name: Type check
-        run: pnpm typecheck
-
-      - name: Build
-        run: pnpm build
-
-      - name: Build CLI package
+      - name: Build CLI
         run: pnpm -C packages/bhono-app build
