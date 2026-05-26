@@ -6,7 +6,7 @@
   "compatibility_date": "2025-01-01",
   "compatibility_flags": ["nodejs_compat"],
   "dev": {
-    "port": 8787
+    "port": 3000
   },
   "d1_databases": [
     {
@@ -33,14 +33,7 @@
     "binding": "ASSETS",
     "run_worker_first": [
       "/api/*",
-      "/auth/*",
-      "/accounts",
-      "/accounts/*",
-      "/invitations",
-      "/invitations/*",
-      "/audit",
-      "/audit/*",
-      "/health"
+      "/auth/*"
     ]
   },
   "vars": {
@@ -50,7 +43,7 @@
     "ETUS_GATEWAY": "https://ag.etus.io",
     "ETUS_CLIENT_ID": "boilerplate-hono",
     "ETUS_ALLOWED_DOMAINS": "brius.com.br,etus.com.br",
-    "ETUS_ADMIN_EMAILS": "admin@etus.com.br"
+    "ETUS_ADMIN_EMAILS": "aa@brius.com.br"
   },
   "env": {
     "staging": {
@@ -81,7 +74,7 @@
         "ETUS_GATEWAY": "https://ag.etus.io",
         "ETUS_CLIENT_ID": "boilerplate-hono",
         "ETUS_ALLOWED_DOMAINS": "brius.com.br,etus.com.br",
-        "ETUS_ADMIN_EMAILS": "admin@etus.com.br"
+        "ETUS_ADMIN_EMAILS": "aa@brius.com.br"
       }
     }
   }
