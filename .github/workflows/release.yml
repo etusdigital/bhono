@@ -1,5 +1,20 @@
 name: Release
 
+# Publishes @etus/bhono (packages/bhono-app) to npm.
+#
+# Trigger: push to master/main (changesets opens/merges the release PR which
+# triggers this workflow again to publish), or manual workflow_dispatch.
+#
+# Publish auth: npm Trusted Publisher (OIDC) — no NPM_TOKEN secret required.
+# Configure once at https://www.npmjs.com/package/@etus/bhono/settings, then
+# the `id-token: write` permission below is sufficient. Mirrors the pattern
+# used by @etus/auth (aabrius/oauth-gateway/.github/workflows/publish-auth.yml).
+#
+# Pre-publish quality gates run before `npm publish` so a broken build/test
+# never reaches the registry. We use the npm CLI (not pnpm) for the publish
+# step itself — npm has first-class OIDC trusted-publisher support; pnpm's
+# exchange handshake is less mature and currently 404s on the npm side.
+
 on:
   push:
     branches:
@@ -8,13 +23,16 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  pull-requests: write
-  id-token: write
+  contents: write       # changesets/action needs to push the release PR
+  pull-requests: write  # changesets/action opens the release PR
+  id-token: write       # npm OIDC trusted publisher
 
 jobs:
   release:
+    name: Release @etus/bhono
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -22,21 +40,27 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 10.15.1
+          version: 11.1.1
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
+          cache: pnpm
           registry-url: https://registry.npmjs.org/
 
-      - name: Upgrade npm for OIDC support
+      - name: Upgrade npm to >=11.5.1 (trusted-publisher support)
         run: npm install -g npm@latest
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
-      - name: Build CLI package
+      # Quality gates — block the publish if any of these fail.
+      # `build` runs tsc, which doubles as typecheck for the CLI.
+      - name: Test @etus/bhono
+        run: pnpm -C packages/bhono-app test:run
+
+      - name: Build @etus/bhono
         run: pnpm -C packages/bhono-app build
 
       - name: Create release PR or version
@@ -49,10 +73,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HUSKY: '0'
 
-      - name: Publish to npm (OIDC)
+      - name: Publish to npm (OIDC trusted publisher, restricted)
         if: steps.changesets.outputs.hasChangesets == 'false'
-        run: |
-          cd packages/bhono-app
-          npm publish --access public --provenance
+        working-directory: packages/bhono-app
+        run: npm publish --access restricted --provenance
         env:
           HUSKY: '0'
