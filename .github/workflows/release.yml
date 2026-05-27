@@ -105,20 +105,20 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # Each package needs its own Trusted Publisher config on npmjs:
-      # https://www.npmjs.com/package/create-bhono-app/access
+      # https://www.npmjs.com/package/@etus/create-bhono/access
       # (Organization: etusdigital, Repo: bhono, Workflow: release.yml)
-      # create-bhono-app is UNSCOPED — npm forbids restricted access on
-      # unscoped packages (EUNSCOPED), so publish must be --access public.
-      - name: Publish create-bhono-app to npm (OIDC, public)
+      # @etus/create-bhono is published with --access public — its job is
+      # `npx @etus/create-bhono <project>`, has to be installable by anyone.
+      - name: Publish @etus/create-bhono to npm (OIDC, public)
         if: steps.changesets.outputs.hasChangesets == 'false'
-        working-directory: packages/create-bhono-app
+        working-directory: packages/create-bhono
         run: |
           LOCAL=$(node -p "require('./package.json').version")
-          PUBLISHED=$(npm view create-bhono-app version 2>/dev/null || echo "0.0.0")
+          PUBLISHED=$(npm view @etus/create-bhono version 2>/dev/null || echo "0.0.0")
           if [ "$LOCAL" = "$PUBLISHED" ]; then
-            echo "create-bhono-app@$LOCAL already on registry — skipping publish."
+            echo "@etus/create-bhono@$LOCAL already on registry — skipping publish."
           else
-            echo "Publishing create-bhono-app@$LOCAL (was $PUBLISHED)…"
+            echo "Publishing @etus/create-bhono@$LOCAL (was $PUBLISHED)…"
             # Drop NODE_AUTH_TOKEN before publish so npm uses OIDC Trusted
             # Publisher instead of the 2FA-required token (EOTP otherwise).
             unset NODE_AUTH_TOKEN
@@ -126,6 +126,6 @@ jobs:
           fi
         env:
           HUSKY: '0'
-          # `npm view` here doesn't strictly need auth (create-bhono-app is
+          # `npm view` here doesn't strictly need auth (@etus/create-bhono is
           # public), but kept for consistency with the @etus/bhono step.
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

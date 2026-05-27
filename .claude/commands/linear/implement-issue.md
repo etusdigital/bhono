@@ -192,7 +192,7 @@ Fix any issues before proceeding.
 |---------------|-------------------|--------|
 | `packages/bhono-app/src/*` | **YES** | CLI code published to npm |
 | `packages/bhono-app/templates/*` | **YES** | Templates shipped to users |
-| `packages/create-bhono-app/*` | **YES** | Published to npm |
+| `packages/create-bhono/*` | **YES** | Published to npm |
 | `src/*` (app code) | **NO** | Not published, internal app |
 | `tests/*` | **NO** | Test-only changes |
 | `config/*`, `.github/*` | **NO** | Build/CI infrastructure |

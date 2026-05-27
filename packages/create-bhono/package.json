@@ -1,9 +1,9 @@
 {
-  "name": "create-bhono-app",
-  "version": "0.1.6",
+  "name": "@etus/create-bhono",
+  "version": "0.1.0",
   "type": "module",
   "bin": {
-    "create-bhono-app": "./index.js"
+    "create-bhono": "./index.js"
   },
   "publishConfig": {
     "access": "public"

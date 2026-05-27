@@ -226,10 +226,10 @@ Use the internal CLI to scaffold new apps:
 
 ```bash
 # Recommended (no global install)
-pnpm dlx @etus/bhono-app <project-name>
+pnpm dlx @etus/bhono <project-name>
 
-# npm shortcut (uses create-bhono-app)
-npm init bhono-app <project-name>
+# scaffolder shortcut (delegates to @etus/bhono)
+npx @etus/create-bhono <project-name>
 ```
 
 If the CLI cannot find local templates, it will clone the default Bhono template repo. You can override this by setting `BHONO_TEMPLATE_REPO` (or `ETUS_TEMPLATE_REPO`) to a git URL.
