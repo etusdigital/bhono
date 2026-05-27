@@ -51,12 +51,15 @@ jobs:
         run: npm install -g npm@latest
 
       - name: Install CLI dependencies only
-        # --filter '@etus/bhono...' scopes the install to the CLI workspace
-        # and its transitive deps. The boilerplate's @etus/auth dep (consumed
-        # only by src/server/*, never by the CLI) is never fetched here, so
-        # publish doesn't need a token with @etus read scope. OIDC trusted
-        # publisher handles publish auth on its own.
+        # --filter '@etus/bhono...' scopes installed node_modules to the CLI
+        # workspace + transitive deps. BUT pnpm still resolves the full
+        # lockfile (incl. @etus/auth from src/server/*), so NPM_TOKEN with
+        # @etus read scope is needed whenever the cache misses (any lockfile
+        # change invalidates it). OIDC trusted publisher only covers publish,
+        # not registry reads — so NPM_TOKEN remains required for install.
         run: pnpm install --frozen-lockfile --filter '@etus/bhono...'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # Quality gates — block the publish if any of these fail.
       # `build` runs tsc, which doubles as typecheck for the CLI.
