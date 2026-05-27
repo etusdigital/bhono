@@ -4,8 +4,10 @@ name: CI
 # this monorepo. The boilerplate code under src/ is template material that
 # gets scaffolded into new projects; its quality is enforced locally via the
 # pre-push hook (typecheck + tests) where the developer's own ~/.npmrc has
-# @etus scope access. CI deliberately stays scoped to the CLI so no
-# NPM_TOKEN with @etus read access is needed in GitHub Actions secrets.
+# @etus scope access. CI installs only the CLI workspace via filter, but
+# pnpm still resolves the full lockfile — so NPM_TOKEN with @etus read
+# scope is needed on every cache-missing run (lockfile changes invalidate
+# the pnpm store cache between runs).
 
 on:
   push:
@@ -45,12 +47,15 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org/'
 
       - name: Install CLI dependencies only
-        # --filter '@etus/bhono...' restricts the install to the CLI workspace
-        # and its transitive deps — the boilerplate's @etus/auth dep is never
-        # fetched in CI, so no NPM_TOKEN with @etus read scope is needed.
+        # --filter '@etus/bhono...' restricts what ends up in node_modules,
+        # but pnpm still resolves the full lockfile — so the @etus/* tarball
+        # auth check still runs and needs NPM_TOKEN with @etus read scope.
         run: pnpm install --frozen-lockfile --filter '@etus/bhono...'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Test CLI
         run: pnpm -C packages/bhono-app test:run
