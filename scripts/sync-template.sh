@@ -133,6 +133,31 @@ if [ -f "$TEMPLATE_PKG" ]; then
   "
 fi
 
+# Reset deploy-specific values in template's wrangler.json. Root keeps the
+# real values for the boilerplate's own deploy; template ships the generic
+# placeholders documented in CLAUDE.md ("admin@etus.com.br" — each product
+# must replace before deploying). Without this, every sync would leak the
+# root operator's email into the template.
+TEMPLATE_WRANGLER="$TEMPLATE_DIR/config/wrangler.json"
+if [ -f "$TEMPLATE_WRANGLER" ]; then
+  node -e "
+    const fs = require('fs');
+    const cfg = JSON.parse(fs.readFileSync('$TEMPLATE_WRANGLER', 'utf8'));
+    const PLACEHOLDER = 'admin@etus.com.br';
+    if (cfg.vars && cfg.vars.ETUS_ADMIN_EMAILS) {
+      cfg.vars.ETUS_ADMIN_EMAILS = PLACEHOLDER;
+    }
+    for (const envName of Object.keys(cfg.env ?? {})) {
+      const envBlock = cfg.env[envName];
+      if (envBlock.vars && envBlock.vars.ETUS_ADMIN_EMAILS) {
+        envBlock.vars.ETUS_ADMIN_EMAILS = PLACEHOLDER;
+      }
+    }
+    fs.writeFileSync('$TEMPLATE_WRANGLER', JSON.stringify(cfg, null, 2) + '\n');
+    console.log('Reset wrangler.json ETUS_ADMIN_EMAILS to template placeholder');
+  "
+fi
+
 echo ""
 echo -e "${GREEN}Sync complete!${NC}"
 
