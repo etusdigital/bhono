@@ -79,6 +79,6 @@ jobs:
       - name: Publish to npm (OIDC trusted publisher, restricted)
         if: steps.changesets.outputs.hasChangesets == 'false'
         working-directory: packages/bhono-app
-        run: npm publish --access restricted --provenance
+        run: npm publish --access restricted
         env:
           HUSKY: '0'
