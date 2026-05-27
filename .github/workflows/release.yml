@@ -76,9 +76,19 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HUSKY: '0'
 
-      - name: Publish to npm (OIDC trusted publisher, restricted)
+      - name: Publish @etus/bhono to npm (OIDC, restricted)
         if: steps.changesets.outputs.hasChangesets == 'false'
         working-directory: packages/bhono-app
+        run: npm publish --access restricted
+        env:
+          HUSKY: '0'
+
+      # Each package needs its own Trusted Publisher config on npmjs:
+      # https://www.npmjs.com/package/create-bhono-app/access
+      # (Organization: etusdigital, Repo: bhono, Workflow: release.yml)
+      - name: Publish create-bhono-app to npm (OIDC, restricted)
+        if: steps.changesets.outputs.hasChangesets == 'false'
+        working-directory: packages/create-bhono-app
         run: npm publish --access restricted
         env:
           HUSKY: '0'
