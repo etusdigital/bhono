@@ -6,7 +6,7 @@
     "create-bhono-app": "./index.js"
   },
   "publishConfig": {
-    "access": "restricted"
+    "access": "public"
   },
   "dependencies": {
     "@etus/bhono": "^0.2.0"
