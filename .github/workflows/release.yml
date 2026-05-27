@@ -79,10 +79,22 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HUSKY: '0'
 
+      # Idempotent publish: skip if the local version is already on the
+      # registry. Without this, a release that only bumps one package would
+      # still try to re-publish the others and fail with 403 ("cannot publish
+      # over previously published versions"), blocking subsequent steps.
       - name: Publish @etus/bhono to npm (OIDC, restricted)
         if: steps.changesets.outputs.hasChangesets == 'false'
         working-directory: packages/bhono-app
-        run: npm publish --access restricted
+        run: |
+          LOCAL=$(node -p "require('./package.json').version")
+          PUBLISHED=$(npm view @etus/bhono version 2>/dev/null || echo "0.0.0")
+          if [ "$LOCAL" = "$PUBLISHED" ]; then
+            echo "@etus/bhono@$LOCAL already on registry — skipping publish."
+          else
+            echo "Publishing @etus/bhono@$LOCAL (was $PUBLISHED)…"
+            npm publish --access restricted
+          fi
         env:
           HUSKY: '0'
 
@@ -92,6 +104,14 @@ jobs:
       - name: Publish create-bhono-app to npm (OIDC, restricted)
         if: steps.changesets.outputs.hasChangesets == 'false'
         working-directory: packages/create-bhono-app
-        run: npm publish --access restricted
+        run: |
+          LOCAL=$(node -p "require('./package.json').version")
+          PUBLISHED=$(npm view create-bhono-app version 2>/dev/null || echo "0.0.0")
+          if [ "$LOCAL" = "$PUBLISHED" ]; then
+            echo "create-bhono-app@$LOCAL already on registry — skipping publish."
+          else
+            echo "Publishing create-bhono-app@$LOCAL (was $PUBLISHED)…"
+            npm publish --access restricted
+          fi
         env:
           HUSKY: '0'
