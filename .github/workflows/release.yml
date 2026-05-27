@@ -97,6 +97,8 @@ jobs:
           fi
         env:
           HUSKY: '0'
+          # `npm view` needs read auth for restricted @etus packages.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # Each package needs its own Trusted Publisher config on npmjs:
       # https://www.npmjs.com/package/create-bhono-app/access
@@ -115,3 +117,5 @@ jobs:
           fi
         env:
           HUSKY: '0'
+          # `npm view` needs read auth for restricted packages.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
