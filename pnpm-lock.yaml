@@ -250,9 +250,9 @@ importers:
 
   packages/create-bhono-app:
     dependencies:
-      '@etus/bhono-app':
-        specifier: ^0.1.5
-        version: 0.1.5
+      '@etus/bhono':
+        specifier: ^0.2.0
+        version: 0.2.0
 
 packages:
 
@@ -1039,9 +1039,8 @@ packages:
       hono: '>=4.12.18 <5.0.0'
       react: '>=18.0.0 <20.0.0'
 
-  '@etus/bhono-app@0.1.5':
-    resolution: {integrity: sha512-pzFmn+5OY4+lSzEjQsygaaZV/tYsPOlN8K8yqTJgMXtA11AXnp0zGJ5WDL8qAPRqnul/ewIrsjWr/VUl6J/HXA==}
-    deprecated: Use @etus/bhono instead
+  '@etus/bhono@0.2.0':
+    resolution: {integrity: sha512-kxfaCc0XrnSu3X4OiOEcP5HmH+00jPIWUFciRTKOYdCfFHJUMXZGIjKtQH3WkiCy+SpLev42MArIhNp8aUAlNQ==}
     hasBin: true
 
   '@exodus/bytes@1.15.1':
@@ -5241,7 +5240,7 @@ snapshots:
       hono: 4.12.21
       react: 19.2.6
 
-  '@etus/bhono-app@0.1.5':
+  '@etus/bhono@0.2.0':
     dependencies:
       '@clack/prompts': 0.8.2
       '@octokit/rest': 22.0.1
