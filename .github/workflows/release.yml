@@ -93,6 +93,10 @@ jobs:
             echo "@etus/bhono@$LOCAL already on registry — skipping publish."
           else
             echo "Publishing @etus/bhono@$LOCAL (was $PUBLISHED)…"
+            # Drop NODE_AUTH_TOKEN before publish so npm exchanges the OIDC
+            # id-token via Trusted Publisher instead of using the token (which
+            # has 2FA enabled and would trigger EOTP at the registry).
+            unset NODE_AUTH_TOKEN
             npm publish --access restricted
           fi
         env:
@@ -115,6 +119,9 @@ jobs:
             echo "create-bhono-app@$LOCAL already on registry — skipping publish."
           else
             echo "Publishing create-bhono-app@$LOCAL (was $PUBLISHED)…"
+            # Drop NODE_AUTH_TOKEN before publish so npm uses OIDC Trusted
+            # Publisher instead of the 2FA-required token (EOTP otherwise).
+            unset NODE_AUTH_TOKEN
             npm publish --access public
           fi
         env:
