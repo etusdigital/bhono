@@ -2,6 +2,11 @@
   "name": "@etus/create-bhono",
   "version": "0.2.0",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/etusdigital/bhono.git",
+    "directory": "packages/create-bhono"
+  },
   "bin": {
     "create-bhono": "./index.js"
   },
