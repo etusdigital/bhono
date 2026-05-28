@@ -63,6 +63,7 @@ rsync -av --checksum --delete \
   --exclude='docs/plans/' \
   --exclude='docs/ets/' \
   --exclude='.claude/settings.local.json' \
+  --exclude='.claude/scheduled_tasks.lock' \
   --exclude='.agents/' \
   --exclude='.codex/' \
   --exclude='AGENTS.md' \
