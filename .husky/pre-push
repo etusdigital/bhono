@@ -1,5 +1,10 @@
 #!/usr/bin/env sh
 
+# Coverage gates are enforced by vitest via the test scripts below:
+#   server: vitest.config.ts          (statements 85 / branches 80 / functions 85 / lines 85)
+#   client: vitest.config.frontend.ts (statements 65 / branches 70 / functions 58 / lines 67)
+# If coverage drops below threshold, the test command exits non-zero and the push aborts.
+
 echo "🔍 Running pre-push checks..."
 
 run() {
@@ -15,8 +20,8 @@ run() {
 
 run "📝 Type checking"        pnpm typecheck
 run "🧹 Linting"              pnpm lint
-run "🧪 Server unit tests"    pnpm test:unit:server
-run "🧪 Client unit tests"    pnpm test:unit:client
+run "🧪 Server tests + coverage gate"  pnpm test:unit:server
+run "🧪 Client tests + coverage gate"  pnpm test:unit:client
 run "🏗️  App build"           pnpm build
 run "🔁 Template sync check"  pnpm sync:template:check
 run "🧪 CLI tests"            pnpm -C packages/bhono-app test:run
