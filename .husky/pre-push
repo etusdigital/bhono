@@ -2,25 +2,25 @@
 
 echo "🔍 Running pre-push checks..."
 
-# Type checking
-echo "📝 Type checking..."
-pnpm typecheck || {
-  echo "❌ Type check failed. Push aborted."
-  exit 1
+run() {
+  name="$1"
+  shift
+  echo ""
+  echo "$name"
+  "$@" || {
+    echo "❌ $name failed. Push aborted."
+    exit 1
+  }
 }
 
-# Server unit tests only (faster, more reliable)
-echo "🧪 Running server unit tests..."
-pnpm test:unit:server || {
-  echo "❌ Server unit tests failed. Push aborted."
-  exit 1
-}
+run "📝 Type checking"        pnpm typecheck
+run "🧹 Linting"              pnpm lint
+run "🧪 Server unit tests"    pnpm test:unit:server
+run "🧪 Client unit tests"    pnpm test:unit:client
+run "🏗️  App build"           pnpm build
+run "🔁 Template sync check"  pnpm sync:template:check
+run "🧪 CLI tests"            pnpm -C packages/bhono-app test:run
+run "🏗️  CLI build"           pnpm -C packages/bhono-app build
 
-# Build verification
-echo "🏗️ Verifying build..."
-pnpm build || {
-  echo "❌ Build failed. Push aborted."
-  exit 1
-}
-
+echo ""
 echo "✅ All pre-push checks passed!"
