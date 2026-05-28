@@ -15,6 +15,11 @@ tests/e2e/.auth/
 coverage/
 playwright-report/
 test-results/
+tests/**/__screenshots__/
+tests/e2e/blob-results/
+*.webm
+*.zip
+.nyc_output/
 
 # Local Linear configuration
 .claude/linear-config.json
