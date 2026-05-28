@@ -24,3 +24,9 @@ tests/e2e/blob-results/
 # Local Linear configuration
 .claude/linear-config.json
 tsconfig.tsbuildinfo
+
+# Local agent/IDE artifacts (personal, not project)
+.agents/
+.codex/
+AGENTS.md
+.claude/scheduled_tasks.lock
