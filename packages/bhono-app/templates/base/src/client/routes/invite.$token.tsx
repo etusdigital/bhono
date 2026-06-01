@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from '@etus/seven-react'
 import { Icons } from '@/components/icons'
 
 export const Route = createFileRoute('/invite/$token')({

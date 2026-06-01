@@ -45,6 +45,9 @@
   },
   "dependencies": {
     "@etus/auth": "^0.5.0",
+    "@etus/seven-react": "0.1.0-beta.3",
+    "@etus/tokens": "0.4.0-beta.2",
+    "@etus/ui": "0.4.0-beta.2",
     "@hono/swagger-ui": "^0.6.1",
     "@hono/zod-openapi": "^1.4.0",
     "@hookform/resolvers": "^5.2.2",

@@ -1,65 +1,42 @@
-@import "tailwindcss";
+/* Seven Design System tokens (pulls in `tailwindcss` itself, then the
+   official @etus/tokens vars + @theme mappings). Replaces the bare
+   `@import "tailwindcss"` so Seven components resolve their granular
+   per-component tokens (--avatar-size-*, --badge-radius-*, etc.). */
+@import "@etus/seven-react/styles.css";
+
+/* Tailwind v4 ignores node_modules for content detection by default, so the
+   arbitrary-value utilities Seven components use (h-[var(--button-size-*)],
+   rounded-[var(--button-radius-*)], shadow-[var(--button-shadow-*)], etc.)
+   would never be generated. Explicitly scan the @etus/ui dist so they are. */
+@source "../../node_modules/@etus/ui/dist";
 
 /* ========================================
    Seven Design System - Light Theme
    ======================================== */
 
 @theme {
-  /* --- Semantic Colors (Light) --- */
-  --color-background: oklch(100% 0 0);
-  --color-foreground: oklch(20.79% 0.0424 265.75);
+  /* --- Semantic + status colors ---
+     NEUTRALIZED for the Seven migration: @etus/tokens (imported above) is now
+     the source of truth for background/foreground/card/popover/primary/
+     secondary/muted/accent/destructive/border/input/ring/sidebar/success/
+     warning/info. They were removed here so the official Seven token values
+     WIN instead of being overridden by this later @theme block (Tailwind v4
+     merges @theme by order — last wins). Etapa 2 will reconcile the .dark
+     block below the same way.
 
-  --color-card: oklch(100% 0 0);
-  --color-card-foreground: oklch(20.79% 0.0424 265.75);
-
-  --color-popover: oklch(100% 0 0);
-  --color-popover-foreground: oklch(20.79% 0.0424 265.75);
-
-  /* Primary - Vibrant Green */
-  --color-primary: oklch(81.06% 0.2032 150.12);
-  --color-primary-foreground: oklch(20.79% 0.0424 265.75);
-
-  --color-secondary: oklch(96.83% 0 0);
-  --color-secondary-foreground: oklch(20.79% 0.0424 265.75);
-
-  --color-muted: oklch(96.83% 0 0);
-  --color-muted-foreground: oklch(55.55% 0.0234 264.36);
-
-  --color-accent: oklch(96.83% 0 0);
-  --color-accent-foreground: oklch(20.79% 0.0424 265.75);
-
-  --color-destructive: oklch(62.8% 0.2577 29.23);
-  --color-destructive-foreground: oklch(100% 0 0);
-
-  --color-border: oklch(92.2% 0 0);
-  --color-input: oklch(92.2% 0 0);
-  --color-ring: oklch(81.06% 0.2032 150.12);
-
-  /* Sidebar */
-  --color-sidebar: oklch(98.51% 0 0);
-  --color-sidebar-foreground: oklch(20.79% 0.0424 265.75);
-  --color-sidebar-border: oklch(92.2% 0 0);
-  --color-sidebar-accent: oklch(96.83% 0 0);
-  --color-sidebar-accent-foreground: oklch(20.79% 0.0424 265.75);
-
-  /* --- Status Colors --- */
-  --color-success: oklch(81.06% 0.2032 150.12);
-  --color-success-foreground: oklch(20.79% 0.0424 265.75);
-  --color-success-solid: oklch(81.06% 0.2032 150.12);
-  --color-success-solid-foreground: oklch(100% 0 0);
-
+     Only the tokens @etus/tokens does NOT provide are kept: `error*` (Seven
+     uses `destructive`) and the `*-solid*` status variants. */
   --color-error: oklch(62.8% 0.2577 29.23);
   --color-error-foreground: oklch(100% 0 0);
   --color-error-solid: oklch(62.8% 0.2577 29.23);
   --color-error-solid-foreground: oklch(100% 0 0);
 
-  --color-warning: oklch(79.88% 0.1702 70.08);
-  --color-warning-foreground: oklch(20.79% 0.0424 265.75);
+  --color-success-solid: oklch(81.06% 0.2032 150.12);
+  --color-success-solid-foreground: oklch(100% 0 0);
+
   --color-warning-solid: oklch(79.88% 0.1702 70.08);
   --color-warning-solid-foreground: oklch(20.79% 0.0424 265.75);
 
-  --color-info: oklch(61.19% 0.1963 255.1);
-  --color-info-foreground: oklch(100% 0 0);
   --color-info-solid: oklch(61.19% 0.1963 255.1);
   --color-info-solid-foreground: oklch(100% 0 0);
 
