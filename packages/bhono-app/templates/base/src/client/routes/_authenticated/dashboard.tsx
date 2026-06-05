@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@etus/seven-react'
 import { Icons } from '@/components/icons'
 import { useAuth } from '@/hooks/use-auth'
 

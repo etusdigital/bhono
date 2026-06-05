@@ -5,12 +5,17 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -18,8 +23,15 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog'
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@etus/seven-react'
+import { Input } from '@/components/ui/input'
 import { Icons } from '@/components/icons'
 import { useAuth } from '@/hooks/use-auth'
 import type { Account, AuthUser } from '@shared/types'
@@ -365,10 +377,13 @@ function TeamMemberRow({
     ? name.split(' ').map((part) => part[0]).join('').toUpperCase().slice(0, 2)
     : '?'
 
-  const roleColors: Record<AccountMember['role'], 'default' | 'secondary' | 'outline'> = {
-    admin: 'secondary',
-    member: 'outline',
-    guest: 'outline',
+  const roleBadge: Record<
+    AccountMember['role'],
+    { color?: 'muted'; type?: 'badge-outline' }
+  > = {
+    admin: { color: 'muted' },
+    member: { type: 'badge-outline' },
+    guest: { type: 'badge-outline' },
   }
 
   return (
@@ -390,7 +405,7 @@ function TeamMemberRow({
       </div>
 
       <div className="flex items-center gap-3">
-        <Badge variant={roleColors[member.role]} className="capitalize">
+        <Badge {...roleBadge[member.role]} className="capitalize">
           {member.role}
         </Badge>
         {!isCurrentUser && (
@@ -433,7 +448,7 @@ function InvitationRow({
       </div>
 
       <div className="flex items-center gap-2">
-        <Badge variant="warning">Pending</Badge>
+        <Badge color="warning">Pending</Badge>
         <Button
           variant="ghost"
           size="sm"

@@ -2,12 +2,11 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -15,8 +14,16 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog'
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@etus/seven-react'
+import { Input } from '@/components/ui/input'
+import { Separator } from '@/components/ui/separator'
 import { Icons } from '@/components/icons'
 import { CreateWebhookSchema, type CreateWebhookInput } from '@shared/schemas'
 
@@ -257,7 +264,7 @@ function IntegrationCard({ integration }: { integration: Integration }) {
             <div className="flex items-center gap-2">
               <p className="font-medium">{integration.name}</p>
               {connected && (
-                <Badge variant="success" className="text-xs">Connected</Badge>
+                <Badge color="success" className="text-xs">Connected</Badge>
               )}
             </div>
             <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
@@ -266,7 +273,7 @@ function IntegrationCard({ integration }: { integration: Integration }) {
           </div>
         </div>
         <div className="mt-4 flex items-center justify-between">
-          <Badge variant="outline" className="text-xs capitalize">
+          <Badge type="badge-outline" className="text-xs capitalize">
             {integration.category}
           </Badge>
           <Button
@@ -317,7 +324,7 @@ function WebhookCard({ webhook }: { webhook: Webhook }) {
             </div>
             <div className="flex flex-wrap gap-1.5">
               {webhook.events.map((event) => (
-                <Badge key={event} variant="secondary" className="text-xs font-mono">
+                <Badge key={event} color="muted" className="text-xs font-mono">
                   {event}
                 </Badge>
               ))}
