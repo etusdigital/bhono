@@ -19,9 +19,10 @@ describe("DashboardSkeleton", () => {
   it("renders stats cards skeleton", () => {
     const { container } = render(<DashboardSkeleton />)
 
-    // Should have 4 stats cards
-    const cards = container.querySelectorAll(".rounded-lg.border")
-    expect(cards.length).toBeGreaterThanOrEqual(4)
+    // Should have 4 stats cards. Count the children of the stats grid (our own
+    // markup) rather than Card's internal classes, which are owned by @etus/ui.
+    const statsGrid = container.querySelector('[class*="grid-cols-4"]')
+    expect(statsGrid?.children.length).toBe(4)
   })
 
   it("renders quick actions skeleton", () => {

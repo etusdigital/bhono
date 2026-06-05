@@ -4,12 +4,14 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -17,8 +19,15 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@etus/seven-react'
+import { Input } from '@/components/ui/input'
+import { Separator } from '@/components/ui/separator'
 import { Icons } from '@/components/icons'
 import { useAuth } from '@/hooks/use-auth'
 
@@ -58,7 +67,7 @@ function AccountPage() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="font-medium">Google</p>
-                  <Badge variant="success" className="text-xs">Connected</Badge>
+                  <Badge color="success" className="text-xs">Connected</Badge>
                 </div>
                 <p className="text-sm text-muted-foreground truncate">
                   {user?.email}
@@ -81,7 +90,7 @@ function AccountPage() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="font-medium">GitHub</p>
-                  <Badge variant="outline" className="text-xs">Not connected</Badge>
+                  <Badge type="badge-outline" className="text-xs">Not connected</Badge>
                 </div>
                 <p className="text-sm text-muted-foreground">
                   Connect for additional sign-in options
@@ -117,7 +126,7 @@ function AccountPage() {
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <p className="font-medium">Two-Factor Authentication</p>
-                  <Badge variant="warning" className="text-xs">Recommended</Badge>
+                  <Badge color="warning" className="text-xs">Recommended</Badge>
                 </div>
                 <p className="text-sm text-muted-foreground">
                   Add an extra layer of security to your account
@@ -281,7 +290,7 @@ function SessionCard({
         <div className="flex items-center gap-2">
           <p className="font-medium text-sm">{device}</p>
           {isCurrent && (
-            <Badge variant="success" className="text-xs">Current</Badge>
+            <Badge color="success" className="text-xs">Current</Badge>
           )}
         </div>
         <p className="text-xs text-muted-foreground">

@@ -1,7 +1,6 @@
 // src/client/components/ui/error-fallback.tsx
 import { AlertTriangle, RefreshCw, Home, ArrowLeft } from 'lucide-react'
-import { Button } from './button'
-
+import { Button } from '@etus/seven-react'
 interface ErrorFallbackProps {
   error?: Error
   title?: string
