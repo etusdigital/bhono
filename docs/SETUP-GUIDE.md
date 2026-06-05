@@ -177,9 +177,18 @@ Onboarding (uma vez, por app):
    - `ETUS_RESOURCE_ID=<slug do resource>` (var, em `config/wrangler.json`)
    - `ETUS_INTEGRATION_KEY=<a key>` — **secret**:
      `wrangler secret put ETUS_INTEGRATION_KEY --config config/wrangler.json`
-     (e em `.dev.vars` para local). Nunca commitar.
+     em produção/staging. Nunca commitar.
 4. **Conceder roles/grants aos usuários no gateway** que resolvam para `bhono:*`.
    O app passa a ler isso no login (e revalida a cada `ttlSeconds`).
+
+> **Dev local (importante):** `pnpm dev` usa o `@cloudflare/vite-plugin` com
+> `configPath: ./config/wrangler.json`, que lê as variáveis de
+> `config/wrangler.json` e os secrets de **`config/.dev.vars`** — NÃO do
+> `.dev.vars` na raiz do projeto. Para testar gateway-as-authority localmente,
+> ponha `ETUS_GATEWAY_AUTHORITY`/`ETUS_RESOURCE_ID` nas `vars` de
+> `config/wrangler.json` e `ETUS_INTEGRATION_KEY` em `config/.dev.vars`
+> (gitignored). Variáveis postas no `.dev.vars` da raiz são silenciosamente
+> ignoradas (o app cai no default `ETUS_GATEWAY_AUTHORITY=false`).
 
 Verificação: logar → o middleware popula `authPermissions` a partir do
 `SCOPE_MAP` → `requirePermission(...)` autoriza. Se **todo** request der 403,
