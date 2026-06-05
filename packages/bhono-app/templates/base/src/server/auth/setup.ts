@@ -9,12 +9,13 @@
 // helpers (`createTestSession`, `devRoutes`) which don't take an instance.
 //
 // Sessions live in D1 (`createSqlSessionStore`, v0.6.0+), not KV. Authorization
-// can be sourced from the gateway (`gatewayAuthority`, v0.7.0+): when enabled
+// can be sourced from the gateway (`gatewayAuthority`, v0.8.0+): when enabled
 // via ETUS_GATEWAY_AUTHORITY=true, the app derives a user's permissions from
 // what the gateway resolved for it (RBAC ∪ access_grants), mapped to local
 // permissions via SCOPE_MAP. ETUS_ADMIN_EMAILS stays required by the package as
-// a bootstrap admin allowlist — with gatewayAuthority the real admin role comes
-// from the gateway (adminScopes), and the allowlist is just the day-0 fallback.
+// a bootstrap admin allowlist — with gatewayAuthority the gateway becomes the
+// authority for permissions (admin is the `bhono:admin` scope → `['*']`), and
+// the allowlist is just the day-0 fallback.
 //
 // Bootstrap a brand-new product without an admin: start with mode 'open' and
 // one owner email in ETUS_ADMIN_EMAILS, then switch to 'approval-required'
@@ -87,21 +88,19 @@ function buildAuthConfig(env: Env): AuthConfig {
     },
     permissions: PERMISSIONS_MATRIX,
     roleHierarchy: ROLE_HIERARCHY,
-    // Gateway-as-authority (v0.7.0). Off by default so a freshly generated app
+    // Gateway-as-authority (v0.8.0). Off by default so a freshly generated app
     // boots before its gateway resource + integration key exist; flip
     // ETUS_GATEWAY_AUTHORITY=true once onboarding is done (see SETUP-GUIDE).
     // When on, the gateway's resolved scopes become the permission source
-    // (mapped via SCOPE_MAP), and `adminScopes` lets the gateway grant the
-    // local admin role — making the gateway the source of truth instead of the
-    // ETUS_ADMIN_EMAILS bootstrap list.
+    // (mapped via SCOPE_MAP) — making the gateway the authority for permissions
+    // instead of the ETUS_ADMIN_EMAILS bootstrap list. Admin is just a scope that
+    // maps to `['*']` (see SCOPE_MAP `bhono:admin`); gate with requirePermission,
+    // not requireRole, so a revoked scope drops access on the next request.
     gatewayAuthority: {
       enabled: parseBool(env.ETUS_GATEWAY_AUTHORITY),
       resourceId: env.ETUS_RESOURCE_ID ?? '',
       integrationKey: (e) => (e as Env).ETUS_INTEGRATION_KEY ?? '',
       scopeMap: SCOPE_MAP,
-      // Keep in lockstep with SCOPE_MAP keys (same `<app>:` vocabulary): a
-      // gateway scope here promotes the user to the local admin role.
-      adminScopes: ['bhono:admin'],
       ttlSeconds: 300,
     },
     // Required in v0.5.0 when the invitation flow is active — without a
