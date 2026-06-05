@@ -3,16 +3,15 @@
 // Mounted at /auth/test-login. E2E and integration suites POST here to obtain
 // a session without running the real OAuth flow. @etus/auth does not expose a
 // public createSession helper, so this replicates the package internals
-// (auth_* schema, the auth_sid: KV key, the __Host-auth_sid cookie). Fragile
+// (auth_* schema, the D1 auth_sessions row, the __Host-auth_sid cookie). Fragile
 // by design - keep it aligned with @etus/auth. Never reachable outside
-// localhost.
+// localhost. v0.6.0+: sessions live in D1 (createSqlSessionStore), not KV.
 
 import { Hono, type Context } from 'hono'
 import { setCookie } from 'hono/cookie'
 import type { HonoEnv } from '../types'
 import { ACCOUNT_MEMBERSHIP_ROLES, ROLES, type Role } from '../auth/matrix'
 
-const SESSION_PREFIX = 'auth_sid:'
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000
 
 const CREATE_AUTH_USERS = `CREATE TABLE IF NOT EXISTS auth_users (
@@ -130,9 +129,8 @@ devLogin.post('/', async (c) => {
   }
 
   const db = c.env.DB
-  const kv = c.env.SESSIONS
-  if (!db || !kv) {
-    return c.json({ error: { message: 'DB/KV not configured' } }, 500)
+  if (!db) {
+    return c.json({ error: { message: 'DB not configured' } }, 500)
   }
 
   const body = await c.req.json<{ email?: string; name?: string; role?: string }>()
@@ -182,7 +180,8 @@ devLogin.post('/', async (c) => {
 
   const accountId = await ensureUserAccount(db, userId, name, role)
 
-  // Create the session — KV holds the shape @etus/auth's middleware reads
+  // Create the session — the D1 auth_sessions row IS what @etus/auth's
+  // createSqlSessionStore (v0.6.0+) reads; no KV mirror anymore.
   const sessionId = crypto.randomUUID()
   const nowMs = Date.now()
   const expiresAt = nowMs + SESSION_TTL_MS
@@ -190,11 +189,6 @@ devLogin.post('/', async (c) => {
     ip: getClientIp(c),
     userAgent: getClientUserAgent(c),
   }
-  await kv.put(
-    `${SESSION_PREFIX}${sessionId}`,
-    JSON.stringify({ id: sessionId, userId, expiresAt, createdAt: nowMs, fingerprint }),
-    { expiration: Math.floor(expiresAt / 1000) },
-  )
   await db
     .prepare(
       `INSERT INTO auth_sessions (id, user_id, ip, user_agent, last_active_at, expires_at, created_at)

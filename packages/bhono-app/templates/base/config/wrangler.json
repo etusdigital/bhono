@@ -45,7 +45,9 @@
     "ETUS_GATEWAY": "https://ag.etus.io",
     "ETUS_CLIENT_ID": "boilerplate-hono",
     "ETUS_ALLOWED_DOMAINS": "brius.com.br,etus.com.br",
-    "ETUS_ADMIN_EMAILS": "admin@etus.com.br"
+    "ETUS_ADMIN_EMAILS": "admin@etus.com.br",
+    "ETUS_GATEWAY_AUTHORITY": "false",
+    "ETUS_RESOURCE_ID": ""
   },
   "env": {
     "staging": {
@@ -76,7 +78,9 @@
         "ETUS_GATEWAY": "https://ag.etus.io",
         "ETUS_CLIENT_ID": "boilerplate-hono",
         "ETUS_ALLOWED_DOMAINS": "brius.com.br,etus.com.br",
-        "ETUS_ADMIN_EMAILS": "admin@etus.com.br"
+        "ETUS_ADMIN_EMAILS": "admin@etus.com.br",
+        "ETUS_GATEWAY_AUTHORITY": "false",
+        "ETUS_RESOURCE_ID": ""
       }
     }
   }

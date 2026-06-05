@@ -148,7 +148,48 @@ SENDGRID_FROM_EMAIL=noreply@example.com
 
 **Importante:** `ETUS_ADMIN_EMAILS` deve ter pelo menos um email. Esses emails
 recebem `role='admin'` no callback OAuth e conseguem acessar `/auth/admin/*`
-e `/audit/logs`.
+e `/audit/logs`. Com **gateway-as-authority** ligado (abaixo), esse allowlist
+vira apenas o bootstrap do dia 0 — o papel admin real passa a vir do gateway.
+
+---
+
+### Gateway-as-authority (opcional, @etus/auth v0.7.0)
+
+Por padrão o app decide as permissões localmente (`PERMISSIONS_MATRIX`). Para
+tornar o **gateway a fonte de autoridade** — ou seja, derivar as permissões do
+que o gateway resolveu para o usuário neste app (`RBAC ∪ access_grants`) —
+ative `ETUS_GATEWAY_AUTHORITY`. O app continua BFF (não guarda tokens do
+usuário); ele consulta o gateway com a **integration key do próprio app**.
+
+Onboarding (uma vez, por app):
+
+1. **Registrar o app como resource `web_app` no gateway** (um admin do gateway,
+   no console). Declare o vocabulário de scopes igual às **chaves do `SCOPE_MAP`**
+   em `src/server/auth/matrix.ts` (o template usa `bhono:admin|editor|viewer` —
+   renomeie para o prefixo do seu app). ⚠️ Há **duas** referências a esse
+   vocabulário: as chaves do `SCOPE_MAP` **e** `adminScopes` em
+   `src/server/auth/setup.ts` — renomeie as duas em lockstep, senão a promoção a
+   admin via gateway quebra silenciosamente.
+2. **Provisionar uma integration key** bound a esse resource, com o scope
+   **`app.grants.read`**. Copie o segredo `ag_app_<slug>_…` (mostrado uma vez).
+3. **Configurar o app:**
+   - `ETUS_GATEWAY_AUTHORITY=true`
+   - `ETUS_RESOURCE_ID=<slug do resource>` (var, em `config/wrangler.json`)
+   - `ETUS_INTEGRATION_KEY=<a key>` — **secret**:
+     `wrangler secret put ETUS_INTEGRATION_KEY --config config/wrangler.json`
+     (e em `.dev.vars` para local). Nunca commitar.
+4. **Conceder roles/grants aos usuários no gateway** que resolvam para `bhono:*`.
+   O app passa a ler isso no login (e revalida a cada `ttlSeconds`).
+
+Verificação: logar → o middleware popula `authPermissions` a partir do
+`SCOPE_MAP` → `requirePermission(...)` autoriza. Se **todo** request der 403,
+cheque que a key tem `app.grants.read` e que o vocabulário do resource bate com
+as chaves do `SCOPE_MAP`. Disponibilidade: uma negação explícita do gateway
+bloqueia; uma indisponibilidade transitória serve o cache (não derruba o app).
+
+> O binding KV `SESSIONS` em `config/wrangler.json` não é mais usado para sessão
+> (v0.6.0+ usa D1 via `createSqlSessionStore`); pode ser removido se nenhum outro
+> código depender dele.
 
 ---
 

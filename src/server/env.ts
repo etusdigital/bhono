@@ -24,7 +24,18 @@ export interface Env {
   ETUS_CLIENT_ID: string
   ETUS_CLIENT_SECRET?: string
   ETUS_ALLOWED_DOMAINS: string
+  // Bootstrap admin allowlist (required by @etus/auth). With gatewayAuthority on
+  // it is only the day-0 fallback — the real admin role comes from the gateway.
   ETUS_ADMIN_EMAILS: string
+
+  // Gateway-as-authority (@etus/auth v0.7.0, opt-in via ETUS_GATEWAY_AUTHORITY)
+  // ETUS_GATEWAY_AUTHORITY: "true" turns it on (default off)
+  ETUS_GATEWAY_AUTHORITY?: string
+  // The app's resource slug registered in the gateway (e.g. "myapp.etus.io")
+  ETUS_RESOURCE_ID?: string
+  // The resource-bound integration key (ag_app_<slug>.<secret>, scope app.grants.read).
+  // Secret — set via `wrangler secret put`, never commit it.
+  ETUS_INTEGRATION_KEY?: string
 
   // SendGrid (invitations)
   SENDGRID_API_KEY: string
@@ -100,6 +111,17 @@ export function validateEnv(env: Env, options: { allowMissingClientSecret?: bool
   }
   if (parseList(env.ETUS_ADMIN_EMAILS).length === 0) {
     throw new Error('ETUS_ADMIN_EMAILS must include at least one admin email')
+  }
+  // Gateway-as-authority: when enabled, the resource id and integration key are
+  // required (the key, like the client secret, only in deployed environments —
+  // local dev can resolve it from .dev.vars without failing boot).
+  if (env.ETUS_GATEWAY_AUTHORITY === 'true' || env.ETUS_GATEWAY_AUTHORITY === '1') {
+    if (!env.ETUS_RESOURCE_ID) {
+      throw new Error('ETUS_RESOURCE_ID is required when ETUS_GATEWAY_AUTHORITY is enabled')
+    }
+    if (requiresGatewaySecret && !env.ETUS_INTEGRATION_KEY && !options.allowMissingClientSecret) {
+      throw new Error('ETUS_INTEGRATION_KEY is required when ETUS_GATEWAY_AUTHORITY is enabled')
+    }
   }
   if (env.ENVIRONMENT === 'production' && parseList(env.CORS_ORIGINS).includes('*')) {
     throw new Error('CORS_ORIGINS must not contain * in production')
