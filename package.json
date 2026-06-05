@@ -57,7 +57,7 @@
     "sync:template:check": "./scripts/sync-template.sh && git diff --exit-code packages/bhono-app/templates/"
   },
   "dependencies": {
-    "@etus/auth": "^0.5.0",
+    "@etus/auth": "^0.7.0",
     "@hono/swagger-ui": "^0.6.1",
     "@hono/zod-openapi": "^1.4.0",
     "@hookform/resolvers": "^5.2.2",

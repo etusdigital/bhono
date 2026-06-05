@@ -41,20 +41,19 @@ describe('devLogin', () => {
     })
     expect(res.headers.get('set-cookie')).toContain('auth_sid=')
 
-    const sessionKey = Array.from(env.SESSIONS._mock._store.keys()).find((key) =>
-      key.startsWith('auth_sid:'),
-    )
-    expect(sessionKey).toBeDefined()
+    // Session cookie issued, and the session written to D1 auth_sessions — that
+    // INSERT is what @etus/auth's createSqlSessionStore (v0.6.0+) reads. The
+    // mock D1 doesn't persist rows, so assert the write happened, and that the
+    // session is NO LONGER mirrored to KV.
+    const sessionId = (res.headers.get('set-cookie') ?? '').match(/auth_sid=([^;]+)/)?.[1]
+    expect(sessionId).toBeTruthy()
 
-    const stored = env.SESSIONS._mock._store.get(sessionKey ?? '')
-    expect(stored).toBeDefined()
-    expect(JSON.parse(stored?.value ?? '{}')).toMatchObject({
-      userId: expect.any(String),
-      fingerprint: {
-        ip: '127.0.0.1',
-        userAgent: 'Vitest',
-      },
-    })
+    const prepareCalls = (env.DB.prepare as unknown as { mock: { calls: unknown[][] } }).mock.calls
+    const insertedSession = prepareCalls.some(
+      (call) => typeof call[0] === 'string' && /INSERT INTO auth_sessions/i.test(call[0]),
+    )
+    expect(insertedSession).toBe(true)
+    expect(env.SESSIONS._mock._store.size).toBe(0)
   })
 
   it('rejects roles outside the configured @etus/auth role catalog', async () => {

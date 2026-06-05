@@ -51,3 +51,29 @@ export const PERMISSIONS_MATRIX: Record<Role, string[]> = {
   ],
   guest: ['account:read', 'resources:read'],
 }
+
+// Gateway scope → local permissions (gateway-as-authority, v0.7.0).
+//
+// This IS the scope→action translation that belongs to the consuming app: the
+// gateway resolves which colon-vocabulary scopes a user holds on this app's
+// resource, and SCOPE_MAP turns them into the local permission strings the
+// guards enforce (`requirePermission` reads `authPermissions`).
+//
+// IMPORTANT — keep this in sync with the gateway in two directions:
+//   * KEYS must equal the scope vocabulary your app declares when it is
+//     registered as a `web_app` resource in the gateway (here `bhono:*` —
+//     rename to your app's prefix, e.g. `myapp:editor`).
+//   * VALUES must be entries of PERMISSION_CATALOG above (or wildcards), or the
+//     guards will never match.
+// Scopes the gateway returns that are not mapped here are simply ignored.
+export const SCOPE_MAP: Record<string, string[]> = {
+  'bhono:admin': ['*'],
+  'bhono:editor': [
+    'account:read',
+    'members:invite',
+    'resources:create',
+    'resources:read',
+    'resources:update',
+  ],
+  'bhono:viewer': ['account:read', 'resources:read'],
+}
