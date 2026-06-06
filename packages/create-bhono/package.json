@@ -1,6 +1,6 @@
 {
   "name": "@etus/create-bhono",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "repository": {
     "type": "git",
@@ -14,6 +14,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@etus/bhono": "^0.2.0"
+    "@etus/bhono": "^0.3.0"
   }
 }
