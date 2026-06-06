@@ -1,6 +1,5 @@
 import { Skeleton } from "./skeleton"
-import { Card, CardContent, CardHeader } from "./card"
-
+import { Card, CardContent, CardHeader } from '@etus/seven-react'
 // Helper to create stable keys for skeleton items
 const skeletonItems = (count: number, prefix: string) =>
   Array.from({ length: count }, (_, i) => `${prefix}-${String(i)}`)

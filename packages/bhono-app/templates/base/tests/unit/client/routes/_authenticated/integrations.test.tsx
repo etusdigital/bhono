@@ -326,9 +326,12 @@ describe('Integrations Page', () => {
         expect(screen.getByText('https://api.example.com/webhooks/receive')).toBeInTheDocument()
       }, { timeout: 10000 })
 
-      // Find the delete button (trash icon button with destructive styling)
+      // Find the delete button (trash icon button with destructive text styling).
+      // Filter on `text-destructive` specifically: Seven's Button base class
+      // includes `border-destructive`/`ring-destructive` on every button, so a
+      // bare `destructive` match would select all buttons.
       const deleteButtons = screen.getAllByRole('button').filter(btn =>
-        btn.className.includes('destructive')
+        btn.className.includes('text-destructive')
       )
       expect(deleteButtons.length).toBeGreaterThan(0)
 

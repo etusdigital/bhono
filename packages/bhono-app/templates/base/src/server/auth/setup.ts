@@ -1,4 +1,4 @@
-// @etus/auth instance factory (v0.5.0).
+// @etus/auth instance factory (v0.7.0).
 //
 // Lazy singletons: the ETUS_* config vars only exist at request time in
 // Cloudflare Workers, so the config + instance are built on the first request
@@ -8,12 +8,22 @@
 // raw AuthConfig). The config is needed separately by `@etus/auth/dev`
 // helpers (`createTestSession`, `devRoutes`) which don't take an instance.
 //
+// Sessions live in D1 (`createSqlSessionStore`, v0.6.0+), not KV. Authorization
+// can be sourced from the gateway (`gatewayAuthority`, v0.8.0+): when enabled
+// via ETUS_GATEWAY_AUTHORITY=true, the app derives a user's permissions from
+// what the gateway resolved for it (RBAC ∪ access_grants), mapped to local
+// permissions via SCOPE_MAP. ETUS_ADMIN_EMAILS stays required by the package as
+// a bootstrap admin allowlist — with gatewayAuthority the gateway becomes the
+// authority for permissions (admin is the `bhono:admin` scope → `['*']`), and
+// the allowlist is just the day-0 fallback.
+//
 // Bootstrap a brand-new product without an admin: start with mode 'open' and
 // one owner email in ETUS_ADMIN_EMAILS, then switch to 'approval-required'
 // once the first admin is confirmed. See the auth-extend skill.
 
 import {
   createAuth,
+  createSqlSessionStore,
   validateAdminEmails,
   type AuthConfig,
   type AuthDatabase,
@@ -22,13 +32,17 @@ import {
 } from '@etus/auth'
 import type { Env } from '../env'
 import { sendInvitationEmail } from '../lib/email'
-import { PERMISSIONS_MATRIX, ROLE_HIERARCHY, ROLES } from './matrix'
+import { PERMISSIONS_MATRIX, ROLE_HIERARCHY, ROLES, SCOPE_MAP } from './matrix'
 
 function parseList(csv: string | undefined): string[] {
   return (csv ?? '')
     .split(',')
     .map((entry) => entry.trim())
     .filter(Boolean)
+}
+
+function parseBool(value: string | undefined): boolean {
+  return value === 'true' || value === '1'
 }
 
 let cachedConfig: AuthConfig | undefined
@@ -56,7 +70,9 @@ function buildAuthConfig(env: Env): AuthConfig {
     // adapter path). D1Database is structurally compatible at runtime but the
     // type misses an index signature, so we cast through unknown.
     db: (e) => (e as Env).DB as unknown as AuthDatabase,
-    sessions: (e) => (e as Env).SESSIONS as KVNamespace,
+    // v0.6.0: sessions moved off KV onto a pluggable SessionStore. The default
+    // SQL store persists them in the same D1 `auth_sessions` table.
+    sessionStore: (e) => createSqlSessionStore((e as Env).DB as unknown as AuthDatabase),
     access: {
       mode: 'approval-required',
       allowedDomains: parseList(env.ETUS_ALLOWED_DOMAINS),
@@ -72,6 +88,21 @@ function buildAuthConfig(env: Env): AuthConfig {
     },
     permissions: PERMISSIONS_MATRIX,
     roleHierarchy: ROLE_HIERARCHY,
+    // Gateway-as-authority (v0.8.0). Off by default so a freshly generated app
+    // boots before its gateway resource + integration key exist; flip
+    // ETUS_GATEWAY_AUTHORITY=true once onboarding is done (see SETUP-GUIDE).
+    // When on, the gateway's resolved scopes become the permission source
+    // (mapped via SCOPE_MAP) — making the gateway the authority for permissions
+    // instead of the ETUS_ADMIN_EMAILS bootstrap list. Admin is just a scope that
+    // maps to `['*']` (see SCOPE_MAP `bhono:admin`); gate with requirePermission,
+    // not requireRole, so a revoked scope drops access on the next request.
+    gatewayAuthority: {
+      enabled: parseBool(env.ETUS_GATEWAY_AUTHORITY),
+      resourceId: env.ETUS_RESOURCE_ID ?? '',
+      integrationKey: (e) => (e as Env).ETUS_INTEGRATION_KEY ?? '',
+      scopeMap: SCOPE_MAP,
+      ttlSeconds: 300,
+    },
     // Required in v0.5.0 when the invitation flow is active — without a
     // mailer, /accounts/:id/members/invite returns 501 MAILER_NOT_CONFIGURED.
     mailer,

@@ -11,6 +11,14 @@ ETUS_CLIENT_SECRET=your-client-secret-from-npx-etus-auth-init
 ETUS_ALLOWED_DOMAINS=yourdomain.com,anotherdomain.com
 ETUS_ADMIN_EMAILS=admin@yourdomain.com
 
+# Gateway-as-authority (@etus/auth v0.7.0) — OFF by default. Turn on once your app
+# is registered as a web_app resource in the gateway and you hold an integration
+# key (see docs/SETUP-GUIDE.md → "Gateway-as-authority onboarding"). The key is a
+# secret — keep it in .dev.vars locally and `wrangler secret put` in deployments.
+# ETUS_GATEWAY_AUTHORITY=true
+# ETUS_RESOURCE_ID=yourapp.example.com
+# ETUS_INTEGRATION_KEY=ag_app_yourapp_xxx.yyy
+
 # SendGrid
 SENDGRID_API_KEY=your-sendgrid-api-key
 SENDGRID_FROM_EMAIL=noreply@yourdomain.com
