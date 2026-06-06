@@ -49,7 +49,7 @@
     "test:e2e:prod:auth": "tsx scripts/capture-prod-session.ts",
     "test": "pnpm test:unit && pnpm test:integration && pnpm test:e2e",
     "changeset": "changeset",
-    "changeset:version": "changeset version",
+    "changeset:version": "changeset version && pnpm install --lockfile-only",
     "changeset:publish": "changeset publish",
     "prepare": "husky || true",
     "test:run": "pnpm test:unit:server && pnpm test:unit:client",

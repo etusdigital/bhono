@@ -73,10 +73,18 @@ jobs:
         id: changesets
         uses: changesets/action@v1
         with:
+          # `changeset:version` runs `changeset version && pnpm install
+          # --lockfile-only`, so the release PR carries an in-sync pnpm-lock.yaml.
+          # Without it the later `--frozen-lockfile` install fails on the bumped
+          # (but not-yet-published) internal versions, stalling every release.
+          version: pnpm run changeset:version
           title: 'chore: release packages'
           commit: 'chore: release packages'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Lets `changeset:version`'s lockfile refresh resolve restricted @etus
+          # deps (e.g. @etus/auth) from the registry while updating the lockfile.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           HUSKY: '0'
 
       # Idempotent publish: skip if the local version is already on the
