@@ -260,8 +260,8 @@ importers:
   packages/create-bhono:
     dependencies:
       '@etus/bhono':
-        specifier: ^0.2.0
-        version: 0.2.0
+        specifier: ^0.3.0
+        version: link:../bhono-app
 
 packages:
 
@@ -1072,10 +1072,6 @@ packages:
     peerDependencies:
       hono: '>=4.12.18 <5.0.0'
       react: '>=18.0.0 <20.0.0'
-
-  '@etus/bhono@0.2.0':
-    resolution: {integrity: sha512-kxfaCc0XrnSu3X4OiOEcP5HmH+00jPIWUFciRTKOYdCfFHJUMXZGIjKtQH3WkiCy+SpLev42MArIhNp8aUAlNQ==}
-    hasBin: true
 
   '@etus/seven-react@0.1.0-beta.3':
     resolution: {integrity: sha512-Wk74488Iy9YQtnbX/aQ5QJ+NPRIFHVfC7yFjSAyjhqIagHEhMDtFS7NGugIZ9jx57cd4Jg6+PYrxCuMVmZwjhA==}
@@ -6370,14 +6366,6 @@ snapshots:
       hono: 4.12.21
       react: 19.2.6
 
-  '@etus/bhono@0.2.0':
-    dependencies:
-      '@clack/prompts': 0.8.2
-      '@octokit/rest': 22.0.1
-      commander: 12.1.0
-      fs-extra: 11.3.5
-      picocolors: 1.1.1
-
   '@etus/seven-react@0.1.0-beta.3(@floating-ui/dom@1.7.6)(@tiptap/extension-code-block@3.23.6(@tiptap/core@3.23.6(@tiptap/pm@3.23.6))(@tiptap/pm@3.23.6))(@tiptap/extension-list@3.23.6(@tiptap/core@3.23.6(@tiptap/pm@3.23.6))(@tiptap/pm@3.23.6))(@tiptap/extensions@3.23.6(@tiptap/core@3.23.6(@tiptap/pm@3.23.6))(@tiptap/pm@3.23.6))(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(highlight.js@11.11.1)(lowlight@3.3.0)(react-dom@19.2.6(react@19.2.6))(react-is@17.0.2)(react@19.2.6)(redux@5.0.1)':
     dependencies:
       '@etus/tokens': 0.4.0-beta.2
@@ -8417,7 +8405,7 @@ snapshots:
       magicast: 0.5.3
       obug: 2.1.1
       tinyrainbow: 3.1.0
-      vitest: 4.1.7(@types/node@25.9.1)(@vitest/browser-playwright@4.1.7)(@vitest/coverage-istanbul@4.1.7)(@vitest/coverage-v8@4.1.7)(jsdom@29.1.1)(msw@2.14.6(@types/node@25.9.1)(typescript@6.0.3))(vite@8.0.14(@types/node@25.9.1)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.3)(yaml@2.9.0))
+      vitest: 4.1.7(@types/node@22.19.3)(@vitest/browser-playwright@4.1.7)(@vitest/coverage-istanbul@4.1.7)(@vitest/coverage-v8@4.1.7)(jsdom@29.1.1)(msw@2.14.6(@types/node@22.19.3)(typescript@5.9.3))(vite@8.0.14(@types/node@22.19.3)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.3)(yaml@2.9.0))
     transitivePeerDependencies:
       - supports-color
 
@@ -8433,9 +8421,9 @@ snapshots:
       obug: 2.1.1
       std-env: 4.1.0
       tinyrainbow: 3.1.0
-      vitest: 4.1.7(@types/node@25.9.1)(@vitest/browser-playwright@4.1.7)(@vitest/coverage-istanbul@4.1.7)(@vitest/coverage-v8@4.1.7)(jsdom@29.1.1)(msw@2.14.6(@types/node@25.9.1)(typescript@6.0.3))(vite@8.0.14(@types/node@25.9.1)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.3)(yaml@2.9.0))
+      vitest: 4.1.7(@types/node@22.19.3)(@vitest/browser-playwright@4.1.7)(@vitest/coverage-istanbul@4.1.7)(@vitest/coverage-v8@4.1.7)(jsdom@29.1.1)(msw@2.14.6(@types/node@22.19.3)(typescript@5.9.3))(vite@8.0.14(@types/node@22.19.3)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.3)(yaml@2.9.0))
     optionalDependencies:
-      '@vitest/browser': 4.1.7(msw@2.14.6(@types/node@25.9.1)(typescript@6.0.3))(vite@8.0.14(@types/node@25.9.1)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.3)(yaml@2.9.0))(vitest@4.1.7)
+      '@vitest/browser': 4.1.7(msw@2.14.6(@types/node@22.19.3)(typescript@5.9.3))(vite@8.0.14(@types/node@22.19.3)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.3)(yaml@2.9.0))(vitest@4.1.7)
 
   '@vitest/expect@4.1.7':
     dependencies:
