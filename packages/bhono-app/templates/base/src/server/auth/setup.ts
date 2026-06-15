@@ -32,7 +32,7 @@ import {
 } from '@etus/auth'
 import type { Env } from '../env'
 import { sendInvitationEmail } from '../lib/email'
-import { PERMISSIONS_MATRIX, ROLE_HIERARCHY, ROLES, SCOPE_MAP } from './matrix'
+import { ACCOUNT_ROLE_MAP, PERMISSIONS_MATRIX, ROLE_HIERARCHY, ROLES, SCOPE_MAP } from './matrix'
 
 function parseList(csv: string | undefined): string[] {
   return (csv ?? '')
@@ -101,6 +101,11 @@ function buildAuthConfig(env: Env): AuthConfig {
       resourceId: env.ETUS_RESOURCE_ID ?? '',
       integrationKey: (e) => (e as Env).ETUS_INTEGRATION_KEY ?? '',
       scopeMap: SCOPE_MAP,
+      // Per-account gateway roles (v0.9.1) → local permissions, unioned across the
+      // subject's gateway accounts (super-admin counts as admin everywhere). The
+      // package also exposes `authAccounts`/`authSuperAdmin` and the
+      // `requireGatewayAccountRole(slug, role)` guard for precise per-account gating.
+      accountRoleMap: ACCOUNT_ROLE_MAP,
       ttlSeconds: 300,
     },
     // Required in v0.5.0 when the invitation flow is active — without a

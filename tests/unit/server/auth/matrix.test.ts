@@ -4,6 +4,7 @@ import {
   ROLE_HIERARCHY,
   PERMISSIONS_MATRIX,
   PERMISSION_CATALOG,
+  ACCOUNT_ROLE_MAP,
 } from '@server/auth/matrix'
 
 // Guards the invariant that @etus/auth depends on: createAuth({ permissions })
@@ -41,5 +42,41 @@ describe('RBAC matrix', () => {
         ).toBe(true)
       }
     }
+  })
+})
+
+// Gateway per-account roles (viewer < editor < manager < admin, migration 0070)
+// mapped to local permissions via ACCOUNT_ROLE_MAP. Drift here silently mis-grants
+// when the gateway resolves a per-account role for a user.
+describe('ACCOUNT_ROLE_MAP', () => {
+  const GATEWAY_ACCOUNT_ROLES = ['viewer', 'editor', 'manager', 'admin']
+
+  it('maps exactly the four gateway account roles', () => {
+    expect(Object.keys(ACCOUNT_ROLE_MAP).sort()).toEqual([...GATEWAY_ACCOUNT_ROLES].sort())
+  })
+
+  it('every non-wildcard permission exists in PERMISSION_CATALOG', () => {
+    const catalog = new Set<string>(PERMISSION_CATALOG)
+    for (const [role, perms] of Object.entries(ACCOUNT_ROLE_MAP)) {
+      for (const perm of perms) {
+        if (perm === '*' || perm.endsWith(':*')) continue
+        expect(
+          catalog.has(perm),
+          `permission "${perm}" (account role "${role}") is not in PERMISSION_CATALOG`,
+        ).toBe(true)
+      }
+    }
+  })
+
+  it('is cumulative: viewer ⊆ editor ⊆ manager, admin is the wildcard', () => {
+    const editor = new Set(ACCOUNT_ROLE_MAP.editor)
+    for (const p of ACCOUNT_ROLE_MAP.viewer) {
+      expect(editor.has(p), `editor is missing viewer permission "${p}"`).toBe(true)
+    }
+    const manager = new Set(ACCOUNT_ROLE_MAP.manager)
+    for (const p of ACCOUNT_ROLE_MAP.editor) {
+      expect(manager.has(p), `manager is missing editor permission "${p}"`).toBe(true)
+    }
+    expect(ACCOUNT_ROLE_MAP.admin).toContain('*')
   })
 })

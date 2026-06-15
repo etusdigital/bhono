@@ -77,3 +77,37 @@ export const SCOPE_MAP: Record<string, string[]> = {
   ],
   'bhono:viewer': ['account:read', 'resources:read'],
 }
+
+// Gateway ACCOUNT role → local permissions (gateway-as-authority for per-account
+// roles, @etus/auth v0.9.1). Parallel to SCOPE_MAP, but keyed by the gateway's
+// per-account membership role (viewer < editor < manager < admin, from gateway
+// migration 0070) instead of a scope. The package unions these permissions across
+// EVERY gateway account the subject belongs to, and treats a super-admin as
+// `admin` on every account — so this is a coarse, org-level grant. For a PRECISE
+// per-account check (e.g. "manager on this workspace"), use the guard
+// `auth.requireGatewayAccountRole(slug, role)` instead of relying on this map.
+//
+// KEYS are the fixed gateway account roles. VALUES must be PERMISSION_CATALOG
+// entries (or wildcards). Tune per product. Roles not mapped contribute nothing.
+export const ACCOUNT_ROLE_MAP: Record<string, string[]> = {
+  viewer: ['account:read', 'resources:read'],
+  editor: [
+    'account:read',
+    'members:invite',
+    'resources:create',
+    'resources:read',
+    'resources:update',
+  ],
+  manager: [
+    'account:read',
+    'account:update',
+    'members:invite',
+    'members:remove',
+    'members:role',
+    'audit:read',
+    'resources:create',
+    'resources:read',
+    'resources:update',
+  ],
+  admin: ['*'],
+}
