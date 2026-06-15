@@ -81,33 +81,48 @@ export const SCOPE_MAP: Record<string, string[]> = {
 // Gateway ACCOUNT role → local permissions (gateway-as-authority for per-account
 // roles, @etus/auth v0.9.1). Parallel to SCOPE_MAP, but keyed by the gateway's
 // per-account membership role (viewer < editor < manager < admin, from gateway
-// migration 0070) instead of a scope. The package unions these permissions across
-// EVERY gateway account the subject belongs to, and treats a super-admin as
-// `admin` on every account — so this is a coarse, org-level grant. For a PRECISE
-// per-account check (e.g. "manager on this workspace"), use the guard
-// `auth.requireGatewayAccountRole(slug, role)` instead of relying on this map.
+// migration 0070) instead of a scope.
 //
-// KEYS are the fixed gateway account roles. VALUES must be PERMISSION_CATALOG
-// entries (or wildcards). Tune per product. Roles not mapped contribute nothing.
+// ⚠️ CRITICAL — this is a COARSE, ORG-LEVEL grant. The package UNIONS these
+// permissions across EVERY gateway account the subject belongs to (and treats a
+// super-admin as admin everywhere), with NO per-account scoping at the
+// `requirePermission` layer. Consequences for the values below:
+//   * NEVER put `'*'` or a namespace wildcard (`resources:*`) here: a user who is
+//     `admin` (or holds that role) on ANY single gateway account — even one
+//     unrelated to this app — would then pass that wildcard guard for the WHOLE
+//     app. Keep the values an explicit, bounded, NON-DESTRUCTIVE set (no
+//     `:delete`, no `billing:manage`).
+//   * For real per-account authority (e.g. "admin OF THIS workspace can delete
+//     it"), gate with the precise guard `auth.requireGatewayAccountRole(slug,
+//     role)` / the client `hasAccountRole(slug, role)` — NOT this map.
+//   * NOTE (hybrid model): permissions here are UNIONED with local-role perms;
+//     they are additive, so removing a user from a LOCAL account does NOT revoke
+//     perms the gateway still grants. The gateway is authoritative for what it
+//     resolves.
+//
+// KEYS are the fixed gateway account roles (`@etus/auth`'s `ACCOUNT_ROLES`).
+// VALUES must be PERMISSION_CATALOG entries. Tune per product, keeping the rules
+// above. Roles not mapped contribute nothing.
 export const ACCOUNT_ROLE_MAP: Record<string, string[]> = {
   viewer: ['account:read', 'resources:read'],
-  editor: [
-    'account:read',
-    'members:invite',
-    'resources:create',
-    'resources:read',
-    'resources:update',
-  ],
+  editor: ['account:read', 'resources:read', 'resources:create', 'resources:update'],
   manager: [
     'account:read',
+    'resources:read',
+    'resources:create',
+    'resources:update',
+    'members:invite',
+    'audit:read',
+  ],
+  admin: [
+    'account:read',
     'account:update',
+    'resources:read',
+    'resources:create',
+    'resources:update',
     'members:invite',
     'members:remove',
     'members:role',
     'audit:read',
-    'resources:create',
-    'resources:read',
-    'resources:update',
   ],
-  admin: ['*'],
 }

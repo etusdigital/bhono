@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { ACCOUNT_ROLES } from '@etus/auth'
 import {
   ROLES,
   ROLE_HIERARCHY,
@@ -49,17 +50,17 @@ describe('RBAC matrix', () => {
 // mapped to local permissions via ACCOUNT_ROLE_MAP. Drift here silently mis-grants
 // when the gateway resolves a per-account role for a user.
 describe('ACCOUNT_ROLE_MAP', () => {
-  const GATEWAY_ACCOUNT_ROLES = ['viewer', 'editor', 'manager', 'admin']
-
-  it('maps exactly the four gateway account roles', () => {
-    expect(Object.keys(ACCOUNT_ROLE_MAP).sort()).toEqual([...GATEWAY_ACCOUNT_ROLES].sort())
+  it("maps exactly @etus/auth's gateway account roles (anchored to the package, not a literal copy)", () => {
+    // Importing ACCOUNT_ROLES from the package makes this a REAL drift guard: a
+    // future @etus/auth that adds/renames a role fails this test instead of
+    // silently mis-granting.
+    expect(Object.keys(ACCOUNT_ROLE_MAP).sort()).toEqual([...ACCOUNT_ROLES].sort())
   })
 
-  it('every non-wildcard permission exists in PERMISSION_CATALOG', () => {
+  it('every permission exists in PERMISSION_CATALOG', () => {
     const catalog = new Set<string>(PERMISSION_CATALOG)
     for (const [role, perms] of Object.entries(ACCOUNT_ROLE_MAP)) {
       for (const perm of perms) {
-        if (perm === '*' || perm.endsWith(':*')) continue
         expect(
           catalog.has(perm),
           `permission "${perm}" (account role "${role}") is not in PERMISSION_CATALOG`,
@@ -68,15 +69,35 @@ describe('ACCOUNT_ROLE_MAP', () => {
     }
   })
 
-  it('is cumulative: viewer ⊆ editor ⊆ manager, admin is the wildcard', () => {
-    const editor = new Set(ACCOUNT_ROLE_MAP.editor)
-    for (const p of ACCOUNT_ROLE_MAP.viewer) {
-      expect(editor.has(p), `editor is missing viewer permission "${p}"`).toBe(true)
+  it('contains NO wildcards (the map is unioned across all accounts, so a wildcard would over-grant the whole app)', () => {
+    for (const [role, perms] of Object.entries(ACCOUNT_ROLE_MAP)) {
+      for (const perm of perms) {
+        expect(
+          perm === '*' || perm.endsWith(':*'),
+          `account role "${role}" maps to wildcard "${perm}" — forbidden: ACCOUNT_ROLE_MAP is unioned across every gateway account a user holds, so a wildcard lets admin-on-any-account pass every guard. Use requireGatewayAccountRole(slug, role) for precise per-account authority.`,
+        ).toBe(false)
+      }
     }
-    const manager = new Set(ACCOUNT_ROLE_MAP.manager)
-    for (const p of ACCOUNT_ROLE_MAP.editor) {
-      expect(manager.has(p), `manager is missing editor permission "${p}"`).toBe(true)
+  })
+
+  it('is cumulative: viewer ⊆ editor ⊆ manager ⊆ admin', () => {
+    const tiers = ['viewer', 'editor', 'manager', 'admin'] as const
+    for (let i = 1; i < tiers.length; i++) {
+      const higher = new Set(ACCOUNT_ROLE_MAP[tiers[i]])
+      for (const p of ACCOUNT_ROLE_MAP[tiers[i - 1]]) {
+        expect(higher.has(p), `${tiers[i]} is missing ${tiers[i - 1]} permission "${p}"`).toBe(true)
+      }
     }
-    expect(ACCOUNT_ROLE_MAP.admin).toContain('*')
+  })
+
+  it('does not grant destructive permissions org-wide (no delete / billing:manage / account:delete)', () => {
+    const forbidden = new Set(['resources:delete', 'account:delete', 'billing:manage'])
+    for (const [role, perms] of Object.entries(ACCOUNT_ROLE_MAP)) {
+      for (const perm of perms) {
+        expect(forbidden.has(perm), `account role "${role}" grants destructive "${perm}" org-wide`).toBe(
+          false,
+        )
+      }
+    }
   })
 })

@@ -234,9 +234,19 @@ const { accounts, superAdmin, hasAccountRole } = useGatewayAccounts()
 {hasAccountRole('unum', 'manager') && <InviteButton accountSlug="unum" />}
 ```
 
-> Regra: o `ACCOUNT_ROLE_MAP` é grant **org-level** (une entre contas). Para autz por
-> conta/workspace específico, prefira `requireGatewayAccountRole(slug, role)` no
-> server e `hasAccountRole(slug, role)` no client.
+> ⚠️ **Regras de segurança do `ACCOUNT_ROLE_MAP`** (é grant **org-level**: o pacote
+> une as permissões entre **todas** as contas do usuário, sem escopo por-conta):
+> - **Nunca** use `'*'` ou wildcard de namespace (`resources:*`) — um usuário que
+>   seja `admin` em **qualquer** conta (até uma não-relacionada) passaria esse guard
+>   no app inteiro. Mantenha valores **bounded e não-destrutivos** (sem `:delete`,
+>   `billing:manage`). Há um teste que falha se um wildcard entrar.
+> - Para autz por conta/workspace **específico** (ex.: "admin DESTA conta pode
+>   deletá-la"), use `auth.requireGatewayAccountRole(slug, role)` no server e
+>   `hasAccountRole(slug, role)` no client — **não** este mapa.
+> - As permissões aqui são **unidas** com as do papel local (aditivas): remover um
+>   usuário de uma conta **local** NÃO revoga o que o gateway concede. O gateway é a
+>   autoridade do que ele resolve; com gateway-authority ligado, a gestão de membros
+>   local não é um kill-switch de autorização.
 
 ---
 
