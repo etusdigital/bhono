@@ -248,6 +248,42 @@ const { accounts, superAdmin, hasAccountRole } = useGatewayAccounts()
 >   autoridade do que ele resolve; com gateway-authority ligado, a gestão de membros
 >   local não é um kill-switch de autorização.
 
+#### Validar a UI multi-tenant localmente (gateway mock)
+
+Os papéis por-conta do gateway vêm do gateway via HTTP — local não há gateway. Para
+**validar a UI** (e escrever testes) sem um gateway ao vivo, há um **mock de dev**:
+
+- **`src/server/dev/gateway-scenario.ts`** — cenário multi-tenant fixo, por e-mail
+  (alinhado ao `seed.ts`). O `/api/me`, quando o mock está ligado, resolve as contas
+  do gateway do usuário logado a partir desse fixture. Gated **duas vezes**:
+  `ENVIRONMENT !== 'production'` **e** `ETUS_GATEWAY_MOCK` truthy — nunca em produção.
+- **Página `Workspaces`** (`src/client/routes/_authenticated/workspaces.tsx`, no nav)
+  — renderiza `useGatewayAccounts()`: banner de super-admin, um card por conta com o
+  badge de papel (viewer/editor/manager/admin) e o que ele concede; empty state.
+
+Usuários do cenário (logue via `/auth/test-login`): `superadmin@example.com`
+(super-admin), `admin@example.com` (admin em Acme), `multi@example.com` (**admin em
+Initech + viewer em Acme** — o caso de over-grant cross-account que o `ACCOUNT_ROLE_MAP`
+conservador protege), `viewer@example.com` (read-only).
+
+```bash
+# 1. (opcional) popular o banco local com o cenário
+pnpm db:reset:local
+
+# 2. Ligar o mock. IMPORTANTE: o @cloudflare/vite-plugin lê o .dev.vars ao lado do
+#    wrangler.json (config/.dev.vars), NÃO o da raiz. Ponha a flag lá:
+echo 'ETUS_GATEWAY_MOCK=1' >> config/.dev.vars     # (config/.dev.vars é gitignored)
+
+# 3. Subir e logar como um usuário do cenário, depois abrir /workspaces
+pnpm dev
+#   → POST /auth/test-login {"email":"multi@example.com"}  → abra http://localhost:8787/workspaces
+```
+
+> O mock é **só para dev/teste**. Em produção (`ETUS_GATEWAY_AUTHORITY=true`) o
+> `/api/me` resolve do gateway real; o mock é ignorado. Cobertura: unit
+> (`tests/unit/server/dev/`), integração (`tests/integration/api/me.test.ts` dirige o
+> mock pela wiring real via `buildApp`) e E2E (`tests/e2e/workspaces.spec.ts`).
+
 ---
 
 ### 6. Banco de Dados com Hash Diferente

@@ -11,6 +11,7 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import type { HonoEnv } from '../../types'
 import { getAuth } from '../../auth/setup'
+import { resolveMockGatewayContext } from '../../dev/gateway-scenario'
 
 const GatewayAccountSchema = z
   .object({
@@ -48,6 +49,11 @@ const getMeRoute = createRoute({
 const me = new OpenAPIHono<HonoEnv>()
 
 me.openapi(getMeRoute, (c) => {
+  // Dev-only: a configured gateway mock (ENVIRONMENT!=production + ETUS_GATEWAY_MOCK)
+  // short-circuits the real resolution so the multi-tenant UI can be validated and
+  // tested without a live gateway. Returns null in production → real path below.
+  const mocked = resolveMockGatewayContext(c.env, c.get('authUser')?.email)
+  if (mocked) return c.json(mocked, 200)
   const auth = getAuth(c.env)
   return c.json({ accounts: auth.getGatewayAccounts(c), superAdmin: auth.isSuperAdmin(c) }, 200)
 })

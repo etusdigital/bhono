@@ -14,6 +14,7 @@ interface SidebarProps {
 const mainNavItems = [
   { to: '/dashboard', label: 'Dashboard', icon: Icons.dashboard },
   { to: '/team', label: 'Team', icon: Icons.users },
+  { to: '/workspaces', label: 'Workspaces', icon: Icons.layers },
   { to: '/integrations', label: 'Integrations', icon: Icons.blocks },
 ]
 

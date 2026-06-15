@@ -19,6 +19,16 @@ ETUS_ADMIN_EMAILS=admin@yourdomain.com
 # ETUS_RESOURCE_ID=yourapp.example.com
 # ETUS_INTEGRATION_KEY=ag_app_yourapp_xxx.yyy
 
+# DEV-ONLY gateway mock — serve the local multi-tenant scenario fixture
+# (src/server/dev/gateway-scenario.ts) from /api/me so you can click through the
+# Workspaces UI and per-account gateway roles without a live gateway. Log in via
+# /auth/test-login as a scenario user (e.g. multi@example.com). Ignored in production.
+#
+# IMPORTANT: the Vite dev server (@cloudflare/vite-plugin) reads .dev.vars next to the
+# wrangler config, i.e. config/.dev.vars — NOT this root file. Put the flag there:
+#   echo 'ETUS_GATEWAY_MOCK=1' >> config/.dev.vars
+# ETUS_GATEWAY_MOCK=1
+
 # SendGrid
 SENDGRID_API_KEY=your-sendgrid-api-key
 SENDGRID_FROM_EMAIL=noreply@yourdomain.com
