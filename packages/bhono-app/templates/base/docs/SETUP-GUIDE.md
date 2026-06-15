@@ -200,6 +200,44 @@ bloqueia; uma indisponibilidade transitória serve o cache (não derruba o app).
 > (v0.6.0+ usa D1 via `createSqlSessionStore`); pode ser removido se nenhum outro
 > código depender dele.
 
+#### Papéis por-conta do gateway (@etus/auth v0.9.1)
+
+Além dos **scopes** (`SCOPE_MAP`), o gateway resolve um **papel por conta** do
+usuário (modelo Auth0 Organizations: `viewer < editor < manager < admin`, da
+migration 0070 do gateway). Este boilerplate **lê** esses papéis para autorização
+(camada org-level, ao lado dos workspaces locais) — a gestão de membros continua
+**local** (modelo híbrido).
+
+- **`ACCOUNT_ROLE_MAP`** (`src/server/auth/matrix.ts`) — paralelo ao `SCOPE_MAP`,
+  mapeia cada papel-por-conta do gateway → permissões locais (entradas do
+  `PERMISSION_CATALOG`). Ligado via `gatewayAuthority.accountRoleMap` em
+  `setup.ts`. O `@etus/auth` **une** essas permissões entre **todas** as contas do
+  usuário (super-admin conta como `admin` em todas) e injeta em `authPermissions`.
+  É um grant **coarse, org-level** — ajuste por produto.
+- **Gating preciso por-conta** — para "manager nesta conta específica", use o guard
+  do pacote `auth.requireGatewayAccountRole(slug, role)` (não o mapa global). Um
+  super-admin sempre passa; lança `NotAccountMemberError`/`AccountRoleRequiredError`.
+- **Contexto do usuário** — `GET /api/me` (`src/server/routes/me/index.ts`) devolve
+  `{ accounts: [{id,slug,name,role}], superAdmin }` resolvido pelo gateway. Vazio /
+  `false` quando `ETUS_GATEWAY_AUTHORITY` está off (shape sempre seguro).
+- **No client** — o hook `useGatewayAccounts()`
+  (`src/client/hooks/use-gateway-accounts.ts`) lê o `/api/me` e expõe `accounts`,
+  `superAdmin` e `hasAccountRole(slug, role)` para gatear a UI:
+
+```tsx
+const { accounts, superAdmin, hasAccountRole } = useGatewayAccounts()
+
+// badge de papel por conta do gateway:
+{accounts.map((a) => <Badge key={a.id}>{a.name}: {a.role}</Badge>)}
+
+// gating de UI — NÃO é fronteira de segurança (o guard do server é a autoridade):
+{hasAccountRole('unum', 'manager') && <InviteButton accountSlug="unum" />}
+```
+
+> Regra: o `ACCOUNT_ROLE_MAP` é grant **org-level** (une entre contas). Para autz por
+> conta/workspace específico, prefira `requireGatewayAccountRole(slug, role)` no
+> server e `hasAccountRole(slug, role)` no client.
+
 ---
 
 ### 6. Banco de Dados com Hash Diferente
