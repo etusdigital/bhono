@@ -127,6 +127,12 @@ function buildApp(env: Env): Hono<HonoEnv> {
   app.route('/auth', auth.routes())
   app.route('/auth/admin', auth.adminRoutes())
   app.route('/audit', auth.auditRoutes())
+  // Hybrid model: account/member MANAGEMENT stays LOCAL (these @etus/auth account
+  // routes), while per-account ROLES are READ from the gateway for authorization
+  // (accountRoleMap + /api/me + requireGatewayAccountRole). The gateway has no
+  // app-facing write API for member management, so the local routes are retained
+  // on purpose despite the v0.9.x deprecation. See docs/SETUP-GUIDE.md.
+  // eslint-disable-next-line @typescript-eslint/no-deprecated -- intentional in the hybrid model
   app.route('/accounts', auth.accountRoutes())
   app.route('/invitations', auth.invitationRoutes())
 
