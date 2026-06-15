@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { ACCOUNT_ROLES } from '@etus/auth'
+import { ACCOUNT_ROLES, mapAccountRolesToPermissions, hasPermission } from '@etus/auth'
+import type { GatewayAccount } from '@etus/auth'
 import {
   ROLES,
   ROLE_HIERARCHY,
@@ -99,5 +100,41 @@ describe('ACCOUNT_ROLE_MAP', () => {
         )
       }
     }
+  })
+})
+
+// Over-grant regression (PR #62 review): @etus/auth UNIONS ACCOUNT_ROLE_MAP across
+// EVERY gateway account a user holds (super-admin = admin everywhere). With the old
+// `admin: ['*']` this meant admin-on-any-account → full app access. These tests pin
+// the closed behavior against the package's REAL mapper + permission check, so a
+// regression that re-introduces a wildcard/destructive grant fails here.
+describe('ACCOUNT_ROLE_MAP cross-account union does not over-grant', () => {
+  const acct = (slug: string, role: GatewayAccount['role']): GatewayAccount => ({
+    id: `acct-${slug}`,
+    slug,
+    name: slug,
+    role,
+  })
+
+  it('admin on an UNRELATED account does not grant a wildcard or destructive permission app-wide', () => {
+    // Low-privilege in the relevant workspace (viewer), but admin on a side account.
+    const perms = mapAccountRolesToPermissions(
+      [acct('unum', 'viewer'), acct('side-project', 'admin')],
+      ACCOUNT_ROLE_MAP,
+      false,
+    )
+    expect(perms).not.toContain('*')
+    expect(hasPermission('resources:delete', perms)).toBe(false)
+    expect(hasPermission('account:delete', perms)).toBe(false)
+    expect(hasPermission('billing:manage', perms)).toBe(false)
+    // It DOES grant the bounded admin perms (the map's intended org-level baseline).
+    expect(hasPermission('members:role', perms)).toBe(true)
+  })
+
+  it('super-admin resolves to the bounded admin set, not a wildcard', () => {
+    const perms = mapAccountRolesToPermissions([], ACCOUNT_ROLE_MAP, true)
+    expect(perms).not.toContain('*')
+    expect(hasPermission('resources:delete', perms)).toBe(false)
+    expect(hasPermission('members:role', perms)).toBe(true)
   })
 })

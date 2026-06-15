@@ -27,7 +27,7 @@ import { parseUploadBytes, validateEnv } from './env'
 // built app is cached for the isolate's lifetime (env is stable per deploy).
 let appInstance: Hono<HonoEnv> | undefined
 
-function buildApp(env: Env): Hono<HonoEnv> {
+export function buildApp(env: Env): Hono<HonoEnv> {
   const auth = getAuth(env)
   const app = new Hono<HonoEnv>()
 
