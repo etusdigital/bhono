@@ -2,6 +2,7 @@ import { OpenAPIHono } from '@hono/zod-openapi'
 import { NONCE } from 'hono/secure-headers'
 import type { HonoEnv } from '../types'
 import { storage } from './storage'
+import { me } from './me'
 import { openApiConfig } from './openapi'
 
 // Application API router. Identity/tenancy routes (users, accounts,
@@ -10,6 +11,7 @@ import { openApiConfig } from './openapi'
 const api = new OpenAPIHono<HonoEnv>()
 
 api.route('/storage', storage)
+api.route('/me', me)
 
 // Session cookie auth scheme (issued by @etus/auth on login)
 api.openAPIRegistry.registerComponent('securitySchemes', 'SessionCookie', {
