@@ -1,5 +1,12 @@
 # @etus/create-bhono
 
+## 0.3.1
+
+### Patch Changes
+
+- Updated dependencies [3a8a654]
+  - @etus/bhono@0.4.0
+
 ## 0.3.0
 
 ### Minor Changes
