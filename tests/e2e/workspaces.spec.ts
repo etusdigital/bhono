@@ -5,7 +5,7 @@ import { test, expect, isAuthenticated } from './fixtures'
  *
  * The Workspaces page reads the user's gateway accounts from GET /api/me
  * (useGatewayAccounts). With the dev gateway mock OFF, /api/me is empty and the page
- * shows its empty state; with it ON (ETUS_GATEWAY_MOCK=1 in .dev.vars) a scenario user
+ * shows its empty state; with it ON (ETUS_GATEWAY_MOCK=1 in config/.dev.vars) a scenario user
  * sees their per-account roles. These tests adapt to both so the suite stays green in
  * CI while still exercising the rich path locally.
  *
@@ -53,7 +53,7 @@ test.describe('Workspaces @auth', () => {
     const body = (me.ok() ? await me.json() : { accounts: [] }) as { accounts?: unknown[] }
     test.skip(
       !Array.isArray(body.accounts) || body.accounts.length === 0,
-      'gateway mock disabled — set ETUS_GATEWAY_MOCK=1 in .dev.vars to run this',
+      'gateway mock disabled — set ETUS_GATEWAY_MOCK=1 in config/.dev.vars to run this',
     )
 
     await page.goto('/workspaces')

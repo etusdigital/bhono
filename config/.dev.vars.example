@@ -1,4 +1,8 @@
-# Local Worker variables used by `pnpm dev`.
+# Local Worker variables used by `pnpm dev`. Copy this to `config/.dev.vars`.
+#
+# This file MUST live next to the Wrangler config (config/wrangler.json): wrangler
+# and @cloudflare/vite-plugin only read `.dev.vars` from the config file's directory,
+# so a `.dev.vars` at the repo root is ignored by `pnpm dev`.
 
 ENVIRONMENT=development
 APP_URL=http://localhost:8787
@@ -23,10 +27,6 @@ ETUS_ADMIN_EMAILS=admin@yourdomain.com
 # (src/server/dev/gateway-scenario.ts) from /api/me so you can click through the
 # Workspaces UI and per-account gateway roles without a live gateway. Log in via
 # /auth/test-login as a scenario user (e.g. multi@example.com). Ignored in production.
-#
-# IMPORTANT: the Vite dev server (@cloudflare/vite-plugin) reads .dev.vars next to the
-# wrangler config, i.e. config/.dev.vars — NOT this root file. Put the flag there:
-#   echo 'ETUS_GATEWAY_MOCK=1' >> config/.dev.vars
 # ETUS_GATEWAY_MOCK=1
 
 # SendGrid
