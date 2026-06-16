@@ -174,6 +174,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The current user's gateway accounts and super-admin flag
+         * @description Per-account roles resolved by the gateway via gatewayAuthority. Returns an empty list and superAdmin:false when gatewayAuthority is disabled.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The current user's gateway account context */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GatewayAccountContext"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -225,6 +264,17 @@ export interface components {
              * @example https://pub-xxx.r2.dev/images/1703123456789-my-photo.jpg
              */
             publicUrl: string;
+        };
+        GatewayAccountContext: {
+            accounts: components["schemas"]["GatewayAccount"][];
+            superAdmin: boolean;
+        };
+        GatewayAccount: {
+            id: string;
+            slug: string;
+            name: string;
+            /** @enum {string} */
+            role: "viewer" | "editor" | "manager" | "admin";
         };
     };
     responses: never;

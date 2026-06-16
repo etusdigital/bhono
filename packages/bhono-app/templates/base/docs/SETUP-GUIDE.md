@@ -200,6 +200,90 @@ bloqueia; uma indisponibilidade transitória serve o cache (não derruba o app).
 > (v0.6.0+ usa D1 via `createSqlSessionStore`); pode ser removido se nenhum outro
 > código depender dele.
 
+#### Papéis por-conta do gateway (@etus/auth v0.9.1)
+
+Além dos **scopes** (`SCOPE_MAP`), o gateway resolve um **papel por conta** do
+usuário (modelo Auth0 Organizations: `viewer < editor < manager < admin`, da
+migration 0070 do gateway). Este boilerplate **lê** esses papéis para autorização
+(camada org-level, ao lado dos workspaces locais) — a gestão de membros continua
+**local** (modelo híbrido).
+
+- **`ACCOUNT_ROLE_MAP`** (`src/server/auth/matrix.ts`) — paralelo ao `SCOPE_MAP`,
+  mapeia cada papel-por-conta do gateway → permissões locais (entradas do
+  `PERMISSION_CATALOG`). Ligado via `gatewayAuthority.accountRoleMap` em
+  `setup.ts`. O `@etus/auth` **une** essas permissões entre **todas** as contas do
+  usuário (super-admin conta como `admin` em todas) e injeta em `authPermissions`.
+  É um grant **coarse, org-level** — ajuste por produto.
+- **Gating preciso por-conta** — para "manager nesta conta específica", use o guard
+  do pacote `auth.requireGatewayAccountRole(slug, role)` (não o mapa global). Um
+  super-admin sempre passa; lança `NotAccountMemberError`/`AccountRoleRequiredError`.
+- **Contexto do usuário** — `GET /api/me` (`src/server/routes/me/index.ts`) devolve
+  `{ accounts: [{id,slug,name,role}], superAdmin }` resolvido pelo gateway. Vazio /
+  `false` quando `ETUS_GATEWAY_AUTHORITY` está off (shape sempre seguro).
+- **No client** — o hook `useGatewayAccounts()`
+  (`src/client/hooks/use-gateway-accounts.ts`) lê o `/api/me` e expõe `accounts`,
+  `superAdmin` e `hasAccountRole(slug, role)` para gatear a UI:
+
+```tsx
+const { accounts, superAdmin, hasAccountRole } = useGatewayAccounts()
+
+// badge de papel por conta do gateway:
+{accounts.map((a) => <Badge key={a.id}>{a.name}: {a.role}</Badge>)}
+
+// gating de UI — NÃO é fronteira de segurança (o guard do server é a autoridade):
+{hasAccountRole('unum', 'manager') && <InviteButton accountSlug="unum" />}
+```
+
+> ⚠️ **Regras de segurança do `ACCOUNT_ROLE_MAP`** (é grant **org-level**: o pacote
+> une as permissões entre **todas** as contas do usuário, sem escopo por-conta):
+> - **Nunca** use `'*'` ou wildcard de namespace (`resources:*`) — um usuário que
+>   seja `admin` em **qualquer** conta (até uma não-relacionada) passaria esse guard
+>   no app inteiro. Mantenha valores **bounded e não-destrutivos** (sem `:delete`,
+>   `billing:manage`). Há um teste que falha se um wildcard entrar.
+> - Para autz por conta/workspace **específico** (ex.: "admin DESTA conta pode
+>   deletá-la"), use `auth.requireGatewayAccountRole(slug, role)` no server e
+>   `hasAccountRole(slug, role)` no client — **não** este mapa.
+> - As permissões aqui são **unidas** com as do papel local (aditivas): remover um
+>   usuário de uma conta **local** NÃO revoga o que o gateway concede. O gateway é a
+>   autoridade do que ele resolve; com gateway-authority ligado, a gestão de membros
+>   local não é um kill-switch de autorização.
+
+#### Validar a UI multi-tenant localmente (gateway mock)
+
+Os papéis por-conta do gateway vêm do gateway via HTTP — local não há gateway. Para
+**validar a UI** (e escrever testes) sem um gateway ao vivo, há um **mock de dev**:
+
+- **`src/server/dev/gateway-scenario.ts`** — cenário multi-tenant fixo, por e-mail
+  (alinhado ao `seed.ts`). O `/api/me`, quando o mock está ligado, resolve as contas
+  do gateway do usuário logado a partir desse fixture. Gated **duas vezes**:
+  `ENVIRONMENT !== 'production'` **e** `ETUS_GATEWAY_MOCK` truthy — nunca em produção.
+- **Página `Workspaces`** (`src/client/routes/_authenticated/workspaces.tsx`, no nav)
+  — renderiza `useGatewayAccounts()`: banner de super-admin, um card por conta com o
+  badge de papel (viewer/editor/manager/admin) e o que ele concede; empty state.
+
+Usuários do cenário (logue via `/auth/test-login`): `superadmin@example.com`
+(super-admin), `admin@example.com` (admin em Acme), `multi@example.com` (**admin em
+Initech + viewer em Acme** — o caso de over-grant cross-account que o `ACCOUNT_ROLE_MAP`
+conservador protege), `viewer@example.com` (read-only).
+
+```bash
+# 1. (opcional) popular o banco local com o cenário
+pnpm db:reset:local
+
+# 2. Ligar o mock. IMPORTANTE: o @cloudflare/vite-plugin lê o .dev.vars ao lado do
+#    wrangler.json (config/.dev.vars), NÃO o da raiz. Ponha a flag lá:
+echo 'ETUS_GATEWAY_MOCK=1' >> config/.dev.vars     # (config/.dev.vars é gitignored)
+
+# 3. Subir e logar como um usuário do cenário, depois abrir /workspaces
+pnpm dev
+#   → POST /auth/test-login {"email":"multi@example.com"}  → abra http://localhost:8787/workspaces
+```
+
+> O mock é **só para dev/teste**. Em produção (`ETUS_GATEWAY_AUTHORITY=true`) o
+> `/api/me` resolve do gateway real; o mock é ignorado. Cobertura: unit
+> (`tests/unit/server/dev/`), integração (`tests/integration/api/me.test.ts` dirige o
+> mock pela wiring real via `buildApp`) e E2E (`tests/e2e/workspaces.spec.ts`).
+
 ---
 
 ### 6. Banco de Dados com Hash Diferente
