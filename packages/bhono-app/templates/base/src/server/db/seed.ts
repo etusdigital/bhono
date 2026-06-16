@@ -49,6 +49,11 @@ const userIds = {
   analytics: uuid(),
   user1: uuid(),
   user2: uuid(),
+  // Scenario-aligned users (emails match src/server/dev/gateway-scenario.ts so the
+  // same accounts carry gateway per-account roles when ETUS_GATEWAY_MOCK is on).
+  multi: uuid(),
+  pending: uuid(),
+  suspended: uuid(),
 }
 
 // Accounts
@@ -64,8 +69,16 @@ const accountsData = [
   { id: accountIds.startup, name: 'Tech Startup', slug: 'startup', ownerId: userIds.manager },
 ]
 
-// Users
-const usersData = [
+// Users. `status` defaults to 'active' in the SQL below; set it explicitly to seed
+// pending/suspended accounts for the team-management UI's status states.
+const usersData: {
+  id: string
+  email: string
+  name: string
+  gatewayUserId: string
+  role: string
+  status?: 'active' | 'pending' | 'suspended' | 'denied'
+}[] = [
   { id: userIds.superadmin, email: 'superadmin@example.com', name: 'Super Admin', gatewayUserId: 'gateway-seed-superadmin-001', role: 'owner' },
   { id: userIds.admin, email: 'admin@example.com', name: 'Admin User', gatewayUserId: 'gateway-seed-admin-002', role: 'admin' },
   { id: userIds.manager, email: 'manager@example.com', name: 'Manager User', gatewayUserId: 'gateway-seed-manager-003', role: 'admin' },
@@ -76,6 +89,12 @@ const usersData = [
   { id: userIds.analytics, email: 'analytics@example.com', name: 'Analytics User', gatewayUserId: 'gateway-seed-analytics-008', role: 'member' },
   { id: userIds.user1, email: 'user1@example.com', name: 'Test User 1', gatewayUserId: 'gateway-seed-user1-009', role: 'guest' },
   { id: userIds.user2, email: 'user2@example.com', name: 'Test User 2', gatewayUserId: 'gateway-seed-user2-010', role: 'guest' },
+  // Multi-workspace user: at the gateway, admin on Initech + viewer on Acme (the
+  // cross-account over-grant case the conservative ACCOUNT_ROLE_MAP guards).
+  { id: userIds.multi, email: 'multi@example.com', name: 'Multi Workspace', gatewayUserId: 'gateway-seed-multi-011', role: 'member' },
+  // Status states for the team-management UI.
+  { id: userIds.pending, email: 'pending@example.com', name: 'Pending User', gatewayUserId: 'gateway-seed-pending-012', role: 'guest', status: 'pending' },
+  { id: userIds.suspended, email: 'suspended@example.com', name: 'Suspended User', gatewayUserId: 'gateway-seed-suspended-013', role: 'member', status: 'suspended' },
 ]
 
 // Account memberships. @etus/auth account routes currently use membership role
@@ -94,6 +113,8 @@ const membershipsData = [
   { id: uuid(), userId: userIds.author, accountId: accountIds.acme, role: 'member' },
   { id: uuid(), userId: userIds.billing, accountId: accountIds.acme, role: 'member' },
   { id: uuid(), userId: userIds.user2, accountId: accountIds.acme, role: 'guest' },
+  { id: uuid(), userId: userIds.multi, accountId: accountIds.acme, role: 'member' },
+  { id: uuid(), userId: userIds.suspended, accountId: accountIds.acme, role: 'member' },
   // Tech Startup
   { id: uuid(), userId: userIds.manager, accountId: accountIds.startup, role: 'admin' },
   { id: uuid(), userId: userIds.analytics, accountId: accountIds.startup, role: 'member' },
@@ -164,7 +185,7 @@ function generateSQL(): string {
   // Users
   lines.push('-- Users')
   for (const user of usersData) {
-    lines.push(`INSERT INTO auth_users (id, gateway_user_id, email, name, picture, role, status, invited_by, created_at, last_login_at) VALUES (${toSqlValue(user.id)}, ${toSqlValue(user.gatewayUserId)}, ${toSqlValue(user.email)}, ${toSqlValue(user.name)}, NULL, ${toSqlValue(user.role)}, 'active', NULL, ${toSqlValue(timestamp)}, ${toSqlValue(timestamp)});`)
+    lines.push(`INSERT INTO auth_users (id, gateway_user_id, email, name, picture, role, status, invited_by, created_at, last_login_at) VALUES (${toSqlValue(user.id)}, ${toSqlValue(user.gatewayUserId)}, ${toSqlValue(user.email)}, ${toSqlValue(user.name)}, NULL, ${toSqlValue(user.role)}, ${toSqlValue(user.status ?? 'active')}, NULL, ${toSqlValue(timestamp)}, ${toSqlValue(timestamp)});`)
   }
   lines.push('')
 
@@ -219,7 +240,8 @@ function printSummary(): void {
 
   console.log('\n👤 Users:')
   for (const user of usersData) {
-    console.log(`   • ${user.email} - ${user.name} (${user.role})`)
+    const status = user.status && user.status !== 'active' ? `, ${user.status}` : ''
+    console.log(`   • ${user.email} - ${user.name} (${user.role}${status})`)
   }
 
   console.log('\n🔗 Account Memberships:')
@@ -250,6 +272,11 @@ function printSummary(): void {
   console.log('\n✅ Run the following command to seed the local database:')
   console.log('   pnpm db:seed:local')
   console.log('   # or: wrangler --config config/wrangler.json d1 execute <db-name> --local --file=seed.sql\n')
+
+  console.log('💡 To see GATEWAY per-account roles (viewer/editor/manager/admin) in the UI,')
+  console.log('   set ETUS_GATEWAY_MOCK=1 in .dev.vars, then log in via /auth/test-login as a')
+  console.log('   scenario user (e.g. multi@example.com — admin on Initech + viewer on Acme).')
+  console.log('   See src/server/dev/gateway-scenario.ts.\n')
 }
 
 // ============================================================================

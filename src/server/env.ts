@@ -36,6 +36,10 @@ export interface Env {
   // The resource-bound integration key (ag_app_<slug>.<secret>, scope app.grants.read).
   // Secret — set via `wrangler secret put`, never commit it.
   ETUS_INTEGRATION_KEY?: string
+  // DEV-ONLY: "true"/"1" makes /api/me serve the local gateway scenario fixture
+  // (src/server/dev/gateway-scenario.ts) instead of the real gateway, so the
+  // multi-tenant UI can be validated without a live gateway. Ignored in production.
+  ETUS_GATEWAY_MOCK?: string
 
   // SendGrid (invitations)
   SENDGRID_API_KEY: string

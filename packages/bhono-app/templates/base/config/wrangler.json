@@ -35,7 +35,15 @@
     "binding": "ASSETS",
     "run_worker_first": [
       "/api/*",
-      "/auth/*"
+      "/auth/*",
+      "/accounts",
+      "/accounts/*",
+      "/audit",
+      "/audit/*",
+      "/invitations",
+      "/invitations/*",
+      "/health",
+      "/health/*"
     ]
   },
   "vars": {

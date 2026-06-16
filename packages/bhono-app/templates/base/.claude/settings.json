@@ -17,13 +17,9 @@
   "includeCoAuthoredBy": false,
   "permissions": {
     "allow": [
-      "Edit:*",
-      "Write:*",
-      "MultiEdit:*",
-      "NotebookEdit:*",
-      "Bash:*",
-      "WebSearch:*",
-      "WebFetch:*",
+      "Edit",
+      "Write",
+      "NotebookEdit",
       "Bash(grep:*)",
       "Bash(diff:*)",
       "Bash(echo:*)",

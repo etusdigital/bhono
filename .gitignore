@@ -8,6 +8,7 @@ dist/
 .wrangler/
 .dev.vars
 docs/openapi.json
+seed.sql
 
 # Test outputs
 .test-output/

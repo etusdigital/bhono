@@ -53,6 +53,7 @@ rsync -av --checksum --delete \
   --exclude='.env' \
   --exclude='.dev.vars' \
   --exclude='db.sqlite' \
+  --exclude='seed.sql' \
   --exclude='*.log' \
   --exclude='.DS_Store' \
   --exclude='packages/' \
