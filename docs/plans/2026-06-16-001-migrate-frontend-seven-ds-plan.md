@@ -230,6 +230,7 @@ Conforme D2 (resolvido):
 ### U4.2 — Bundle das rotas públicas (D5/R4)
 - Com runtime `@etus/seven-react`, garantir que `/login` e públicas não puxem o megabundle: lazy-load/code-split, importar o mínimo.
 - **Verde:** chunk da rota pública sob controle no relatório de `pnpm build`.
+- **⛔ Investigado 2026-06-17 — bloqueado upstream (sem fix limpo no boilerplate).** O `autoCodeSplitting` já isola cada rota (chunk de `/login` = **4,6 kB**). O gargalo é o chunk `index` compartilhado (**2,2 MB / 648 kB gzip**) que **toda** rota carrega, porque `@etus/ui/dist/index.js` é um **bundle monolítico de 1,7 MB** (inlina todos os componentes + `recharts` num módulo só). Testado `sideEffects: false` nos 2 pacotes + cache do vite limpo → **build byte-idêntico** (tree-shaking no consumidor é impossível num bundle monolítico). `/login` usa o `Button` → puxa o módulo indivisível. jspdf (1,8 MB) já fica **fora** do bundle client (lazy). **Fix real = upstream no Seven** (publicar ESM por componente + `sideEffects`). Paliativo possível (não aplicado): `manualChunks` separa vendors → ganho só de **cache entre deploys**, **não** reduz o first-load do `/login`.
 
 ### U4.3 — Regra de lint + detector do Seven
 - `eslint-plugin-boundaries` (instalado) + `no-restricted-syntax` barrando `<button>/<input>/<select>/<textarea>` cru e imports de UI fora de `@etus/seven-react`. Opcional: `npx seven detect src/client` (pacote `@etus/seven-skill`, 35 regras de marca) no lint/CI.
@@ -239,7 +240,7 @@ Conforme D2 (resolvido):
 - `CLAUDE.md`: "todo elemento de UI vem de `@etus/seven-react`; tokens via `@etus/tokens`; seguir `seven/DESIGN.md`". Manter `lucide-react` (decisão de ícones). Seção "como adicionar UI" + apontar os blocks do showcase.
 - **Verde:** CLAUDE.md atualizado.
 
-**Checkpoint Fase 4:** ✅ executado 2026-06-16 (parcial) — U4.1 deletados `input`/`separator`/`skeleton`/`sonner` caseiros; U4.3 lint guard-rail (raw `<button>/<input>/<select>/<textarea>` barrados em `routes/**` + `sidebar.tsx`, **provado** que dispara); U4.4 CLAUDE.md doc "UI = Seven". `typecheck:client` + `build` + `lint src/client` verdes. **Pendente:** U4.2 (lazy-load `/login` p/ o bundle de 1,4MB — otimização).
+**Checkpoint Fase 4:** ✅ executado 2026-06-16 (parcial) — U4.1 deletados `input`/`separator`/`skeleton`/`sonner` caseiros; U4.3 lint guard-rail (raw `<button>/<input>/<select>/<textarea>` barrados em `routes/**` + `sidebar.tsx`, **provado** que dispara); U4.4 CLAUDE.md doc "UI = Seven". `typecheck:client` + `build` + `lint src/client` verdes. **U4.2:** investigado 2026-06-17 → **bloqueado upstream** — o chunk de `/login` já é 4,6 kB, mas o `index` compartilhado de 2,2 MB é inevitável enquanto o Seven publicar `@etus/ui` como bundle monolítico (defeats tree-shaking). Ver U4.2 p/ a medição completa.
 
 ---
 
