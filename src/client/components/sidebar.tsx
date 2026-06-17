@@ -1,5 +1,6 @@
 import { Link, useLocation } from '@tanstack/react-router'
 import {
+  Avatar,
   AvatarFallback,
   AvatarImage,
   DropdownMenu,
@@ -9,7 +10,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   Sidebar,
-  SidebarAvatar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
@@ -20,7 +20,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-  useSidebar,
 } from '@etus/seven-react'
 import { Icons } from '@/components/icons'
 import { useAuth } from '@/hooks/use-auth'
@@ -48,8 +47,6 @@ export function AppSidebar() {
   const location = useLocation()
   const { user, logout, isLoggingOut } = useAuth()
   const { theme, setTheme, resolvedTheme } = useTheme()
-  const { state } = useSidebar()
-  const collapsed = state === 'collapsed'
 
   const initials = user?.name
     ? user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
@@ -133,19 +130,17 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <SidebarAvatar
-                  compact={collapsed}
-                  avatar={{
-                    children: (
-                      <>
-                        <AvatarImage alt={user?.name ?? ''} src={user?.picture ?? undefined} />
-                        <AvatarFallback className="text-xs">{initials}</AvatarFallback>
-                      </>
-                    ),
-                  }}
-                  email={user?.email ?? undefined}
-                  name={user?.name ?? undefined}
-                />
+                <SidebarMenuButton size="lg">
+                  <Avatar className="size-8 rounded-lg">
+                    <AvatarImage alt={user?.name ?? ''} src={user?.picture ?? undefined} />
+                    <AvatarFallback className="rounded-lg text-xs">{initials}</AvatarFallback>
+                  </Avatar>
+                  <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
+                    <span className="truncate font-medium">{user?.name}</span>
+                    <span className="truncate text-xs text-muted-foreground">{user?.email}</span>
+                  </div>
+                  <Icons.chevronRight className="ml-auto size-4 rotate-90 group-data-[collapsible=icon]:hidden" />
+                </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56" side="top">
                 <DropdownMenuLabel className="truncate font-normal text-muted-foreground">

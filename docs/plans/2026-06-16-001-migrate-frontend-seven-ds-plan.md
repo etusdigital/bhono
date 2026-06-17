@@ -245,7 +245,7 @@ Conforme D2 (resolvido):
 
 - Rodar: `pnpm lint`, `pnpm typecheck:client`, `pnpm build`, `pnpm test:unit:client`, `pnpm test:e2e` (incl. tags `@visual`/`@a11y`).
 - Revisão visual das telas-chave (login, dashboard, account, settings, team, workspaces, integrations).
-- **Verde:** tudo verde + telas conferidas.
+- **Verde (parcial 2026-06-16):** `lint` + `typecheck:client` + `build` + `test:unit:client` verdes — **230 testes, coverage 89.7%/84.5%/94.4%** (acima dos thresholds). Os testes de client foram atualizados p/ a estrutura Seven + setup jsdom corrigido (`ResizeObserver` construtível, shims Radix de pointer-capture). O rewrite pegou um **bug real**: o menu de usuário no rodapé não abria (`SidebarAvatar` não repassa props → não serve de `DropdownMenuTrigger`) → trocado por `SidebarMenuButton` (validado no browser). **Pendente:** `test:e2e`.
 
 ---
 
