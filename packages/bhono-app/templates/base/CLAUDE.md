@@ -222,6 +222,16 @@ Defined in `config/wrangler.json`:
 2. Use `createFileRoute` from TanStack Router
 3. Access auth via `useAuth()` hook
 
+### Frontend UI — Design System (Seven)
+
+Every UI element comes from **Seven** (`@etus/seven-react`, which re-exports `@etus/ui` + `@etus/tokens`). Do not build controls with raw HTML or local UI components.
+
+- **Components:** `import { Button, TextInput, Card, Dialog, Switch, Checkbox, Divider, SkeletonLoader, Toaster, Sidebar } from '@etus/seven-react'`. Names are not shadcn's (e.g. `TextInput` not `Input`; `Divider` not `Separator`) — verify exports at **runtime** (`Object.keys(await import('@etus/ui'))`), not from the `.d.ts`.
+- **Tokens:** `@etus/tokens` is the source for color/radius/spacing/typography (via `@import "@etus/seven-react/styles.css"` in `src/client/index.css`). The local `@theme` only keeps what Seven does not provide.
+- **Brand (`DESIGN.md` in the Seven repo):** Inter + JetBrains Mono; only `mint`/`lime` are brand (fuchsia is charts-only); no decoration; sentence-case pt-BR; Tailwind v4 type hints (`bg-[color:var(--token)]`).
+- **Guard-rail:** ESLint bans raw `<button>/<input>/<select>/<textarea>` in routes (`config/eslint.config.js`). Icons via `lucide-react`.
+- **Validation:** compare each screen against the published showcase at `seven.etus.io` (not only the code). Reference source: `~/Dropbox/aa-projects/Github/seven` (`apps/showcase`, `DESIGN.md`).
+
 ### Database Changes
 
 1. Update `schema.sql`

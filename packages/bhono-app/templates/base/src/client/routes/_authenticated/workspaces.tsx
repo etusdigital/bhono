@@ -1,11 +1,17 @@
 import { createFileRoute } from '@tanstack/react-router'
 import {
   Badge,
+  Callout,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
 } from '@etus/seven-react'
 import { Icons } from '@/components/icons'
 import { useGatewayAccounts, type AccountRole } from '@/hooks/use-gateway-accounts'
@@ -39,17 +45,9 @@ function WorkspacesPage() {
       </div>
 
       {superAdmin && (
-        <Card className="border-primary/40 bg-primary/5">
-          <CardHeader className="flex flex-row items-center gap-3 space-y-0">
-            <Icons.shield className="h-5 w-5 text-primary" />
-            <div>
-              <CardTitle className="text-base">Super admin</CardTitle>
-              <CardDescription>
-                You have admin-level access across every workspace, regardless of the list below.
-              </CardDescription>
-            </div>
-          </CardHeader>
-        </Card>
+        <Callout icon={<Icons.shield />} title="Super admin" variant="success">
+          You have admin-level access across every workspace, regardless of the list below.
+        </Callout>
       )}
 
       {isLoading ? (
@@ -58,17 +56,19 @@ function WorkspacesPage() {
           Loading workspaces…
         </div>
       ) : accounts.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center gap-2 py-12 text-center">
-            <Icons.layers className="h-8 w-8 text-muted-foreground/60" />
-            <p className="font-medium">No workspaces yet</p>
-            <p className="max-w-md text-sm text-muted-foreground">
+        <Empty className="border">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Icons.layers />
+            </EmptyMedia>
+            <EmptyTitle>No workspaces yet</EmptyTitle>
+            <EmptyDescription>
               {superAdmin
                 ? 'You hold no explicit per-workspace role, but super admin grants access everywhere.'
                 : "You don't belong to any gateway workspace yet. An admin can grant you a role."}
-            </p>
-          </CardContent>
-        </Card>
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {accounts.map((account) => {
