@@ -14,7 +14,9 @@ function Shell({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen flex-col">
       <header className="container flex h-14 items-center">
         <Link to="/" className="flex items-center space-x-2">
-          <Icons.command className="h-6 w-6" />
+          <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <Icons.command className="size-4" />
+          </div>
           <span className="font-semibold">Hono</span>
         </Link>
       </header>
