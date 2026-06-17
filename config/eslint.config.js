@@ -311,6 +311,39 @@ export default tseslint.config(
     },
   },
 
+  // ==============================================
+  // DS GUARD-RAIL: app screens use Seven controls, not raw HTML
+  // (every interactive control must come from @etus/seven-react)
+  // ==============================================
+  {
+    files: ["src/client/routes/**/*.{ts,tsx}", "src/client/components/sidebar.tsx"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "JSXOpeningElement[name.name='button']",
+          message:
+            "Use Button from '@etus/seven-react' instead of a raw <button>.",
+        },
+        {
+          selector: "JSXOpeningElement[name.name='input']",
+          message:
+            "Use TextInput/Checkbox/Switch from '@etus/seven-react' instead of a raw <input>.",
+        },
+        {
+          selector: "JSXOpeningElement[name.name='select']",
+          message:
+            "Use Select/NativeSelect from '@etus/seven-react' instead of a raw <select>.",
+        },
+        {
+          selector: "JSXOpeningElement[name.name='textarea']",
+          message:
+            "Use Textarea from '@etus/seven-react' instead of a raw <textarea>.",
+        },
+      ],
+    },
+  },
+
   // === TEST FILES - DISABLE TYPE-CHECKED RULES ===
   {
     files: [

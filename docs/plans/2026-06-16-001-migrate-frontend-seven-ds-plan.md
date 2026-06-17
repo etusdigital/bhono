@@ -237,7 +237,7 @@ Conforme D2 (resolvido):
 - `CLAUDE.md`: "todo elemento de UI vem de `@etus/seven-react`; tokens via `@etus/tokens`; seguir `seven/DESIGN.md`". Manter `lucide-react` (decisão de ícones). Seção "como adicionar UI" + apontar os blocks do showcase.
 - **Verde:** CLAUDE.md atualizado.
 
-**Checkpoint Fase 4:** `pnpm lint` + `pnpm build` verdes; nenhum caseiro órfão; bundle público conferido.
+**Checkpoint Fase 4:** ✅ executado 2026-06-16 (parcial) — U4.1 deletados `input`/`separator`/`skeleton`/`sonner` caseiros; U4.3 lint guard-rail (raw `<button>/<input>/<select>/<textarea>` barrados em `routes/**` + `sidebar.tsx`, **provado** que dispara); U4.4 CLAUDE.md doc "UI = Seven". `typecheck:client` + `build` + `lint src/client` verdes. **Pendente:** U4.2 (lazy-load `/login` p/ o bundle de 1,4MB — otimização).
 
 ---
 
