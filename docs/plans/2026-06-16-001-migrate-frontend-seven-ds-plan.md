@@ -214,6 +214,8 @@ Conforme D2 (resolvido):
 
 **Checkpoint Fase 3:** ✅ executado 2026-06-16 — `settings`/`account`/`team`/`integrations` migrados (Input→`TextInput`, Separator→`Divider`, toggles→`Switch`/`Checkbox`) + `Toaster` do Seven (`main.tsx`) + `error-boundary` button→`Button` + `skeleton`→`SkeletonLoader`. `typecheck:client` + `build` verdes; **0 consumidores** dos 4 caseiros (input/separator/skeleton/sonner). **Validação visual no browser:** shell (expandido/colapsado), settings (Profile+Notifications), account, team, integrations (página + dialog), Toaster (toast confirmado no DOM). `login`/`dashboard`/`workspaces`/`404`/`invite` já eram só-Seven (sem caseiros). Notas: `error-boundary` é dead-code (0 consumidores → candidato a delete); skeleton/loading é transitório (impraticável de capturar por throttle — bundle fica branco antes do render).
 
+**Refinamento de composição (2026-06-16):** as 3 telas que já eram só-Seven foram elevadas a componentes de mais alto nível do DS (em vez de `Card` caseiro): **dashboard** stats → `DashboardCard` (`title`/`value`/`valueDescription`/`icon`, sem deltas inventados — `KPICard` esconde o subtexto sem delta); **login** card central → split-screen do `/login` **curado** do Seven (`<main>`+`<aside>` landmarks, botão mint primário, painel de marca `bg-muted`, OAuth-only); **workspaces** banner super-admin → `Callout variant="success"` e empty-state → `Empty`/`EmptyMedia`/`EmptyTitle`/`EmptyDescription`. Validado no browser (workspaces super-admin via override client-side de `/api/me`). **230 testes verdes sem alterar nenhum teste** (composição preservou a intenção); `<main>`/`<aside>` no login satisfez `root-layout` legitimamente.
+
 ---
 
 ## Fase 4 — Limpeza, bundle e guard-rails (P2/P3)

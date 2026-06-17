@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@etus/seven-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, DashboardCard } from '@etus/seven-react'
 import { Icons } from '@/components/icons'
 import { useAuth } from '@/hooks/use-auth'
 
@@ -25,29 +25,29 @@ function DashboardPage() {
 
       {/* Stats cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatsCard
+        <DashboardCard
           title="Total Users"
           value="0"
-          description="Active team members"
-          icon={<Icons.users className="h-4 w-4 text-muted-foreground" />}
+          valueDescription="Active team members"
+          icon={<Icons.users className="size-4" />}
         />
-        <StatsCard
+        <DashboardCard
           title="Accounts"
           value="1"
-          description="Connected accounts"
-          icon={<Icons.layers className="h-4 w-4 text-muted-foreground" />}
+          valueDescription="Connected accounts"
+          icon={<Icons.layers className="size-4" />}
         />
-        <StatsCard
+        <DashboardCard
           title="API Requests"
           value="0"
-          description="Last 30 days"
-          icon={<Icons.zap className="h-4 w-4 text-muted-foreground" />}
+          valueDescription="Last 30 days"
+          icon={<Icons.zap className="size-4" />}
         />
-        <StatsCard
+        <DashboardCard
           title="Uptime"
           value="100%"
-          description="Last 30 days"
-          icon={<Icons.globe className="h-4 w-4 text-muted-foreground" />}
+          valueDescription="Last 30 days"
+          icon={<Icons.globe className="size-4" />}
         />
       </div>
 
@@ -122,30 +122,5 @@ function DashboardPage() {
         </CardContent>
       </Card>
     </div>
-  )
-}
-
-function StatsCard({
-  title,
-  value,
-  description,
-  icon,
-}: {
-  title: string
-  value: string
-  description: string
-  icon: React.ReactNode
-}) {
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        {icon}
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        <p className="text-xs text-muted-foreground">{description}</p>
-      </CardContent>
-    </Card>
   )
 }
