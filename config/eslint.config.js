@@ -34,6 +34,7 @@ export default tseslint.config(
       "**/.claude/**",
       "**/.agents/**",
       "**/.codex/**",
+      "**/.remember/**",
       "**/e2e/**",
       "**/packages/**",
       "**/.pnpm*",
