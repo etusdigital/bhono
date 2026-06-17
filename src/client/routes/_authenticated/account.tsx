@@ -19,15 +19,15 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  Divider,
   Form,
   FormControl,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
+  TextInput,
 } from '@etus/seven-react'
-import { Input } from '@/components/ui/input'
-import { Separator } from '@/components/ui/separator'
 import { Icons } from '@/components/icons'
 import { useAuth } from '@/hooks/use-auth'
 
@@ -105,7 +105,7 @@ function AccountPage() {
         </div>
       </section>
 
-      <Separator />
+      <Divider />
 
       {/* Security Section */}
       <section className="space-y-4">
@@ -159,7 +159,7 @@ function AccountPage() {
         </div>
       </section>
 
-      <Separator />
+      <Divider />
 
       {/* Active Sessions Section */}
       <section className="space-y-4">
@@ -190,7 +190,7 @@ function AccountPage() {
         </div>
       </section>
 
-      <Separator />
+      <Divider />
 
       {/* API Access Section */}
       <section className="space-y-4">
@@ -228,7 +228,7 @@ function AccountPage() {
         </Card>
       </section>
 
-      <Separator />
+      <Divider />
 
       {/* Danger Zone */}
       <section className="space-y-4">
@@ -383,7 +383,7 @@ function DeleteAccountDialog({ userEmail }: { userEmail: string }) {
                       Type <span className="font-mono font-medium">{userEmail}</span> to confirm
                     </FormLabel>
                     <FormControl>
-                      <Input
+                      <TextInput
                         placeholder="Enter your email"
                         className="font-mono"
                         {...field}

@@ -30,8 +30,8 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  TextInput,
 } from '@etus/seven-react'
-import { Input } from '@/components/ui/input'
 import { Icons } from '@/components/icons'
 import { useAuth } from '@/hooks/use-auth'
 import type { Account, AuthUser } from '@shared/types'
@@ -237,7 +237,7 @@ function TeamPage() {
                       <FormItem>
                         <FormLabel>Email Address</FormLabel>
                         <FormControl>
-                          <Input
+                          <TextInput
                             type="email"
                             placeholder="colleague@example.com"
                             {...field}
@@ -300,7 +300,7 @@ function TeamPage() {
 
       <div className="relative max-w-sm">
         <Icons.search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
+        <TextInput
           placeholder="Search members..."
           value={searchQuery}
           onChange={(e) => { setSearchQuery(e.target.value) }}

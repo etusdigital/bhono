@@ -1,5 +1,6 @@
 // src/client/components/error-boundary.tsx
 import { Component, type ReactNode } from 'react'
+import { Button } from '@etus/seven-react'
 
 interface ErrorBoundaryProps {
   children: ReactNode
@@ -52,12 +53,12 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             <p className="mt-2 text-sm text-muted-foreground">
               {this.state.error?.message ?? 'An unexpected error occurred'}
             </p>
-            <button
+            <Button
+              className="mt-4"
               onClick={() => { this.setState({ hasError: false, error: null }) }}
-              className="mt-4 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
               Try again
-            </button>
+            </Button>
           </div>
         </div>
       )
