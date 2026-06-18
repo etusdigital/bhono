@@ -143,8 +143,8 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56" side="top">
-                <DropdownMenuLabel className="truncate font-normal text-muted-foreground">
-                  {user?.email}
+                <DropdownMenuLabel className="truncate font-medium">
+                  {user?.name ?? user?.email}
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem disabled={isLoggingOut} onClick={() => { logout() }}>

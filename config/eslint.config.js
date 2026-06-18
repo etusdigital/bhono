@@ -317,7 +317,8 @@ export default tseslint.config(
   // (every interactive control must come from @etus/seven-react)
   // ==============================================
   {
-    files: ["src/client/routes/**/*.{ts,tsx}", "src/client/components/sidebar.tsx"],
+    files: ["src/client/routes/**/*.{ts,tsx}", "src/client/components/**/*.{ts,tsx}"],
+    ignores: ["src/client/components/icons.tsx"],
     rules: {
       "no-restricted-syntax": [
         "error",

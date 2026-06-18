@@ -33,8 +33,8 @@ export const Route = createFileRoute('/_authenticated')({
 /** Topbar breadcrumb derived from the first path segment. */
 function RouteBreadcrumb() {
   const { location } = useRouterState()
-  const seg = location.pathname.split('/').find(Boolean) ?? 'dashboard'
-  const label = seg.charAt(0).toUpperCase() + seg.slice(1)
+  const seg = location.pathname.split('/').find(Boolean)
+  const label = seg ? seg.charAt(0).toUpperCase() + seg.slice(1) : 'Dashboard'
 
   return (
     <Breadcrumb>

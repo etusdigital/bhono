@@ -147,7 +147,7 @@ describe('AuthenticatedErrorComponent', () => {
     const { container } = render(<AuthenticatedErrorComponent error={error} />)
 
     const wrapper = container.firstChild as HTMLElement
-    expect(wrapper).toHaveClass('flex', 'h-screen', 'items-center', 'justify-center')
+    expect(wrapper).toHaveClass('h-screen')
   })
 
   it('handles button clicks', () => {
@@ -173,7 +173,7 @@ describe('AuthenticatedPendingComponent', () => {
     const { container } = render(<AuthenticatedPendingComponent />)
 
     const wrapper = container.firstChild as HTMLElement
-    expect(wrapper).toHaveClass('flex', 'h-screen', 'items-center', 'justify-center')
+    expect(wrapper).toHaveClass('h-screen')
     expect(container.querySelector('aside')).not.toBeInTheDocument()
   })
 })

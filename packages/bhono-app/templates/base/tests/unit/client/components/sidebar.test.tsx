@@ -106,13 +106,18 @@ describe("AppSidebar", () => {
     expect(screen.getByTestId("link-/settings")).toHaveAttribute("href", "/settings")
   })
 
-  it("renders a theme toggle that handles a click without throwing", async () => {
+  it("persists a theme change when the theme toggle is clicked", async () => {
     const user = userEvent.setup()
     renderSidebar()
 
-    const themeButton = screen.getByText("Theme")
-    await user.click(themeButton)
-    expect(themeButton).toBeInTheDocument()
+    const before = localStorage.getItem("theme")
+    await user.click(screen.getByText("Theme"))
+
+    // The toggle must actually drive + persist the theme (light → dark → system → …),
+    // not just render — a render-only test can't catch a broken toggle (Rule 6).
+    const after = localStorage.getItem("theme")
+    expect(after).toMatch(/^(light|dark|system)$/)
+    expect(after).not.toBe(before)
   })
 
   it("logs out from the user menu", async () => {
