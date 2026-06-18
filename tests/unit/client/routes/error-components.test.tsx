@@ -121,14 +121,6 @@ describe('AuthenticatedErrorComponent', () => {
     expect(screen.getByText(/Detailed auth error message/)).toBeInTheDocument()
   })
 
-  it('renders sidebar alongside error', () => {
-    const error = new Error('Error')
-    render(<AuthenticatedErrorComponent error={error} />)
-
-    // Sidebar should be present (navigation)
-    expect(screen.getByRole('navigation')).toBeInTheDocument()
-  })
-
   it('renders try again button', () => {
     const error = new Error('Error')
     render(<AuthenticatedErrorComponent error={error} />)
@@ -155,7 +147,7 @@ describe('AuthenticatedErrorComponent', () => {
     const { container } = render(<AuthenticatedErrorComponent error={error} />)
 
     const wrapper = container.firstChild as HTMLElement
-    expect(wrapper).toHaveClass('flex', 'h-screen', 'overflow-hidden')
+    expect(wrapper).toHaveClass('h-screen')
   })
 
   it('handles button clicks', () => {
@@ -170,31 +162,18 @@ describe('AuthenticatedErrorComponent', () => {
 })
 
 describe('AuthenticatedPendingComponent', () => {
-  it('renders skeleton loader', () => {
+  it('renders Seven skeleton loaders', () => {
     render(<AuthenticatedPendingComponent />)
 
-    const skeletons = document.querySelectorAll('[data-slot="skeleton"]')
+    const skeletons = document.querySelectorAll('[data-slot="skeleton-loader"]')
     expect(skeletons.length).toBeGreaterThan(0)
   })
 
-  it('has correct layout structure', () => {
+  it('is centered full-screen with no sidebar in the pending state', () => {
     const { container } = render(<AuthenticatedPendingComponent />)
 
     const wrapper = container.firstChild as HTMLElement
-    expect(wrapper).toHaveClass('flex', 'h-screen', 'overflow-hidden')
-  })
-
-  it('renders main content area', () => {
-    render(<AuthenticatedPendingComponent />)
-
-    expect(screen.getByRole('main')).toBeInTheDocument()
-  })
-
-  it('renders sidebar skeleton area', () => {
-    const { container } = render(<AuthenticatedPendingComponent />)
-
-    // Should have the sidebar skeleton (aside element)
-    const aside = container.querySelector('aside')
-    expect(aside).toBeInTheDocument()
+    expect(wrapper).toHaveClass('h-screen')
+    expect(container.querySelector('aside')).not.toBeInTheDocument()
   })
 })

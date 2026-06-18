@@ -1,5 +1,4 @@
-import { Skeleton } from "./skeleton"
-import { Card, CardContent, CardHeader } from '@etus/seven-react'
+import { Card, CardContent, CardHeader, SkeletonLoader as Skeleton } from '@etus/seven-react'
 // Helper to create stable keys for skeleton items
 const skeletonItems = (count: number, prefix: string) =>
   Array.from({ length: count }, (_, i) => `${prefix}-${String(i)}`)
@@ -109,45 +108,5 @@ export function PageSkeleton() {
         </CardContent>
       </Card>
     </div>
-  )
-}
-
-export function SidebarSkeleton() {
-  return (
-    <aside className="flex h-screen w-64 flex-col border-r bg-sidebar">
-      {/* Header */}
-      <div className="flex h-14 items-center justify-between border-b px-3">
-        <div className="flex items-center gap-2">
-          <Skeleton className="h-8 w-8 rounded-lg" />
-          <Skeleton className="h-5 w-16" />
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 space-y-1 p-2">
-        <Skeleton className="h-4 w-12 mx-3 my-2" />
-        {skeletonItems(3, "nav-main").map((key) => (
-          <Skeleton key={key} className="h-10 w-full rounded-lg" />
-        ))}
-
-        <div className="my-4" />
-
-        <Skeleton className="h-4 w-16 mx-3 my-2" />
-        {skeletonItems(2, "nav-account").map((key) => (
-          <Skeleton key={key} className="h-10 w-full rounded-lg" />
-        ))}
-      </nav>
-
-      {/* User profile */}
-      <div className="border-t p-3">
-        <div className="flex items-center gap-3 p-2">
-          <Skeleton className="h-9 w-9 rounded-full" />
-          <div className="flex-1 space-y-2">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-3 w-32" />
-          </div>
-        </div>
-      </div>
-    </aside>
   )
 }

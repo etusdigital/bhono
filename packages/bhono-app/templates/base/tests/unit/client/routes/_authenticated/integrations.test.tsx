@@ -448,7 +448,7 @@ describe('Integrations Page', () => {
       })
 
       // Click on User Created event
-      const userCreatedButton = screen.getByText('User Created').closest('button')!
+      const userCreatedButton = screen.getByText('User Created').closest('label')!
       await user.click(userCreatedButton)
 
       // Event should be selected (check for visual indicator)

@@ -76,12 +76,20 @@ Object.defineProperty(window, "matchMedia", {
   })),
 })
 
-// Mock ResizeObserver
-global.ResizeObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}))
+// Mock ResizeObserver — must be a real constructor: Radix-based Seven
+// components call `new ResizeObserver()` (via useSize). An arrow function
+// cannot be constructed, which broke tests after adopting @etus/seven-react.
+global.ResizeObserver = class ResizeObserver {
+  observe = vi.fn()
+  unobserve = vi.fn()
+  disconnect = vi.fn()
+} as unknown as typeof globalThis.ResizeObserver
+
+// Radix UI (used by Seven) needs these jsdom shims for menus/dialogs/selects.
+Element.prototype.hasPointerCapture = vi.fn(() => false)
+Element.prototype.setPointerCapture = vi.fn()
+Element.prototype.releasePointerCapture = vi.fn()
+Element.prototype.scrollIntoView = vi.fn()
 
 // Mock localStorage
 const localStorageMock = (() => {

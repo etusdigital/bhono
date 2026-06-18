@@ -34,6 +34,7 @@ export default tseslint.config(
       "**/.claude/**",
       "**/.agents/**",
       "**/.codex/**",
+      "**/.remember/**",
       "**/e2e/**",
       "**/packages/**",
       "**/.pnpm*",
@@ -306,6 +307,40 @@ export default tseslint.config(
           selector: "Literal[value=/^oklch\\(/i]",
           message:
             "Hardcoded oklch() colors are not allowed. Use CSS variables.",
+        },
+      ],
+    },
+  },
+
+  // ==============================================
+  // DS GUARD-RAIL: app screens use Seven controls, not raw HTML
+  // (every interactive control must come from @etus/seven-react)
+  // ==============================================
+  {
+    files: ["src/client/routes/**/*.{ts,tsx}", "src/client/components/**/*.{ts,tsx}"],
+    ignores: ["src/client/components/icons.tsx"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "JSXOpeningElement[name.name='button']",
+          message:
+            "Use Button from '@etus/seven-react' instead of a raw <button>.",
+        },
+        {
+          selector: "JSXOpeningElement[name.name='input']",
+          message:
+            "Use TextInput/Checkbox/Switch from '@etus/seven-react' instead of a raw <input>.",
+        },
+        {
+          selector: "JSXOpeningElement[name.name='select']",
+          message:
+            "Use Select/NativeSelect from '@etus/seven-react' instead of a raw <select>.",
+        },
+        {
+          selector: "JSXOpeningElement[name.name='textarea']",
+          message:
+            "Use Textarea from '@etus/seven-react' instead of a raw <textarea>.",
         },
       ],
     },

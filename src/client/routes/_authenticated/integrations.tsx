@@ -7,6 +7,7 @@ import {
   Button,
   Card,
   CardContent,
+  Checkbox,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -14,6 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  Divider,
   Form,
   FormControl,
   FormDescription,
@@ -21,9 +23,8 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  TextInput,
 } from '@etus/seven-react'
-import { Input } from '@/components/ui/input'
-import { Separator } from '@/components/ui/separator'
 import { Icons } from '@/components/icons'
 import { CreateWebhookSchema, type CreateWebhookInput } from '@shared/schemas'
 
@@ -137,7 +138,7 @@ function IntegrationsPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         <div className="relative flex-1 max-w-sm">
           <Icons.search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
+          <TextInput
             placeholder="Search integrations..."
             value={searchQuery}
             onChange={(e) => { setSearchQuery(e.target.value) }}
@@ -177,7 +178,7 @@ function IntegrationsPage() {
         )}
       </section>
 
-      <Separator />
+      <Divider />
 
       {/* Webhooks Section */}
       <section className="space-y-4">
@@ -210,7 +211,7 @@ function IntegrationsPage() {
         )}
       </section>
 
-      <Separator />
+      <Divider />
 
       {/* API Documentation Link */}
       <section>
@@ -443,7 +444,7 @@ function CreateWebhookDialog() {
                   <FormItem>
                     <FormLabel>Endpoint URL</FormLabel>
                     <FormControl>
-                      <Input
+                      <TextInput
                         type="url"
                         placeholder="https://api.example.com/webhooks"
                         className="font-mono text-sm"
@@ -469,23 +470,20 @@ function CreateWebhookDialog() {
                         {eventTypes.map((event) => {
                           const isSelected = selectedEvents.includes(event.id)
                           return (
-                            <button
+                            <label
                               key={event.id}
-                              type="button"
-                              onClick={() => { toggleEvent(event.id) }}
-                              className={`flex items-center gap-2 rounded-lg border p-3 text-left text-sm transition-colors ${
+                              className={`flex cursor-pointer items-center gap-2 rounded-lg border p-3 text-left text-sm transition-colors ${
                                 isSelected
                                   ? 'border-primary bg-primary/5'
                                   : 'border-border hover:border-primary/50'
                               }`}
                             >
-                              <div className={`flex h-4 w-4 items-center justify-center rounded border ${
-                                isSelected ? 'border-primary bg-primary' : 'border-muted-foreground'
-                              }`}>
-                                {isSelected && <Icons.check className="h-3 w-3 text-primary-foreground" />}
-                              </div>
+                              <Checkbox
+                                checked={isSelected}
+                                onCheckedChange={() => { toggleEvent(event.id) }}
+                              />
                               <span className={isSelected ? 'font-medium' : ''}>{event.label}</span>
-                            </button>
+                            </label>
                           )
                         })}
                       </div>

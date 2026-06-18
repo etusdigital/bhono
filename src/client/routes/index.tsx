@@ -13,7 +13,9 @@ function HomePage() {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-14 max-w-[var(--content-wide)] items-center">
           <div className="flex items-center space-x-2">
-            <Icons.command className="h-6 w-6" />
+            <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <Icons.command className="size-4" />
+            </div>
             <span className="font-semibold">Hono</span>
           </div>
           <nav className="ml-auto flex items-center space-x-4">

@@ -20,11 +20,11 @@ describe('Authenticated Layout', () => {
       renderRoute({ initialEntries: ['/dashboard'] })
 
       await waitFor(() => {
-        // Sidebar should be visible
-        expect(screen.getByRole('navigation')).toBeInTheDocument()
+        // Seven's Sidebar renders <nav aria-label="Main navigation">
+        expect(screen.getByRole('navigation', { name: /main navigation/i })).toBeInTheDocument()
       })
 
-      // Main content should be rendered
+      // SidebarInset is the <main> content area
       expect(screen.getByRole('main')).toBeInTheDocument()
     })
 
@@ -83,7 +83,7 @@ describe('Authenticated Layout', () => {
 
       // Should show skeleton loading states
       await waitFor(() => {
-        const skeletons = document.querySelectorAll('[data-slot="skeleton"]')
+        const skeletons = document.querySelectorAll('[data-slot="skeleton-loader"]')
         expect(skeletons.length).toBeGreaterThan(0)
       }, { timeout: 1000 })
 
@@ -123,7 +123,7 @@ describe('Authenticated Layout', () => {
 
       // Should show skeleton elements
       await waitFor(() => {
-        const skeletons = document.querySelectorAll('[data-slot="skeleton"]')
+        const skeletons = document.querySelectorAll('[data-slot="skeleton-loader"]')
         expect(skeletons.length).toBeGreaterThan(0)
       }, { timeout: 1000 })
 

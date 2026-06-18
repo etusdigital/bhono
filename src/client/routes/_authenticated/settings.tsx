@@ -13,6 +13,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  Divider,
   Form,
   FormControl,
   FormField,
@@ -20,13 +21,13 @@ import {
   FormLabel,
   FormMessage,
   Label,
+  Switch,
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
+  TextInput,
 } from '@etus/seven-react'
-import { Input } from '@/components/ui/input'
-import { Separator } from '@/components/ui/separator'
 import { Icons } from '@/components/icons'
 import { useAuth } from '@/hooks/use-auth'
 import { UpdateProfileSchema, type UpdateProfileInput } from '@shared/schemas'
@@ -132,7 +133,7 @@ function SettingsPage() {
                         <FormItem>
                           <FormLabel>Full Name</FormLabel>
                           <FormControl>
-                            <Input placeholder="Enter your name" {...field} />
+                            <TextInput placeholder="Enter your name" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -140,7 +141,7 @@ function SettingsPage() {
                     />
                     <div className="space-y-2">
                       <Label>Email Address</Label>
-                      <Input
+                      <TextInput
                         type="email"
                         defaultValue={user?.email ?? ''}
                         placeholder="Enter your email"
@@ -261,13 +262,13 @@ function SettingsPage() {
                 description="Receive emails when someone invites you to a team."
                 defaultChecked
               />
-              <Separator />
+              <Divider />
               <NotificationToggle
                 title="Product Updates"
                 description="News about product updates and new features."
                 defaultChecked
               />
-              <Separator />
+              <Divider />
               <NotificationToggle
                 title="Security Alerts"
                 description="Important notifications about your account security."
@@ -301,26 +302,12 @@ function NotificationToggle({
         <p className="font-medium">{title}</p>
         <p className="text-sm text-muted-foreground">{description}</p>
       </div>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
+      <Switch
+        aria-label={title}
+        checked={checked}
         disabled={disabled}
-        onClick={() => { setChecked(!checked); }}
-        className={`
-          relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent
-          transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
-          disabled:cursor-not-allowed disabled:opacity-50
-          ${checked ? 'bg-primary' : 'bg-input'}
-        `}
-      >
-        <span
-          className={`
-            pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform
-            ${checked ? 'translate-x-5' : 'translate-x-0'}
-          `}
-        />
-      </button>
+        onCheckedChange={setChecked}
+      />
     </div>
   )
 }

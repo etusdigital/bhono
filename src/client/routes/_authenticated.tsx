@@ -1,7 +1,17 @@
-import { createFileRoute, Outlet, redirect, useRouter } from '@tanstack/react-router'
-import { Sidebar } from '@/components/sidebar'
+import type { ReactNode } from 'react'
+import { createFileRoute, Outlet, redirect, useRouter, useRouterState } from '@tanstack/react-router'
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbList,
+  BreadcrumbPage,
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from '@etus/seven-react'
+import { AppSidebar } from '@/components/sidebar'
 import { ErrorFallback } from '@/components/ui/error-fallback'
-import { SidebarSkeleton, PageSkeleton } from '@/components/ui/loading-skeleton'
+import { PageSkeleton } from '@/components/ui/loading-skeleton'
 import { queryClient } from '@/lib/query-client'
 
 export const Route = createFileRoute('/_authenticated')({
@@ -20,30 +30,53 @@ export const Route = createFileRoute('/_authenticated')({
   errorComponent: AuthenticatedErrorComponent,
 })
 
+/** Topbar breadcrumb derived from the first path segment. */
+function RouteBreadcrumb() {
+  const { location } = useRouterState()
+  const seg = location.pathname.split('/').find(Boolean)
+  const label = seg ? seg.charAt(0).toUpperCase() + seg.slice(1) : 'Dashboard'
+
+  return (
+    <Breadcrumb>
+      <BreadcrumbList>
+        <BreadcrumbItem>
+          <BreadcrumbPage className="font-semibold">{label}</BreadcrumbPage>
+        </BreadcrumbItem>
+      </BreadcrumbList>
+    </Breadcrumb>
+  )
+}
+
+/** Canonical Seven app shell: collapsible sidebar + inset with topbar and tucked content. */
+function AppShell({ children }: { children: ReactNode }) {
+  return (
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <header className="flex h-12 shrink-0 items-center gap-3 px-6">
+          <SidebarTrigger className="-ml-1" />
+          <RouteBreadcrumb />
+        </header>
+        <div className="flex-1 overflow-auto rounded-tl-[24px] border bg-background p-8">
+          {children}
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
+  )
+}
+
 function AuthenticatedLayout() {
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar />
-
-      {/* Main content */}
-      <main className="flex-1 overflow-y-auto">
-        <div className="container max-w-[var(--content-width)] p-8">
-          <Outlet />
-        </div>
-      </main>
-    </div>
+    <AppShell>
+      <Outlet />
+    </AppShell>
   )
 }
 
 export function AuthenticatedPendingComponent() {
   return (
-    <div className="flex h-screen overflow-hidden">
-      <SidebarSkeleton />
-      <main className="flex-1 overflow-y-auto">
-        <div className="container max-w-[var(--content-width)] p-8">
-          <PageSkeleton />
-        </div>
-      </main>
+    <div className="flex h-screen items-center justify-center p-8">
+      <PageSkeleton />
     </div>
   )
 }
@@ -52,18 +85,15 @@ export function AuthenticatedErrorComponent({ error }: { error: Error }) {
   const router = useRouter()
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar />
-      <main className="flex-1 overflow-y-auto">
-        <ErrorFallback
-          error={error}
-          title="Something went wrong"
-          message="An error occurred while loading this page. Please try again."
-          onRetry={() => { void router.invalidate() }}
-          onGoBack={() => { router.history.back() }}
-          onGoHome={() => { void router.navigate({ to: '/dashboard' }) }}
-        />
-      </main>
+    <div className="flex h-screen items-center justify-center p-8">
+      <ErrorFallback
+        error={error}
+        title="Something went wrong"
+        message="An error occurred while loading this page. Please try again."
+        onRetry={() => { void router.invalidate() }}
+        onGoBack={() => { router.history.back() }}
+        onGoHome={() => { void router.navigate({ to: '/dashboard' }) }}
+      />
     </div>
   )
 }
