@@ -52,7 +52,7 @@ function RouteBreadcrumb() {
 /** Canonical Seven app shell: collapsible sidebar + inset with topbar and tucked content. */
 function AppShell({ children }: { children: ReactNode }) {
   return (
-    <SidebarProvider>
+    <SidebarProvider mode="single">
       <AppSidebar />
       <SidebarInset>
         <header>
