@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
+import { toast } from 'sonner'
 import { Button, Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, DashboardCard, Heading, Text } from '@etus/seven-react'
 import { Icons } from '@/components/icons'
 import { useAuth } from '@/hooks/use-auth'
@@ -15,10 +16,10 @@ function DashboardPage() {
     <div className="space-y-8">
       {/* Welcome section */}
       <div>
-        <Heading level={1} size="2xl" weight="semibold">
+        <Heading level={1} size="2xl">
           Welcome back, {firstName}
         </Heading>
-        <Text color="muted">
+        <Text variant="p2" color="muted">
           Here&apos;s an overview of your workspace.
         </Text>
       </div>
@@ -70,7 +71,7 @@ function DashboardPage() {
           </CardContent>
           <CardFooter>
             <Button asChild variant="outline" size="sm">
-              <Link to="/team">Convidar membros</Link>
+              <Link to="/team">Invite members</Link>
             </Button>
           </CardFooter>
         </Card>
@@ -91,8 +92,15 @@ function DashboardPage() {
             </Text>
           </CardContent>
           <CardFooter>
-            <Button asChild variant="outline" size="sm">
-              <Link to="/settings">Configurar</Link>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                // TODO(stub)
+                toast.info('Database management is coming soon')
+              }}
+            >
+              Manage database
             </Button>
           </CardFooter>
         </Card>
@@ -113,8 +121,15 @@ function DashboardPage() {
             </Text>
           </CardContent>
           <CardFooter>
-            <Button asChild variant="outline" size="sm">
-              <Link to="/account">Gerenciar</Link>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                // TODO(stub)
+                toast.info('Security settings are coming soon')
+              }}
+            >
+              Review security
             </Button>
           </CardFooter>
         </Card>
@@ -129,8 +144,10 @@ function DashboardPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex h-32 items-center justify-center rounded-md border">
-            <Text variant="p3" color="muted">No recent activity</Text>
+          <div className="flex h-32 items-center justify-center">
+            <Text variant="p3" color="muted">
+              No recent activity
+            </Text>
           </div>
         </CardContent>
       </Card>
