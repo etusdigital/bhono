@@ -5,6 +5,15 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
   Badge,
   Button,
   Card,
@@ -26,6 +35,8 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  Heading,
+  Text,
   TextInput,
 } from '@etus/seven-react'
 import { Icons } from '@/components/icons'
@@ -38,23 +49,30 @@ export const Route = createFileRoute('/_authenticated/account')({
 function AccountPage() {
   const { user }  = useAuth()
 
+  // TODO(stub): ligar a fluxos/mutations reais (OAuth link, 2FA setup, API key, export, revogar sessões)
+  const handleConnectGitHub = () => { toast.info('Conectar GitHub — em breve') }
+  const handleEnable2FA = () => { toast.info('Ativar 2FA — em breve') }
+  const handleCreateKey = () => { toast.info('Criar API key — em breve') }
+  const handleExport = () => { toast.info('Exportar dados — em breve') }
+  const handleSignOutAll = () => { toast.info('Encerrar todas as sessões — em breve') }
+
   return (
     <div className="space-y-8">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Account</h1>
-        <p className="text-muted-foreground">
+        <Heading level={1} size="2xl" weight="semibold">Account</Heading>
+        <Text color="muted">
           Manage your account settings, security, and connected services.
-        </p>
+        </Text>
       </div>
 
       {/* Connected Accounts Section */}
       <section className="space-y-4">
         <div>
-          <h2 className="text-lg font-medium">Connected Accounts</h2>
-          <p className="text-sm text-muted-foreground">
+          <Heading level={2} size="lg" weight="medium">Connected Accounts</Heading>
+          <Text variant="p3" color="muted">
             Manage OAuth providers linked to your account.
-          </p>
+          </Text>
         </div>
 
         <div className="grid gap-4">
@@ -96,7 +114,7 @@ function AccountPage() {
                   Connect for additional sign-in options
                 </p>
               </div>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={handleConnectGitHub}>
                 <Icons.plus className="mr-2 h-4 w-4" />
                 Connect
               </Button>
@@ -110,10 +128,10 @@ function AccountPage() {
       {/* Security Section */}
       <section className="space-y-4">
         <div>
-          <h2 className="text-lg font-medium">Security</h2>
-          <p className="text-sm text-muted-foreground">
+          <Heading level={2} size="lg" weight="medium">Security</Heading>
+          <Text variant="p3" color="muted">
             Keep your account secure with these settings.
-          </p>
+          </Text>
         </div>
 
         <div className="grid gap-4">
@@ -132,7 +150,7 @@ function AccountPage() {
                   Add an extra layer of security to your account
                 </p>
               </div>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={handleEnable2FA}>
                 Enable
               </Button>
             </div>
@@ -165,14 +183,30 @@ function AccountPage() {
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-medium">Active Sessions</h2>
-            <p className="text-sm text-muted-foreground">
+            <Heading level={2} size="lg" weight="medium">Active Sessions</Heading>
+            <Text variant="p3" color="muted">
               Devices where you're currently logged in.
-            </p>
+            </Text>
           </div>
-          <Button variant="outline" size="sm">
-            Sign out all
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                Sign out all
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Encerrar todas as sessões?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Isso desconecta você de todos os dispositivos, exceto o atual.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleSignOutAll}>Encerrar</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
 
         <div className="grid gap-4">
@@ -195,17 +229,17 @@ function AccountPage() {
       {/* API Access Section */}
       <section className="space-y-4">
         <div>
-          <h2 className="text-lg font-medium">API Access</h2>
-          <p className="text-sm text-muted-foreground">
+          <Heading level={2} size="lg" weight="medium">API Access</Heading>
+          <Text variant="p3" color="muted">
             Manage API keys for programmatic access.
-          </p>
+          </Text>
         </div>
 
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base">API Keys</CardTitle>
-              <Button size="sm">
+              <Button size="sm" onClick={handleCreateKey}>
                 <Icons.plus className="mr-2 h-4 w-4" />
                 Create Key
               </Button>
@@ -233,10 +267,10 @@ function AccountPage() {
       {/* Danger Zone */}
       <section className="space-y-4">
         <div>
-          <h2 className="text-lg font-medium text-destructive">Danger Zone</h2>
-          <p className="text-sm text-muted-foreground">
+          <Heading level={2} size="lg" weight="medium" className="text-destructive">Danger Zone</Heading>
+          <Text variant="p3" color="muted">
             Irreversible and destructive actions.
-          </p>
+          </Text>
         </div>
 
         <Card className="border-destructive/30 bg-destructive/5">
@@ -248,7 +282,7 @@ function AccountPage() {
                 <p className="text-sm text-muted-foreground">
                   Download a copy of all your data.
                 </p>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={handleExport}>
                   <Icons.arrowRight className="mr-2 h-4 w-4 -rotate-45" />
                   Export
                 </Button>
@@ -298,7 +332,12 @@ function SessionCard({
         </p>
       </div>
       {!isCurrent && (
-        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-destructive hover:text-destructive"
+          onClick={() => { toast.info('Encerrar sessão — em breve') }}
+        >
           <Icons.logout className="h-4 w-4" />
         </Button>
       )}
