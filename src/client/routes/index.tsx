@@ -44,7 +44,7 @@ function HomePage() {
           <Heading
             level={1}
             align="center"
-            className="sm:text-5xl md:text-6xl lg:text-7xl"
+            className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl"
           >
             Build your SaaS
             <br />
