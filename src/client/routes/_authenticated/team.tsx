@@ -46,6 +46,7 @@ import {
   FormMessage,
   Heading,
   SearchInput,
+  Spinner,
   Text,
   TextInput,
 } from '@etus/seven-react'
@@ -231,8 +232,7 @@ function TeamPage() {
 
         <Dialog open={isInviteOpen} onOpenChange={handleOpenChange}>
           <DialogTrigger asChild>
-            <Button disabled={!currentAccount}>
-              <Icons.userPlus className="mr-2 h-4 w-4" />
+            <Button disabled={!currentAccount} leftIcon={<Icons.userPlus />}>
               Invite Member
             </Button>
           </DialogTrigger>
@@ -304,8 +304,7 @@ function TeamPage() {
                   <Button type="button" variant="outline" onClick={() => { setIsInviteOpen(false) }}>
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={inviteMutation.isPending}>
-                    {inviteMutation.isPending && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
+                  <Button type="submit" loading={inviteMutation.isPending}>
                     Send Invitation
                   </Button>
                 </DialogFooter>
@@ -334,8 +333,9 @@ function TeamPage() {
         <CardContent>
           <div className="divide-y">
             {isLoadingTeam && (
-              <div className="py-8 text-center text-muted-foreground">
-                Loading members...
+              <div className="flex items-center justify-center gap-2 py-8">
+                <Spinner />
+                <Text variant="p3" color="muted">Loading members...</Text>
               </div>
             )}
             {!isLoadingTeam && filteredMembers.map((member) => (
@@ -506,15 +506,11 @@ function InvitationRow({
           variant="ghost"
           size="sm"
           onClick={onRevoke}
-          disabled={isRevoking}
+          loading={isRevoking}
+          leftIcon={<Icons.close />}
           className="text-destructive hover:text-destructive"
         >
-          {isRevoking ? (
-            <Icons.spinner className="h-4 w-4 animate-spin" />
-          ) : (
-            <Icons.close className="h-4 w-4" />
-          )}
-          <span className="ml-2 hidden sm:inline">Revoke</span>
+          <span className="hidden sm:inline">Revoke</span>
         </Button>
       </div>
     </div>
