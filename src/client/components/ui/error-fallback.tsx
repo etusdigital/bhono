@@ -148,8 +148,8 @@ export function Unauthorized({
     <div className="flex min-h-[400px] items-center justify-center p-6">
       <div className="mx-auto max-w-md text-center">
         {/* Icon */}
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-amber-500/10">
-          <AlertTriangle className="h-8 w-8 text-amber-500" />
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-warning-subtle">
+          <AlertTriangle className="h-8 w-8 text-warning" />
         </div>
 
         {/* Title */}

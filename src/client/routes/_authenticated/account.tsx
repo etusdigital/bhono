@@ -120,8 +120,8 @@ function AccountPage() {
           {/* Two-Factor Authentication */}
           <Card>
             <div className="flex items-center gap-4 p-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/30">
-                <Icons.shield className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-warning-subtle">
+                <Icons.shield className="h-6 w-6 text-warning" />
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2">

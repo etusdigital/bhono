@@ -190,7 +190,7 @@ function SettingsPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="flex items-center gap-1 text-sm text-emerald-600">
+                  <span className="flex items-center gap-1 text-sm text-success">
                     <Icons.check className="h-4 w-4" />
                     Connected
                   </span>
@@ -219,7 +219,7 @@ function SettingsPage() {
                     </p>
                   </div>
                 </div>
-                <span className="text-sm text-emerald-600">Active</span>
+                <span className="text-sm text-success">Active</span>
               </div>
             </CardContent>
           </Card>

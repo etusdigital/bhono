@@ -58,8 +58,8 @@ function AcceptInvitationPage() {
       <Shell>
         <Card className="w-full max-w-md text-center">
           <CardHeader className="pb-4">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/30">
-              <Icons.check className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success-subtle">
+              <Icons.check className="h-8 w-8 text-success" />
             </div>
             <CardTitle className="text-xl">Invitation accepted</CardTitle>
             <CardDescription>You&apos;re now a member of the workspace.</CardDescription>

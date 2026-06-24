@@ -129,7 +129,7 @@ function IntegrationsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <div className="flex h-2 w-2 rounded-full bg-emerald-500" />
+          <div className="flex h-2 w-2 rounded-full bg-success" />
           {connectedCount} connected
         </div>
       </div>
@@ -255,11 +255,11 @@ function IntegrationCard({ integration }: { integration: Integration }) {
   const Icon = integration.icon
 
   return (
-    <Card className={`transition-all hover:shadow-md ${connected ? 'ring-1 ring-emerald-500/20' : ''}`}>
+    <Card className={`transition-all hover:shadow-md ${connected ? 'ring-1 ring-success/20' : ''}`}>
       <CardContent className="p-4">
         <div className="flex items-start gap-4">
-          <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${connected ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-muted'}`}>
-            <Icon className={`h-6 w-6 ${connected ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`} />
+          <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${connected ? 'bg-success-subtle' : 'bg-muted'}`}>
+            <Icon className={`h-6 w-6 ${connected ? 'text-success' : 'text-muted-foreground'}`} />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
@@ -320,7 +320,7 @@ function WebhookCard({ webhook }: { webhook: Webhook }) {
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0 space-y-3">
             <div className="flex items-center gap-2">
-              <div className={`h-2 w-2 rounded-full ${webhook.status === 'active' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+              <div className={`h-2 w-2 rounded-full ${webhook.status === 'active' ? 'bg-success' : 'bg-warning'}`} />
               <code className="text-sm font-mono truncate">{webhook.url}</code>
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -335,7 +335,7 @@ function WebhookCard({ webhook }: { webhook: Webhook }) {
                 <Icons.clock className="h-3 w-3" />
                 Last delivery: {webhook.lastDelivery}
               </span>
-              <span className={`flex items-center gap-1 ${webhook.lastStatus === 'success' ? 'text-emerald-600' : 'text-destructive'}`}>
+              <span className={`flex items-center gap-1 ${webhook.lastStatus === 'success' ? 'text-success' : 'text-destructive'}`}>
                 {webhook.lastStatus === 'success' ? (
                   <Icons.check className="h-3 w-3" />
                 ) : (
