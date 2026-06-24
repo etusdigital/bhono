@@ -260,8 +260,8 @@ importers:
   packages/create-bhono:
     dependencies:
       '@etus/bhono':
-        specifier: ^0.3.0
-        version: 0.3.0
+        specifier: workspace:^
+        version: link:../bhono-app
 
 packages:
 
@@ -1072,10 +1072,6 @@ packages:
     peerDependencies:
       hono: '>=4.12.18 <5.0.0'
       react: '>=18.0.0 <20.0.0'
-
-  '@etus/bhono@0.3.0':
-    resolution: {integrity: sha512-2SmdhOHYUGZsNtCNV3DMWvxnBlX8e9nQnDCdP7xWHQXEiQpJeOcIku5TZHAnP/FV8fX4j16JEsTm4nD9pQNrEg==}
-    hasBin: true
 
   '@etus/seven-react@0.1.0-beta.3':
     resolution: {integrity: sha512-Wk74488Iy9YQtnbX/aQ5QJ+NPRIFHVfC7yFjSAyjhqIagHEhMDtFS7NGugIZ9jx57cd4Jg6+PYrxCuMVmZwjhA==}
@@ -6369,14 +6365,6 @@ snapshots:
       commander: 14.0.3
       hono: 4.12.21
       react: 19.2.6
-
-  '@etus/bhono@0.3.0':
-    dependencies:
-      '@clack/prompts': 0.8.2
-      '@octokit/rest': 22.0.1
-      commander: 12.1.0
-      fs-extra: 11.3.5
-      picocolors: 1.1.1
 
   '@etus/seven-react@0.1.0-beta.3(@floating-ui/dom@1.7.6)(@tiptap/extension-code-block@3.23.6(@tiptap/core@3.23.6(@tiptap/pm@3.23.6))(@tiptap/pm@3.23.6))(@tiptap/extension-list@3.23.6(@tiptap/core@3.23.6(@tiptap/pm@3.23.6))(@tiptap/pm@3.23.6))(@tiptap/extensions@3.23.6(@tiptap/core@3.23.6(@tiptap/pm@3.23.6))(@tiptap/pm@3.23.6))(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(highlight.js@11.11.1)(lowlight@3.3.0)(react-dom@19.2.6(react@19.2.6))(react-is@17.0.2)(react@19.2.6)(redux@5.0.1)':
     dependencies:
