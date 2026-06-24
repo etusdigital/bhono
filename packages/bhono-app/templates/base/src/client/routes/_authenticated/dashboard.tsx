@@ -1,5 +1,6 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, DashboardCard } from '@etus/seven-react'
+import { createFileRoute, Link } from '@tanstack/react-router'
+import { toast } from 'sonner'
+import { Button, Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, DashboardCard, Heading, Text } from '@etus/seven-react'
 import { Icons } from '@/components/icons'
 import { useAuth } from '@/hooks/use-auth'
 
@@ -15,12 +16,12 @@ function DashboardPage() {
     <div className="space-y-8">
       {/* Welcome section */}
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <Heading level={1} size="2xl">
           Welcome back, {firstName}
-        </h1>
-        <p className="text-muted-foreground">
+        </Heading>
+        <Text variant="p2" color="muted">
           Here&apos;s an overview of your workspace.
-        </p>
+        </Text>
       </div>
 
       {/* Stats cards */}
@@ -64,10 +65,15 @@ function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">
+            <Text variant="p3" color="muted">
               Use the API to send invitations or manage users programmatically.
-            </p>
+            </Text>
           </CardContent>
+          <CardFooter>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/team">Invite members</Link>
+            </Button>
+          </CardFooter>
         </Card>
 
         <Card>
@@ -81,10 +87,22 @@ function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">
+            <Text variant="p3" color="muted">
               Built with SQL-first access to Cloudflare D1.
-            </p>
+            </Text>
           </CardContent>
+          <CardFooter>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                // TODO(stub)
+                toast.info('Database management is coming soon')
+              }}
+            >
+              Manage database
+            </Button>
+          </CardFooter>
         </Card>
 
         <Card>
@@ -98,10 +116,22 @@ function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">
+            <Text variant="p3" color="muted">
               Role-based access control and audit logging enabled.
-            </p>
+            </Text>
           </CardContent>
+          <CardFooter>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                // TODO(stub)
+                toast.info('Security settings are coming soon')
+              }}
+            >
+              Review security
+            </Button>
+          </CardFooter>
         </Card>
       </div>
 
@@ -114,10 +144,10 @@ function DashboardPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex h-32 items-center justify-center rounded-md border border-dashed">
-            <p className="text-sm text-muted-foreground">
+          <div className="flex h-32 items-center justify-center">
+            <Text variant="p3" color="muted">
               No recent activity
-            </p>
+            </Text>
           </div>
         </CardContent>
       </Card>
