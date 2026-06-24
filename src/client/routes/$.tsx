@@ -19,10 +19,12 @@ function NotFoundPage() {
         </Link>
       </header>
 
-      {/* Main Content — Seven ErrorPage (type 404 traz código/título/descrição em pt-BR) */}
+      {/* Main Content — Seven ErrorPage (English copy to match the rest of the app) */}
       <main className="flex flex-1 items-center justify-center px-4">
         <ErrorPage
           type="404"
+          title="Page not found"
+          description="The page you're looking for doesn't exist or was moved."
           showHomeLink={false}
           actions={
             <>
@@ -30,21 +32,21 @@ function NotFoundPage() {
                 <Button asChild>
                   <Link to="/">
                     <Icons.arrowRight className="rotate-180" />
-                    Início
+                    Back to Home
                   </Link>
                 </Button>
                 <Button variant="outline" asChild>
                   <Link to="/dashboard">
                     <Icons.dashboard />
-                    Painel
+                    Go to Dashboard
                   </Link>
                 </Button>
               </div>
               <Text variant="caption1" color="muted">
-                Precisa de ajuda?{' '}
-                {/* TODO: trocar pelo e-mail de suporte real do produto */}
+                Need help?{' '}
+                {/* TODO: replace with the product's real support email */}
                 <SevenLink href="mailto:support@example.com" variant="inline">
-                  Falar com o suporte
+                  Contact support
                 </SevenLink>
               </Text>
             </>
