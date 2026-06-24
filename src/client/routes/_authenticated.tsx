@@ -7,7 +7,6 @@ import {
   BreadcrumbPage,
   SidebarInset,
   SidebarProvider,
-  SidebarTrigger,
   Topbar,
   TopbarLeading,
 } from '@etus/seven-react'
@@ -58,7 +57,6 @@ function AppShell({ children }: { children: ReactNode }) {
         <header>
           <Topbar variant="default" className="h-12">
             <TopbarLeading>
-              <SidebarTrigger className="-ml-1" />
               <RouteBreadcrumb />
             </TopbarLeading>
           </Topbar>
