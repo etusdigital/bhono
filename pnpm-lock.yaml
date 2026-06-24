@@ -18,11 +18,11 @@ importers:
         specifier: 0.1.0-beta.3
         version: 0.1.0-beta.3(@floating-ui/dom@1.7.6)(@tiptap/extension-code-block@3.23.6(@tiptap/core@3.23.6(@tiptap/pm@3.23.6))(@tiptap/pm@3.23.6))(@tiptap/extension-list@3.23.6(@tiptap/core@3.23.6(@tiptap/pm@3.23.6))(@tiptap/pm@3.23.6))(@tiptap/extensions@3.23.6(@tiptap/core@3.23.6(@tiptap/pm@3.23.6))(@tiptap/pm@3.23.6))(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(highlight.js@11.11.1)(lowlight@3.3.0)(react-dom@19.2.6(react@19.2.6))(react-is@17.0.2)(react@19.2.6)(redux@5.0.1)
       '@etus/tokens':
-        specifier: 0.4.0-beta.2
-        version: 0.4.0-beta.2
+        specifier: 0.4.0-beta.8
+        version: 0.4.0-beta.8
       '@etus/ui':
-        specifier: 0.4.0-beta.2
-        version: 0.4.0-beta.2(@floating-ui/dom@1.7.6)(@tiptap/extension-code-block@3.23.6(@tiptap/core@3.23.6(@tiptap/pm@3.23.6))(@tiptap/pm@3.23.6))(@tiptap/extension-list@3.23.6(@tiptap/core@3.23.6(@tiptap/pm@3.23.6))(@tiptap/pm@3.23.6))(@tiptap/extensions@3.23.6(@tiptap/core@3.23.6(@tiptap/pm@3.23.6))(@tiptap/pm@3.23.6))(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(highlight.js@11.11.1)(lowlight@3.3.0)(react-dom@19.2.6(react@19.2.6))(react-is@17.0.2)(react@19.2.6)(redux@5.0.1)
+        specifier: 0.4.0-beta.10
+        version: 0.4.0-beta.10(@floating-ui/dom@1.7.6)(@tiptap/extension-code-block@3.23.6(@tiptap/core@3.23.6(@tiptap/pm@3.23.6))(@tiptap/pm@3.23.6))(@tiptap/extension-list@3.23.6(@tiptap/core@3.23.6(@tiptap/pm@3.23.6))(@tiptap/pm@3.23.6))(@tiptap/extensions@3.23.6(@tiptap/core@3.23.6(@tiptap/pm@3.23.6))(@tiptap/pm@3.23.6))(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(highlight.js@11.11.1)(lowlight@3.3.0)(react-dom@19.2.6(react@19.2.6))(react-is@17.0.2)(react@19.2.6)(redux@5.0.1)
       '@hono/swagger-ui':
         specifier: ^0.6.1
         version: 0.6.1(hono@4.12.21)
@@ -261,7 +261,7 @@ importers:
     dependencies:
       '@etus/bhono':
         specifier: ^0.3.0
-        version: link:../bhono-app
+        version: 0.3.0
 
 packages:
 
@@ -1073,17 +1073,21 @@ packages:
       hono: '>=4.12.18 <5.0.0'
       react: '>=18.0.0 <20.0.0'
 
+  '@etus/bhono@0.3.0':
+    resolution: {integrity: sha512-2SmdhOHYUGZsNtCNV3DMWvxnBlX8e9nQnDCdP7xWHQXEiQpJeOcIku5TZHAnP/FV8fX4j16JEsTm4nD9pQNrEg==}
+    hasBin: true
+
   '@etus/seven-react@0.1.0-beta.3':
     resolution: {integrity: sha512-Wk74488Iy9YQtnbX/aQ5QJ+NPRIFHVfC7yFjSAyjhqIagHEhMDtFS7NGugIZ9jx57cd4Jg6+PYrxCuMVmZwjhA==}
     peerDependencies:
       react: ^19.0.0
       react-dom: ^19.0.0
 
-  '@etus/tokens@0.4.0-beta.2':
-    resolution: {integrity: sha512-00x1pRQzZn241qOosifHB4yYpmLJhpEVjJ5KiKHIoBENY8Ec/WxmDXcfrpNP0cHRVEG9s+YDfOIj9X0L87vWJQ==}
+  '@etus/tokens@0.4.0-beta.8':
+    resolution: {integrity: sha512-6C4satITSQE7QppGHT0k3sv/ldwMl4r5lJ/koILx51ZcnlqjURmTaS06iBW+pkdZUAzw1QtfYZi7ojwd5qUUMA==}
 
-  '@etus/ui@0.4.0-beta.2':
-    resolution: {integrity: sha512-z2KdvjNKKEMufHMPsCR8CJ454TtwZgil7cnYWLjFpofeSikq/sfnKsTWsYKqy14K1IzqNvh0vmlmgApoRphRvA==}
+  '@etus/ui@0.4.0-beta.10':
+    resolution: {integrity: sha512-wG7Mbwfu+mSp4sauufXt4yQJjDwyQ/Wk1+pRyQWmRl6I2z8Xe4dWAUB4qNabw+lNEiFvlOvEJ3J+eKi9+GdSqQ==}
     peerDependencies:
       react: ^19.0.0
       react-dom: ^19.0.0
@@ -6366,10 +6370,18 @@ snapshots:
       hono: 4.12.21
       react: 19.2.6
 
+  '@etus/bhono@0.3.0':
+    dependencies:
+      '@clack/prompts': 0.8.2
+      '@octokit/rest': 22.0.1
+      commander: 12.1.0
+      fs-extra: 11.3.5
+      picocolors: 1.1.1
+
   '@etus/seven-react@0.1.0-beta.3(@floating-ui/dom@1.7.6)(@tiptap/extension-code-block@3.23.6(@tiptap/core@3.23.6(@tiptap/pm@3.23.6))(@tiptap/pm@3.23.6))(@tiptap/extension-list@3.23.6(@tiptap/core@3.23.6(@tiptap/pm@3.23.6))(@tiptap/pm@3.23.6))(@tiptap/extensions@3.23.6(@tiptap/core@3.23.6(@tiptap/pm@3.23.6))(@tiptap/pm@3.23.6))(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(highlight.js@11.11.1)(lowlight@3.3.0)(react-dom@19.2.6(react@19.2.6))(react-is@17.0.2)(react@19.2.6)(redux@5.0.1)':
     dependencies:
-      '@etus/tokens': 0.4.0-beta.2
-      '@etus/ui': 0.4.0-beta.2(@floating-ui/dom@1.7.6)(@tiptap/extension-code-block@3.23.6(@tiptap/core@3.23.6(@tiptap/pm@3.23.6))(@tiptap/pm@3.23.6))(@tiptap/extension-list@3.23.6(@tiptap/core@3.23.6(@tiptap/pm@3.23.6))(@tiptap/pm@3.23.6))(@tiptap/extensions@3.23.6(@tiptap/core@3.23.6(@tiptap/pm@3.23.6))(@tiptap/pm@3.23.6))(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(highlight.js@11.11.1)(lowlight@3.3.0)(react-dom@19.2.6(react@19.2.6))(react-is@17.0.2)(react@19.2.6)(redux@5.0.1)
+      '@etus/tokens': 0.4.0-beta.8
+      '@etus/ui': 0.4.0-beta.10(@floating-ui/dom@1.7.6)(@tiptap/extension-code-block@3.23.6(@tiptap/core@3.23.6(@tiptap/pm@3.23.6))(@tiptap/pm@3.23.6))(@tiptap/extension-list@3.23.6(@tiptap/core@3.23.6(@tiptap/pm@3.23.6))(@tiptap/pm@3.23.6))(@tiptap/extensions@3.23.6(@tiptap/core@3.23.6(@tiptap/pm@3.23.6))(@tiptap/pm@3.23.6))(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(highlight.js@11.11.1)(lowlight@3.3.0)(react-dom@19.2.6(react@19.2.6))(react-is@17.0.2)(react@19.2.6)(redux@5.0.1)
       react: 19.2.6
       react-dom: 19.2.6(react@19.2.6)
     transitivePeerDependencies:
@@ -6384,14 +6396,14 @@ snapshots:
       - react-is
       - redux
 
-  '@etus/tokens@0.4.0-beta.2': {}
+  '@etus/tokens@0.4.0-beta.8': {}
 
-  '@etus/ui@0.4.0-beta.2(@floating-ui/dom@1.7.6)(@tiptap/extension-code-block@3.23.6(@tiptap/core@3.23.6(@tiptap/pm@3.23.6))(@tiptap/pm@3.23.6))(@tiptap/extension-list@3.23.6(@tiptap/core@3.23.6(@tiptap/pm@3.23.6))(@tiptap/pm@3.23.6))(@tiptap/extensions@3.23.6(@tiptap/core@3.23.6(@tiptap/pm@3.23.6))(@tiptap/pm@3.23.6))(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(highlight.js@11.11.1)(lowlight@3.3.0)(react-dom@19.2.6(react@19.2.6))(react-is@17.0.2)(react@19.2.6)(redux@5.0.1)':
+  '@etus/ui@0.4.0-beta.10(@floating-ui/dom@1.7.6)(@tiptap/extension-code-block@3.23.6(@tiptap/core@3.23.6(@tiptap/pm@3.23.6))(@tiptap/pm@3.23.6))(@tiptap/extension-list@3.23.6(@tiptap/core@3.23.6(@tiptap/pm@3.23.6))(@tiptap/pm@3.23.6))(@tiptap/extensions@3.23.6(@tiptap/core@3.23.6(@tiptap/pm@3.23.6))(@tiptap/pm@3.23.6))(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(highlight.js@11.11.1)(lowlight@3.3.0)(react-dom@19.2.6(react@19.2.6))(react-is@17.0.2)(react@19.2.6)(redux@5.0.1)':
     dependencies:
       '@dnd-kit/core': 6.3.1(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       '@dnd-kit/sortable': 10.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react@19.2.6)
       '@dnd-kit/utilities': 3.2.2(react@19.2.6)
-      '@etus/tokens': 0.4.0-beta.2
+      '@etus/tokens': 0.4.0-beta.8
       '@radix-ui/react-accordion': 1.2.12(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       '@radix-ui/react-alert-dialog': 1.1.15(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       '@radix-ui/react-aspect-ratio': 1.1.8(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)

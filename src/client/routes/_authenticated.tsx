@@ -8,6 +8,8 @@ import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
+  Topbar,
+  TopbarLeading,
 } from '@etus/seven-react'
 import { AppSidebar } from '@/components/sidebar'
 import { ErrorFallback } from '@/components/ui/error-fallback'
@@ -53,9 +55,13 @@ function AppShell({ children }: { children: ReactNode }) {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <header className="flex h-12 shrink-0 items-center gap-3 px-6">
-          <SidebarTrigger className="-ml-1" />
-          <RouteBreadcrumb />
+        <header>
+          <Topbar variant="default">
+            <TopbarLeading>
+              <SidebarTrigger className="-ml-1" />
+              <RouteBreadcrumb />
+            </TopbarLeading>
+          </Topbar>
         </header>
         <div className="flex-1 overflow-auto rounded-tl-[24px] border bg-background p-8">
           {children}

@@ -575,3 +575,15 @@ Use in-* when:
 - Parent is a third-party component
 - You want implicit parent state detection
 */
+
+/* ── Shell: borderless sidebar ──────────────────────────────────────────────
+   The single-mode Sidebar (variant="sidebar") ships a right border — shadcn's
+   default for a standard sidebar shell. But this layout separates content with
+   the tucked card (SidebarInset content: rounded-tl + border), so that border is
+   redundant: it runs the full height (behind the topbar) and draws an orphan line
+   that clashes with the card's rounded corner. Drop it — the --sidebar bg tint
+   (98.5% vs 100% background) still gives a soft edge. Unlayered so it beats
+   Tailwind's group-data-[side=left]:border-r utility without !important. */
+[data-slot="sidebar-container"] {
+  border-right-width: 0;
+}
