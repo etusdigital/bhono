@@ -56,14 +56,14 @@ function AppShell({ children }: { children: ReactNode }) {
       <AppSidebar />
       <SidebarInset>
         <header>
-          <Topbar variant="default">
+          <Topbar variant="default" className="h-12">
             <TopbarLeading>
               <SidebarTrigger className="-ml-1" />
               <RouteBreadcrumb />
             </TopbarLeading>
           </Topbar>
         </header>
-        <div className="flex-1 overflow-auto rounded-tl-[24px] border bg-background p-8">
+        <div className="flex-1 overflow-auto rounded-tl-[24px] border bg-background px-8 py-6">
           {children}
         </div>
       </SidebarInset>
