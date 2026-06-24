@@ -20,6 +20,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  Text,
 } from '@etus/seven-react'
 import { Icons } from '@/components/icons'
 import { useAuth } from '@/hooks/use-auth'
@@ -68,7 +69,7 @@ export function AppSidebar() {
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                   <Icons.command className="size-4" />
                 </div>
-                <span className="font-semibold">Hono</span>
+                <Text as="span" weight="semibold">Hono</Text>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

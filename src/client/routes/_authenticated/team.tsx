@@ -6,6 +6,15 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
   Avatar,
   AvatarFallback,
   AvatarImage,
@@ -23,6 +32,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
   Form,
   FormControl,
   FormDescription,
@@ -30,6 +44,9 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  Heading,
+  SearchInput,
+  Text,
   TextInput,
 } from '@etus/seven-react'
 import { Icons } from '@/components/icons'
@@ -206,10 +223,10 @@ function TeamPage() {
     <div className="space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Team Members</h1>
-          <p className="text-muted-foreground">
+          <Heading level={1} size="2xl" weight="semibold">Team Members</Heading>
+          <Text color="muted">
             Manage your team and invite new members.
-          </p>
+          </Text>
         </div>
 
         <Dialog open={isInviteOpen} onOpenChange={handleOpenChange}>
@@ -298,15 +315,14 @@ function TeamPage() {
         </Dialog>
       </div>
 
-      <div className="relative max-w-sm">
-        <Icons.search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <TextInput
-          placeholder="Search members..."
-          value={searchQuery}
-          onChange={(e) => { setSearchQuery(e.target.value) }}
-          className="pl-9"
-        />
-      </div>
+      <SearchInput
+        className="max-w-sm"
+        placeholder="Search members..."
+        value={searchQuery}
+        onChange={(e) => { setSearchQuery(e.target.value) }}
+        showClearButton
+        onClear={() => { setSearchQuery('') }}
+      />
 
       <Card>
         <CardHeader>
@@ -409,9 +425,46 @@ function TeamMemberRow({
           {member.role}
         </Badge>
         {!isCurrentUser && (
-          <Button variant="ghost" size="icon" className="h-8 w-8">
-            <Icons.more className="h-4 w-4" />
-          </Button>
+          <AlertDialog>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Icons.more className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => { toast.info('Mudar papel — em breve') }}>
+                  <Icons.user className="mr-2 h-4 w-4" />
+                  Mudar papel
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <AlertDialogTrigger asChild>
+                  <DropdownMenuItem
+                    className="text-destructive"
+                    onSelect={(e) => { e.preventDefault() }}
+                  >
+                    <Icons.userMinus className="mr-2 h-4 w-4" />
+                    Remover
+                  </DropdownMenuItem>
+                </AlertDialogTrigger>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Remover {name}?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta ação remove o membro do workspace. Você pode convidá-lo novamente depois.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                {/* TODO(stub): ligar à mutation de remoção real */}
+                <AlertDialogAction onClick={() => { toast.info('Remover membro — em breve') }}>
+                  Remover
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         )}
       </div>
     </div>

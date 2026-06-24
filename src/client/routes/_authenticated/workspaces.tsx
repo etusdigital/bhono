@@ -12,6 +12,9 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
+  Heading,
+  Spinner,
+  Text,
 } from '@etus/seven-react'
 import { Icons } from '@/components/icons'
 import { useGatewayAccounts, type AccountRole } from '@/hooks/use-gateway-accounts'
@@ -37,11 +40,13 @@ function WorkspacesPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Workspaces</h1>
-        <p className="text-muted-foreground">
+        <Heading level={1} size="2xl" weight="semibold">
+          Workspaces
+        </Heading>
+        <Text variant="p2" color="muted">
           The gateway accounts you belong to and the role you hold in each. Roles are
           resolved by the gateway (viewer &lt; editor &lt; manager &lt; admin).
-        </p>
+        </Text>
       </div>
 
       {superAdmin && (
@@ -52,7 +57,7 @@ function WorkspacesPage() {
 
       {isLoading ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Icons.spinner className="h-4 w-4 animate-spin" />
+          <Spinner />
           Loading workspaces…
         </div>
       ) : accounts.length === 0 ? (
@@ -81,13 +86,15 @@ function WorkspacesPage() {
                       <CardTitle className="truncate text-base">{account.name}</CardTitle>
                       <CardDescription className="truncate">{account.slug}</CardDescription>
                     </div>
-                    <Badge color={meta.color} className="shrink-0 capitalize">
+                    <Badge color={meta.color} tooltip={meta.blurb} className="shrink-0 capitalize">
                       {account.role}
                     </Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground">{meta.blurb}</p>
+                  <Text variant="p3" color="muted">
+                    {meta.blurb}
+                  </Text>
                 </CardContent>
               </Card>
             )

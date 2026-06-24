@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from '@etus/seven-react'
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Heading } from '@etus/seven-react'
 import { Icons } from '@/components/icons'
 
 export const Route = createFileRoute('/invite/$token')({
@@ -61,7 +61,11 @@ function AcceptInvitationPage() {
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success-subtle">
               <Icons.check className="h-8 w-8 text-success" />
             </div>
-            <CardTitle className="text-xl">Invitation accepted</CardTitle>
+            <CardTitle>
+              <Heading level={1} size="xl" align="center">
+                Invitation accepted
+              </Heading>
+            </CardTitle>
             <CardDescription>You&apos;re now a member of the workspace.</CardDescription>
           </CardHeader>
           <CardContent>
@@ -82,14 +86,21 @@ function AcceptInvitationPage() {
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
               <Icons.close className="h-8 w-8 text-destructive" />
             </div>
-            <CardTitle className="text-xl">Invitation could not be accepted</CardTitle>
+            <CardTitle>
+              <Heading level={1} size="xl" align="center">
+                Invitation could not be accepted
+              </Heading>
+            </CardTitle>
             <CardDescription>
               This invitation may have expired, been revoked, or already been used. Ask the
               workspace admin for a new invitation.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <Button asChild className="w-full">
+          <CardContent className="space-y-3">
+            <Button className="w-full" onClick={() => { setStatus('pending') }}>
+              Tentar de novo
+            </Button>
+            <Button variant="outline" asChild className="w-full">
               <Link to="/">Go to Homepage</Link>
             </Button>
           </CardContent>
@@ -105,7 +116,11 @@ function AcceptInvitationPage() {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
             <Icons.mailPlus className="h-8 w-8 text-primary" />
           </div>
-          <CardTitle className="text-xl">You&apos;ve been invited</CardTitle>
+          <CardTitle>
+            <Heading level={1} size="xl" align="center">
+              You&apos;ve been invited
+            </Heading>
+          </CardTitle>
           <CardDescription>
             Accept this invitation to join the workspace. The invitation is validated when you
             accept it.

@@ -4,6 +4,15 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
   Avatar,
   AvatarFallback,
   AvatarImage,
@@ -14,18 +23,22 @@ import {
   CardHeader,
   CardTitle,
   Divider,
+  FileUpload,
+  FileUploadTrigger,
   Form,
   FormControl,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
+  Heading,
   Label,
   Switch,
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
+  Text,
   TextInput,
 } from '@etus/seven-react'
 import { Icons } from '@/components/icons'
@@ -63,14 +76,34 @@ function SettingsPage() {
     }
   }
 
+  const handlePhotoChange = () => {
+    toast.info('Trocar foto — em breve')
+    // TODO(stub)
+  }
+
+  const handleDisconnectProvider = () => {
+    toast.info('Desconectar conta — em breve')
+    // TODO(stub)
+  }
+
+  const handleRevokeSession = () => {
+    toast.info('Revogar sessão — em breve')
+    // TODO(stub)
+  }
+
+  const handleDeleteAccount = () => {
+    toast.info('Excluir conta — em breve')
+    // TODO(stub)
+  }
+
   return (
     <div className="space-y-8">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground">
+        <Heading level={1} size="2xl">Settings</Heading>
+        <Text variant="p2" color="muted">
           Manage your account settings and preferences.
-        </p>
+        </Text>
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
@@ -104,13 +137,21 @@ function SettingsPage() {
                 <AvatarFallback className="text-lg">{initials}</AvatarFallback>
               </Avatar>
               <div className="space-y-2">
-                <Button variant="outline" size="sm">
-                  <Icons.camera className="mr-2 h-4 w-4" />
-                  Change Photo
-                </Button>
-                <p className="text-xs text-muted-foreground">
+                <FileUpload
+                  accept="image/jpeg,image/png,image/gif"
+                  maxSize={2 * 1024 * 1024}
+                  showPreview={false}
+                  onChange={handlePhotoChange}
+                  className="w-auto"
+                >
+                  <FileUploadTrigger className="h-8 border border-input bg-background px-3 text-xs text-foreground hover:bg-accent hover:text-accent-foreground">
+                    <Icons.camera className="h-4 w-4" />
+                    Change Photo
+                  </FileUploadTrigger>
+                </FileUpload>
+                <Text as="p" variant="caption1" color="muted">
                   JPG, PNG or GIF. Max 2MB.
-                </p>
+                </Text>
               </div>
             </CardContent>
           </Card>
@@ -147,17 +188,14 @@ function SettingsPage() {
                         placeholder="Enter your email"
                         disabled
                       />
-                      <p className="text-xs text-muted-foreground">
+                      <Text as="p" variant="caption1" color="muted">
                         Email cannot be changed.
-                      </p>
+                      </Text>
                     </div>
                   </div>
 
                   <div className="flex justify-end">
-                    <Button type="submit" disabled={form.formState.isSubmitting}>
-                      {form.formState.isSubmitting && (
-                        <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-                      )}
+                    <Button type="submit" loading={form.formState.isSubmitting}>
                       Save Changes
                     </Button>
                   </div>
@@ -183,10 +221,10 @@ function SettingsPage() {
                     <Icons.google className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="font-medium">Google</p>
-                    <p className="text-sm text-muted-foreground">
+                    <Text as="p" weight="medium">Google</Text>
+                    <Text variant="p3" color="muted">
                       {user?.email}
-                    </p>
+                    </Text>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -194,6 +232,31 @@ function SettingsPage() {
                     <Icons.check className="h-4 w-4" />
                     Connected
                   </span>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        Desconectar
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Desconectar conta Google?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Você precisará reconectar este provedor para acessar sua conta por
+                          ele novamente.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          variant="destructive"
+                          onClick={handleDisconnectProvider}
+                        >
+                          Desconectar
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </div>
             </CardContent>
@@ -213,13 +276,40 @@ function SettingsPage() {
                     <Icons.globe className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="font-medium">Current Session</p>
-                    <p className="text-sm text-muted-foreground">
+                    <Text as="p" weight="medium">Current Session</Text>
+                    <Text variant="p3" color="muted">
                       Your current browser session
-                    </p>
+                    </Text>
                   </div>
                 </div>
-                <span className="text-sm text-success">Active</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-success">Active</span>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        Revogar
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Revogar esta sessão?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Você será desconectado deste dispositivo e precisará entrar
+                          novamente.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          variant="destructive"
+                          onClick={handleRevokeSession}
+                        >
+                          Revogar
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -234,14 +324,36 @@ function SettingsPage() {
             <CardContent>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium">Delete Account</p>
-                  <p className="text-sm text-muted-foreground">
+                  <Text as="p" weight="medium">Delete Account</Text>
+                  <Text variant="p3" color="muted">
                     Permanently delete your account and all associated data.
-                  </p>
+                  </Text>
                 </div>
-                <Button variant="destructive" size="sm">
-                  Delete Account
-                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm">
+                      Delete Account
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Excluir conta?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta ação é permanente e não pode ser desfeita. Todos os seus dados
+                        serão removidos.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        variant="destructive"
+                        onClick={handleDeleteAccount}
+                      >
+                        Excluir conta
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </CardContent>
           </Card>
@@ -299,8 +411,8 @@ function NotificationToggle({
   return (
     <div className="flex items-center justify-between">
       <div className="space-y-0.5">
-        <p className="font-medium">{title}</p>
-        <p className="text-sm text-muted-foreground">{description}</p>
+        <Text as="p" weight="medium">{title}</Text>
+        <Text variant="p3" color="muted">{description}</Text>
       </div>
       <Switch
         aria-label={title}
