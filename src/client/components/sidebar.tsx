@@ -20,6 +20,8 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  SidebarTrigger,
+  Text,
 } from '@etus/seven-react'
 import { Icons } from '@/components/icons'
 import { useAuth } from '@/hooks/use-auth'
@@ -62,15 +64,18 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader>
         <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild size="lg" tooltip="Hono">
+          <SidebarMenuItem className="flex items-center justify-between gap-2">
+            <SidebarMenuButton asChild size="lg" tooltip="Hono" className="flex-1">
               <Link to="/dashboard">
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                   <Icons.command className="size-4" />
                 </div>
-                <span className="font-semibold">Hono</span>
+                <Text as="span" weight="semibold">Hono</Text>
               </Link>
             </SidebarMenuButton>
+            {/* Collapse trigger lives in the sidebar header (right of the logo),
+                matching Seven's single-mode; hidden when collapsed to icon rail. */}
+            <SidebarTrigger className="-mr-1 group-data-[collapsible=icon]:hidden" />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>

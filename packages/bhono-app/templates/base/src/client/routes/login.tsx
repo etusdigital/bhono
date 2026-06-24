@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
-import { Button } from '@etus/seven-react'
+import { Button, Divider, Heading, Link as SevenLink, Text } from '@etus/seven-react'
 import { Icons } from '@/components/icons'
 
 export const Route = createFileRoute('/login')({
@@ -19,7 +19,7 @@ function LoginPage() {
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
       {/* Form panel — primary content */}
       <main className="flex min-h-screen items-center justify-center px-4 py-12 lg:min-h-0">
-        <div className="mx-auto grid w-[350px] gap-6">
+        <div className="mx-auto grid w-full max-w-sm gap-6">
           {/* Brand mark */}
           <Link to="/" className="flex items-center gap-2">
             <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
@@ -29,52 +29,49 @@ function LoginPage() {
           </Link>
 
           <div className="grid gap-2">
-            <h1 className="text-3xl font-bold tracking-tight">Welcome back</h1>
-            <p className="text-balance text-muted-foreground">
+            <Heading level={1} size="3xl" weight="bold">
+              Welcome back
+            </Heading>
+            <Text variant="p2" color="muted" className="text-balance">
               Sign in to your account to continue
-            </p>
+            </Text>
           </div>
 
           <div className="grid gap-4">
-            <Button className="w-full" disabled={isLoading} onClick={handleLogin}>
-              {isLoading ? (
-                <Icons.spinner className="mr-2 size-4 animate-spin" />
-              ) : (
-                <Icons.shield className="mr-2 size-4" />
-              )}
-              {isLoading ? 'Redirecting...' : 'Continue with ETUS'}
+            <Button
+              fullWidth
+              loading={isLoading}
+              loadingText="Redirecting..."
+              leftIcon={<Icons.shield className="size-4" />}
+              onClick={handleLogin}
+            >
+              Continue with ETUS
             </Button>
 
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                  Secure authentication
-                </span>
-              </div>
-            </div>
+            <Divider type="text">Secure authentication</Divider>
 
-            <p className="text-center text-xs text-muted-foreground">
+            <Text as="p" variant="caption1" color="muted" className="text-center">
               By continuing, you agree to our{' '}
-              <a className="underline underline-offset-4 hover:text-foreground" href="#">
+              {/* TODO: URL real de Terms of Service */}
+              <SevenLink href="#" underline="always">
                 Terms of Service
-              </a>{' '}
+              </SevenLink>{' '}
               and{' '}
-              <a className="underline underline-offset-4 hover:text-foreground" href="#">
+              {/* TODO: URL real de Privacy Policy */}
+              <SevenLink href="#" underline="always">
                 Privacy Policy
-              </a>
+              </SevenLink>
               .
-            </p>
+            </Text>
           </div>
 
-          <div className="text-center text-sm text-muted-foreground">
+          <Text as="p" variant="p3" color="muted" className="text-center">
             Don&apos;t have an account?{' '}
-            <a className="font-medium text-foreground underline underline-offset-4" href="#">
+            {/* TODO: URL real de Contact us */}
+            <SevenLink href="#" underline="always">
               Contact us
-            </a>
-          </div>
+            </SevenLink>
+          </Text>
         </div>
       </main>
 
@@ -82,10 +79,12 @@ function LoginPage() {
       <aside className="hidden bg-muted lg:block">
         <div className="flex h-full items-center justify-center p-10">
           <div className="max-w-md space-y-2">
-            <h2 className="text-3xl font-bold tracking-tight">Welcome to Hono</h2>
-            <p className="text-lg text-muted-foreground">
+            <Heading level={2} size="3xl" weight="bold">
+              Welcome to Hono
+            </Heading>
+            <Text variant="p1" color="muted">
               Production-ready multi-tenant SaaS, deployed on Cloudflare Workers.
-            </p>
+            </Text>
           </div>
         </div>
       </aside>

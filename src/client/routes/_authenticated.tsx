@@ -7,7 +7,8 @@ import {
   BreadcrumbPage,
   SidebarInset,
   SidebarProvider,
-  SidebarTrigger,
+  Topbar,
+  TopbarLeading,
 } from '@etus/seven-react'
 import { AppSidebar } from '@/components/sidebar'
 import { ErrorFallback } from '@/components/ui/error-fallback'
@@ -50,14 +51,17 @@ function RouteBreadcrumb() {
 /** Canonical Seven app shell: collapsible sidebar + inset with topbar and tucked content. */
 function AppShell({ children }: { children: ReactNode }) {
   return (
-    <SidebarProvider>
+    <SidebarProvider mode="single">
       <AppSidebar />
       <SidebarInset>
-        <header className="flex h-12 shrink-0 items-center gap-3 px-6">
-          <SidebarTrigger className="-ml-1" />
-          <RouteBreadcrumb />
+        <header>
+          <Topbar variant="default" className="h-12">
+            <TopbarLeading>
+              <RouteBreadcrumb />
+            </TopbarLeading>
+          </Topbar>
         </header>
-        <div className="flex-1 overflow-auto rounded-tl-[24px] border bg-background p-8">
+        <div className="flex-1 overflow-auto rounded-tl-[24px] border bg-background px-8 py-6">
           {children}
         </div>
       </SidebarInset>

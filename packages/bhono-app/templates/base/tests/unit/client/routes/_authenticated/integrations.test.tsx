@@ -256,7 +256,8 @@ describe('Integrations Page', () => {
         expect(screen.getByText('Build Custom Integrations')).toBeInTheDocument()
       }, { timeout: 10000 })
       expect(screen.getByText('Use our API to build your own integrations.')).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: /view api docs/i })).toBeInTheDocument()
+      // "View API Docs" is a Button asChild → <a> (a styled link), so its role is `link`.
+      expect(screen.getByRole('link', { name: /view api docs/i })).toBeInTheDocument()
     })
   })
 
@@ -298,9 +299,13 @@ describe('Integrations Page', () => {
 
       await user.click(configureButtons[0])
 
-      // Should show loading state during toggle
+      // Configure now OPENS a configuration dialog. Previously it called the
+      // toggle/disconnect handler — that label-vs-behavior mismatch was the bug
+      // this change fixed, so we assert the dialog opens instead of a disable.
       await waitFor(() => {
-        expect(configureButtons[0]).toBeDisabled()
+        expect(
+          screen.getByText(/configuration options for this integration are coming soon/i),
+        ).toBeInTheDocument()
       })
     })
   })
@@ -326,12 +331,12 @@ describe('Integrations Page', () => {
         expect(screen.getByText('https://api.example.com/webhooks/receive')).toBeInTheDocument()
       }, { timeout: 10000 })
 
-      // Find the delete button (trash icon button with destructive text styling).
-      // Filter on `text-destructive` specifically: Seven's Button base class
-      // includes `border-destructive`/`ring-destructive` on every button, so a
-      // bare `destructive` match would select all buttons.
+      // Find the webhook delete button: an icon-only destructive button. The
+      // IntegrationCard "Disconnect" buttons are also `text-destructive` but
+      // carry a text label (and open a confirm dialog), so filter to the
+      // icon-only one (empty text content) — that's the webhook delete.
       const deleteButtons = screen.getAllByRole('button').filter(btn =>
-        btn.className.includes('text-destructive')
+        btn.className.includes('text-destructive') && btn.textContent?.trim() === ''
       )
       expect(deleteButtons.length).toBeGreaterThan(0)
 
