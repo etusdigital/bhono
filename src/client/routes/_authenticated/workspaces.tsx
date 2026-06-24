@@ -1,11 +1,20 @@
 import { createFileRoute } from '@tanstack/react-router'
 import {
   Badge,
+  Callout,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  Heading,
+  Spinner,
+  Text,
 } from '@etus/seven-react'
 import { Icons } from '@/components/icons'
 import { useGatewayAccounts, type AccountRole } from '@/hooks/use-gateway-accounts'
@@ -31,44 +40,40 @@ function WorkspacesPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Workspaces</h1>
-        <p className="text-muted-foreground">
+        <Heading level={1} size="2xl" weight="semibold">
+          Workspaces
+        </Heading>
+        <Text variant="p2" color="muted">
           The gateway accounts you belong to and the role you hold in each. Roles are
           resolved by the gateway (viewer &lt; editor &lt; manager &lt; admin).
-        </p>
+        </Text>
       </div>
 
       {superAdmin && (
-        <Card className="border-primary/40 bg-primary/5">
-          <CardHeader className="flex flex-row items-center gap-3 space-y-0">
-            <Icons.shield className="h-5 w-5 text-primary" />
-            <div>
-              <CardTitle className="text-base">Super admin</CardTitle>
-              <CardDescription>
-                You have admin-level access across every workspace, regardless of the list below.
-              </CardDescription>
-            </div>
-          </CardHeader>
-        </Card>
+        <Callout icon={<Icons.shield />} title="Super admin" variant="success">
+          You have admin-level access across every workspace, regardless of the list below.
+        </Callout>
       )}
 
       {isLoading ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Icons.spinner className="h-4 w-4 animate-spin" />
+          <Spinner />
           Loading workspaces…
         </div>
       ) : accounts.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center gap-2 py-12 text-center">
-            <Icons.layers className="h-8 w-8 text-muted-foreground/60" />
-            <p className="font-medium">No workspaces yet</p>
-            <p className="max-w-md text-sm text-muted-foreground">
+        <Empty className="border">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Icons.layers />
+            </EmptyMedia>
+            <EmptyTitle>No workspaces yet</EmptyTitle>
+            <EmptyDescription>
               {superAdmin
                 ? 'You hold no explicit per-workspace role, but super admin grants access everywhere.'
                 : "You don't belong to any gateway workspace yet. An admin can grant you a role."}
-            </p>
-          </CardContent>
-        </Card>
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {accounts.map((account) => {
@@ -81,13 +86,15 @@ function WorkspacesPage() {
                       <CardTitle className="truncate text-base">{account.name}</CardTitle>
                       <CardDescription className="truncate">{account.slug}</CardDescription>
                     </div>
-                    <Badge color={meta.color} className="shrink-0 capitalize">
+                    <Badge color={meta.color} tooltip={meta.blurb} className="shrink-0 capitalize">
                       {account.role}
                     </Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground">{meta.blurb}</p>
+                  <Text variant="p3" color="muted">
+                    {meta.blurb}
+                  </Text>
                 </CardContent>
               </Card>
             )

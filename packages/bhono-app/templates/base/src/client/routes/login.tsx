@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from '@etus/seven-react'
+import { Button, Divider, Heading, Link as SevenLink, Text } from '@etus/seven-react'
 import { Icons } from '@/components/icons'
 
 export const Route = createFileRoute('/login')({
@@ -16,76 +16,78 @@ function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      {/* Simple header */}
-      <header className="container flex h-14 items-center">
-        <Link to="/" className="flex items-center space-x-2">
-          <Icons.command className="h-6 w-6" />
-          <span className="font-semibold">Hono</span>
-        </Link>
-      </header>
+    <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
+      {/* Form panel — primary content */}
+      <main className="flex min-h-screen items-center justify-center px-4 py-12 lg:min-h-0">
+        <div className="mx-auto grid w-full max-w-sm gap-6">
+          {/* Brand mark */}
+          <Link to="/" className="flex items-center gap-2">
+            <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <Icons.command className="size-4" />
+            </div>
+            <span className="font-semibold">Hono</span>
+          </Link>
 
-      {/* Login form */}
-      <main className="flex flex-1 items-center justify-center px-4">
-        <Card className="w-full max-w-sm">
-          <CardHeader className="space-y-1 text-center">
-            <CardTitle className="text-2xl font-semibold tracking-tight">
+          <div className="grid gap-2">
+            <Heading level={1} size="3xl" weight="bold">
               Welcome back
-            </CardTitle>
-            <CardDescription>
+            </Heading>
+            <Text variant="p2" color="muted" className="text-balance">
               Sign in to your account to continue
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4">
+            </Text>
+          </div>
+
+          <div className="grid gap-4">
             <Button
-              variant="outline"
-              className="w-full"
+              fullWidth
+              loading={isLoading}
+              loadingText="Redirecting..."
+              leftIcon={<Icons.shield className="size-4" />}
               onClick={handleLogin}
-              disabled={isLoading}
             >
-              {isLoading ? (
-                <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Icons.shield className="mr-2 h-4 w-4" />
-              )}
-              {isLoading ? 'Redirecting...' : 'Continue with ETUS'}
+              Continue with ETUS
             </Button>
 
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">
-                  Secure authentication
-                </span>
-              </div>
-            </div>
+            <Divider type="text">Secure authentication</Divider>
 
-            <p className="text-center text-xs text-muted-foreground">
+            <Text as="p" variant="caption1" color="muted" className="text-center">
               By continuing, you agree to our{' '}
-              <a href="#" className="underline underline-offset-4 hover:text-foreground">
+              {/* TODO: URL real de Terms of Service */}
+              <SevenLink href="#" underline="always">
                 Terms of Service
-              </a>{' '}
+              </SevenLink>{' '}
               and{' '}
-              <a href="#" className="underline underline-offset-4 hover:text-foreground">
+              {/* TODO: URL real de Privacy Policy */}
+              <SevenLink href="#" underline="always">
                 Privacy Policy
-              </a>
+              </SevenLink>
               .
-            </p>
-          </CardContent>
-        </Card>
+            </Text>
+          </div>
+
+          <Text as="p" variant="p3" color="muted" className="text-center">
+            Don&apos;t have an account?{' '}
+            {/* TODO: URL real de Contact us */}
+            <SevenLink href="#" underline="always">
+              Contact us
+            </SevenLink>
+          </Text>
+        </div>
       </main>
 
-      {/* Footer */}
-      <footer className="py-6 text-center">
-        <p className="text-sm text-muted-foreground">
-          Don&apos;t have an account?{' '}
-          <a href="#" className="font-medium text-foreground underline underline-offset-4">
-            Contact us
-          </a>
-        </p>
-      </footer>
+      {/* Brand panel — complementary */}
+      <aside className="hidden bg-muted lg:block">
+        <div className="flex h-full items-center justify-center p-10">
+          <div className="max-w-md space-y-2">
+            <Heading level={2} size="3xl" weight="bold">
+              Welcome to Hono
+            </Heading>
+            <Text variant="p1" color="muted">
+              Production-ready multi-tenant SaaS, deployed on Cloudflare Workers.
+            </Text>
+          </div>
+        </div>
+      </aside>
     </div>
   )
 }

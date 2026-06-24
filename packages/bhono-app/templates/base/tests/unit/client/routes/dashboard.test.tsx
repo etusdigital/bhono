@@ -44,7 +44,8 @@ describe('Dashboard Page', () => {
       renderRoute({ initialEntries: ['/dashboard'] })
 
       await waitFor(() => {
-        expect(screen.getByText('Dashboard')).toBeInTheDocument()
+        // "Dashboard" appears in both the breadcrumb and the sidebar nav
+        expect(screen.getAllByText('Dashboard').length).toBeGreaterThan(0)
       })
 
       expect(screen.getByText('Team')).toBeInTheDocument()

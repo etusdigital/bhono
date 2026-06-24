@@ -7,7 +7,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { router } from './router'
 import { queryClient } from './lib/query-client'
 import { ThemeProvider } from './hooks/use-theme'
-import { Toaster } from './components/ui/sonner'
+import { AppToaster } from './components/app-toaster'
 import './index.css'
 
 const rootElement = document.getElementById('root')
@@ -18,7 +18,7 @@ createRoot(rootElement).render(
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         <RouterProvider router={router} />
-        <Toaster />
+        <AppToaster />
         {import.meta.env.DEV && <ReactQueryDevtools />}
       </QueryClientProvider>
     </ThemeProvider>

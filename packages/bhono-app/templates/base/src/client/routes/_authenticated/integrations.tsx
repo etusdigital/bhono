@@ -3,10 +3,20 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
   Badge,
   Button,
   Card,
   CardContent,
+  Checkbox,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -14,6 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  Divider,
   Form,
   FormControl,
   FormDescription,
@@ -21,9 +32,12 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  Heading,
+  SearchInput,
+  Text,
+  TextInput,
 } from '@etus/seven-react'
-import { Input } from '@/components/ui/input'
-import { Separator } from '@/components/ui/separator'
+import { toast } from 'sonner'
 import { Icons } from '@/components/icons'
 import { CreateWebhookSchema, type CreateWebhookInput } from '@shared/schemas'
 
@@ -122,28 +136,29 @@ function IntegrationsPage() {
       {/* Page Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Integrations</h1>
-          <p className="text-muted-foreground">
+          <Heading level={1} size="2xl" weight="semibold" className="tracking-tight">
+            Integrations
+          </Heading>
+          <Text variant="p2" color="muted">
             Connect third-party services and manage webhooks.
-          </p>
+          </Text>
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <div className="flex h-2 w-2 rounded-full bg-emerald-500" />
+          <div className="flex h-2 w-2 rounded-full bg-success" />
           {connectedCount} connected
         </div>
       </div>
 
       {/* Search and Filters */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-        <div className="relative flex-1 max-w-sm">
-          <Icons.search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search integrations..."
-            value={searchQuery}
-            onChange={(e) => { setSearchQuery(e.target.value) }}
-            className="pl-9"
-          />
-        </div>
+        <SearchInput
+          className="flex-1 max-w-sm"
+          placeholder="Search integrations..."
+          value={searchQuery}
+          onChange={(e) => { setSearchQuery(e.target.value) }}
+          showClearButton
+          onClear={() => { setSearchQuery('') }}
+        />
         <div className="flex gap-1 overflow-x-auto pb-1">
           {categories.map((category) => (
             <Button
@@ -161,7 +176,7 @@ function IntegrationsPage() {
 
       {/* Integrations Grid */}
       <section className="space-y-4">
-        <h2 className="text-lg font-medium">Available Integrations</h2>
+        <Heading level={2} size="lg" weight="medium">Available Integrations</Heading>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredIntegrations.map((integration) => (
             <IntegrationCard key={integration.id} integration={integration} />
@@ -170,23 +185,23 @@ function IntegrationsPage() {
         {filteredIntegrations.length === 0 && (
           <div className="rounded-lg border border-dashed p-8 text-center">
             <Icons.search className="mx-auto h-8 w-8 text-muted-foreground/50" />
-            <p className="mt-2 text-sm text-muted-foreground">
+            <Text variant="p3" color="muted" className="mt-2">
               No integrations found matching your search.
-            </p>
+            </Text>
           </div>
         )}
       </section>
 
-      <Separator />
+      <Divider />
 
       {/* Webhooks Section */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-medium">Webhooks</h2>
-            <p className="text-sm text-muted-foreground">
+            <Heading level={2} size="lg" weight="medium">Webhooks</Heading>
+            <Text variant="p3" color="muted">
               Receive real-time notifications when events happen.
-            </p>
+            </Text>
           </div>
           <CreateWebhookDialog />
         </div>
@@ -201,16 +216,16 @@ function IntegrationsPage() {
           <Card>
             <CardContent className="p-8 text-center">
               <Icons.globe className="mx-auto h-8 w-8 text-muted-foreground/50" />
-              <p className="mt-2 text-sm font-medium">No webhooks configured</p>
-              <p className="text-xs text-muted-foreground">
+              <Text variant="p3" className="mt-2 font-medium">No webhooks configured</Text>
+              <Text as="p" variant="caption1" color="muted" className="font-normal">
                 Create a webhook to receive real-time event notifications.
-              </p>
+              </Text>
             </CardContent>
           </Card>
         )}
       </section>
 
-      <Separator />
+      <Divider />
 
       {/* API Documentation Link */}
       <section>
@@ -221,15 +236,18 @@ function IntegrationsPage() {
                 <Icons.zap className="h-5 w-5" />
               </div>
               <div>
-                <p className="font-medium">Build Custom Integrations</p>
-                <p className="text-sm text-muted-foreground">
+                <Text variant="p2" className="font-medium">Build Custom Integrations</Text>
+                <Text variant="p3" color="muted">
                   Use our API to build your own integrations.
-                </p>
+                </Text>
               </div>
             </div>
-            <Button variant="outline">
-              View API Docs
-              <Icons.arrowRight className="ml-2 h-4 w-4" />
+            <Button asChild variant="outline">
+              {/* TODO(stub): apontar href para a URL real das docs da API */}
+              <a href="#">
+                View API Docs
+                <Icons.arrowRight className="ml-2 h-4 w-4" />
+              </a>
             </Button>
           </CardContent>
         </Card>
@@ -244,61 +262,128 @@ function IntegrationCard({ integration }: { integration: Integration }) {
   const [isConnecting, setIsConnecting] = useState(false)
   const [connected, setConnected] = useState(integration.connected)
 
-  const handleToggle = async () => {
+  // TODO(stub): trocar mock por mutation real de conexão
+  const handleConnect = async () => {
     setIsConnecting(true)
     await new Promise((resolve) => setTimeout(resolve, 1000))
-    setConnected(!connected)
+    setConnected(true)
     setIsConnecting(false)
+    toast.success(`${integration.name} conectado`)
+  }
+
+  const handleDisconnect = () => {
+    // TODO(stub): ligar à desconexão real
+    toast.info('Desconectar — em breve')
   }
 
   const Icon = integration.icon
 
   return (
-    <Card className={`transition-all hover:shadow-md ${connected ? 'ring-1 ring-emerald-500/20' : ''}`}>
+    <Card className={`transition-all hover:shadow-md ${connected ? 'ring-1 ring-success/20' : ''}`}>
       <CardContent className="p-4">
         <div className="flex items-start gap-4">
-          <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${connected ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-muted'}`}>
-            <Icon className={`h-6 w-6 ${connected ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`} />
+          <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${connected ? 'bg-success-subtle' : 'bg-muted'}`}>
+            <Icon className={`h-6 w-6 ${connected ? 'text-success' : 'text-muted-foreground'}`} />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <p className="font-medium">{integration.name}</p>
+              <Text variant="p2" className="font-medium">{integration.name}</Text>
               {connected && (
                 <Badge color="success" className="text-xs">Connected</Badge>
               )}
             </div>
-            <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
+            <Text variant="p3" color="muted" className="mt-1 line-clamp-2">
               {integration.description}
-            </p>
+            </Text>
           </div>
         </div>
         <div className="mt-4 flex items-center justify-between">
           <Badge type="badge-outline" className="text-xs capitalize">
             {integration.category}
           </Badge>
-          <Button
-            variant={connected ? 'outline' : 'default'}
-            size="sm"
-            onClick={() => { void handleToggle() }}
-            disabled={isConnecting}
-          >
-            {isConnecting ? (
-              <Icons.spinner className="h-4 w-4 animate-spin" />
-            ) : connected ? (
-              <>
-                <Icons.settings className="mr-2 h-4 w-4" />
-                Configure
-              </>
-            ) : (
-              <>
-                <Icons.plus className="mr-2 h-4 w-4" />
-                Connect
-              </>
-            )}
-          </Button>
+          {connected ? (
+            <div className="flex items-center gap-2">
+              <ConfigureDialog integration={integration} />
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive hover:text-destructive"
+                  >
+                    Disconnect
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Disconnect {integration.name}?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This stops syncing data with {integration.name}. You can reconnect at any time.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction variant="destructive" onClick={handleDisconnect}>
+                      Disconnect
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          ) : (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => { void handleConnect() }}
+              disabled={isConnecting}
+            >
+              {isConnecting ? (
+                <Icons.spinner className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <Icons.plus className="mr-2 h-4 w-4" />
+                  Connect
+                </>
+              )}
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>
+  )
+}
+
+function ConfigureDialog({ integration }: { integration: Integration }) {
+  const [isOpen, setIsOpen] = useState(false)
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">
+          <Icons.settings className="mr-2 h-4 w-4" />
+          Configure
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Configure {integration.name}</DialogTitle>
+          <DialogDescription>
+            Manage how {integration.name} connects to your workspace.
+          </DialogDescription>
+        </DialogHeader>
+        {/* TODO(stub): formulário de configuração real */}
+        <div className="py-4">
+          <Text variant="p3" color="muted">
+            Configuration options for this integration are coming soon.
+          </Text>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => { setIsOpen(false) }}>
+            Close
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -319,7 +404,7 @@ function WebhookCard({ webhook }: { webhook: Webhook }) {
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0 space-y-3">
             <div className="flex items-center gap-2">
-              <div className={`h-2 w-2 rounded-full ${webhook.status === 'active' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+              <div className={`h-2 w-2 rounded-full ${webhook.status === 'active' ? 'bg-success' : 'bg-warning'}`} />
               <code className="text-sm font-mono truncate">{webhook.url}</code>
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -334,7 +419,7 @@ function WebhookCard({ webhook }: { webhook: Webhook }) {
                 <Icons.clock className="h-3 w-3" />
                 Last delivery: {webhook.lastDelivery}
               </span>
-              <span className={`flex items-center gap-1 ${webhook.lastStatus === 'success' ? 'text-emerald-600' : 'text-destructive'}`}>
+              <span className={`flex items-center gap-1 ${webhook.lastStatus === 'success' ? 'text-success' : 'text-destructive'}`}>
                 {webhook.lastStatus === 'success' ? (
                   <Icons.check className="h-3 w-3" />
                 ) : (
@@ -443,7 +528,7 @@ function CreateWebhookDialog() {
                   <FormItem>
                     <FormLabel>Endpoint URL</FormLabel>
                     <FormControl>
-                      <Input
+                      <TextInput
                         type="url"
                         placeholder="https://api.example.com/webhooks"
                         className="font-mono text-sm"
@@ -469,23 +554,20 @@ function CreateWebhookDialog() {
                         {eventTypes.map((event) => {
                           const isSelected = selectedEvents.includes(event.id)
                           return (
-                            <button
+                            <label
                               key={event.id}
-                              type="button"
-                              onClick={() => { toggleEvent(event.id) }}
-                              className={`flex items-center gap-2 rounded-lg border p-3 text-left text-sm transition-colors ${
+                              className={`flex cursor-pointer items-center gap-2 rounded-lg border p-3 text-left text-sm transition-colors ${
                                 isSelected
                                   ? 'border-primary bg-primary/5'
                                   : 'border-border hover:border-primary/50'
                               }`}
                             >
-                              <div className={`flex h-4 w-4 items-center justify-center rounded border ${
-                                isSelected ? 'border-primary bg-primary' : 'border-muted-foreground'
-                              }`}>
-                                {isSelected && <Icons.check className="h-3 w-3 text-primary-foreground" />}
-                              </div>
+                              <Checkbox
+                                checked={isSelected}
+                                onCheckedChange={() => { toggleEvent(event.id) }}
+                              />
                               <span className={isSelected ? 'font-medium' : ''}>{event.label}</span>
-                            </button>
+                            </label>
                           )
                         })}
                       </div>

@@ -1,5 +1,6 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@etus/seven-react'
+import { createFileRoute, Link } from '@tanstack/react-router'
+import { toast } from 'sonner'
+import { Button, Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, DashboardCard, Heading, Text } from '@etus/seven-react'
 import { Icons } from '@/components/icons'
 import { useAuth } from '@/hooks/use-auth'
 
@@ -15,39 +16,39 @@ function DashboardPage() {
     <div className="space-y-8">
       {/* Welcome section */}
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <Heading level={1} size="2xl">
           Welcome back, {firstName}
-        </h1>
-        <p className="text-muted-foreground">
+        </Heading>
+        <Text variant="p2" color="muted">
           Here&apos;s an overview of your workspace.
-        </p>
+        </Text>
       </div>
 
       {/* Stats cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatsCard
+        <DashboardCard
           title="Total Users"
           value="0"
-          description="Active team members"
-          icon={<Icons.users className="h-4 w-4 text-muted-foreground" />}
+          valueDescription="Active team members"
+          icon={<Icons.users className="size-4" />}
         />
-        <StatsCard
+        <DashboardCard
           title="Accounts"
           value="1"
-          description="Connected accounts"
-          icon={<Icons.layers className="h-4 w-4 text-muted-foreground" />}
+          valueDescription="Connected accounts"
+          icon={<Icons.layers className="size-4" />}
         />
-        <StatsCard
+        <DashboardCard
           title="API Requests"
           value="0"
-          description="Last 30 days"
-          icon={<Icons.zap className="h-4 w-4 text-muted-foreground" />}
+          valueDescription="Last 30 days"
+          icon={<Icons.zap className="size-4" />}
         />
-        <StatsCard
+        <DashboardCard
           title="Uptime"
           value="100%"
-          description="Last 30 days"
-          icon={<Icons.globe className="h-4 w-4 text-muted-foreground" />}
+          valueDescription="Last 30 days"
+          icon={<Icons.globe className="size-4" />}
         />
       </div>
 
@@ -64,10 +65,15 @@ function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">
+            <Text variant="p3" color="muted">
               Use the API to send invitations or manage users programmatically.
-            </p>
+            </Text>
           </CardContent>
+          <CardFooter>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/team">Invite members</Link>
+            </Button>
+          </CardFooter>
         </Card>
 
         <Card>
@@ -81,10 +87,22 @@ function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">
+            <Text variant="p3" color="muted">
               Built with SQL-first access to Cloudflare D1.
-            </p>
+            </Text>
           </CardContent>
+          <CardFooter>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                // TODO(stub)
+                toast.info('Database management is coming soon')
+              }}
+            >
+              Manage database
+            </Button>
+          </CardFooter>
         </Card>
 
         <Card>
@@ -98,10 +116,22 @@ function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">
+            <Text variant="p3" color="muted">
               Role-based access control and audit logging enabled.
-            </p>
+            </Text>
           </CardContent>
+          <CardFooter>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                // TODO(stub)
+                toast.info('Security settings are coming soon')
+              }}
+            >
+              Review security
+            </Button>
+          </CardFooter>
         </Card>
       </div>
 
@@ -114,38 +144,13 @@ function DashboardPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex h-32 items-center justify-center rounded-md border border-dashed">
-            <p className="text-sm text-muted-foreground">
+          <div className="flex h-32 items-center justify-center">
+            <Text variant="p3" color="muted">
               No recent activity
-            </p>
+            </Text>
           </div>
         </CardContent>
       </Card>
     </div>
-  )
-}
-
-function StatsCard({
-  title,
-  value,
-  description,
-  icon,
-}: {
-  title: string
-  value: string
-  description: string
-  icon: React.ReactNode
-}) {
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        {icon}
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        <p className="text-xs text-muted-foreground">{description}</p>
-      </CardContent>
-    </Card>
   )
 }
