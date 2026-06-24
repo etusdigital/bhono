@@ -1,0 +1,58 @@
+# Coverage matrix — auditoria de fidelidade ao Seven DS (só-código)
+# Gerado: 2026-06-24 | ref: @etus/ui@0.4.0-beta.4 / @etus/tokens@0.4.0-beta.3
+# Reports por tela: docs/ets/state/reports/screens/<tela>.md
+
+meta:
+  screens: 11
+  avg_fidelity: 0.70
+  user_actions: { total: 93, wired: 53, unwired: 40 }   # ~57% das ações estão ligadas
+  off_system_styles_total: 22                            # dominado por cores de status + decoração
+
+# Ordenado por fidelidade (desc)
+screens:
+  shell:        { fidelity: 0.84, off_system: 0, actions: "6/9",  note: "mais fiel; 100% token-limpo; Sidebar+Topbar+Inset corretos" }
+  workspaces:   { fidelity: 0.82, off_system: 0, actions: "0/5",  note: "token-limpo; 0 ações ligadas (parte read-only by-design)" }
+  team:         { fidelity: 0.76, off_system: 0, actions: "9/13", note: "token-limpo; menu ⋯ morto (mudar-papel/remover)" }
+  invite:       { fidelity: 0.72, off_system: 4, actions: "7/8",  note: "família emerald hardcoded" }
+  settings:     { fidelity: 0.72, off_system: 1, actions: "5/10", note: "text-emerald-600 (×2)" }
+  integrations: { fidelity: 0.71, off_system: 7, actions: "10/12", note: "emerald/amber; 2 botões mortos; Configure mislabeled" }
+  dashboard:    { fidelity: 0.68, off_system: 1, actions: "0/8",  note: "border-dashed; UI 100% estática" }
+  account:      { fidelity: 0.64, off_system: 5, actions: "5/12", note: "amber (2FA) + border-dashed; 6 botões mortos" }
+  login:        { fidelity: 0.62, off_system: 1, actions: "2/5",  note: "w-[350px]; Terms/Privacy/Contact href=# mortos" }
+  not_found:    { fidelity: 0.62, off_system: 3, actions: "4/5",  note: "text-[12rem] + blobs decorativos h-[500px]" }
+  landing:      { fidelity: 0.52, off_system: 5, actions: "5/6",  note: "HTML marketing cru; backdrop-blur/blobs; ignora Navbar/Card/FeatureItem" }
+
+# Padrões que se repetem entre telas (alvos de correção sistêmica)
+systemic_patterns:
+  status_colors_hardcoded:
+    screens: [invite, integrations, account, settings]
+    issue: "família emerald/amber crua em vez de --success/--warning / StatusIndicator / Badge color"
+    violates: "DESIGN.md — só mint/lime são brand; status deve vir de token"
+    severity: high
+  dead_unwired_actions:
+    screens: [dashboard, workspaces, account, settings, login, team, integrations]
+    issue: "botões/links que descrevem ações mas não disparam (onClick/onSubmit ausente, ou href='#')"
+    total_unwired: 40
+    severity: high
+  decorative_off_system:
+    screens: [landing, not_found]
+    issue: "backdrop-blur, blobs h-[500px] w-[500px], text-[12rem] — decoração arbitrária"
+    violates: "DESIGN.md — no decoration"
+    severity: medium
+  raw_html_bypass:
+    screens: [landing]
+    issue: "nav/hero/cards/footer em HTML cru ignoram Navbar/Card/FeatureItem/Heading/Text"
+    severity: medium
+  handrolled_empty_state:
+    screens: [dashboard, account]
+    issue: "border-dashed à mão em vez de EmptyState (workspaces já usa a base do Seven Empty)"
+    severity: low
+
+rankings:
+  most_token_clean: [shell, team, workspaces]    # 0 off-system
+  lowest_fidelity:  [landing, login, not_found]
+  most_static:      [dashboard, workspaces]       # menos ações ligadas
+
+# Pendências de DS upstream (Seven) que afetam o boilerplate
+blocked_on_seven:
+  - sidebar-borderless: "override em index.css aguarda affordance borderless no single-mode"
