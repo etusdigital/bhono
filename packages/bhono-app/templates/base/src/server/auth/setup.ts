@@ -17,9 +17,11 @@
 // authority for permissions (admin is the `bhono:admin` scope → `['*']`), and
 // the allowlist is just the day-0 fallback.
 //
-// Bootstrap a brand-new product without an admin: start with mode 'open' and
-// one owner email in ETUS_ADMIN_EMAILS, then switch to 'approval-required'
-// once the first admin is confirmed. See the auth-extend skill.
+// Bootstrap a brand-new product: put the owner's email in ETUS_ADMIN_EMAILS. An
+// admin email is provisioned role='admin' + active on the OAuth callback in EVERY
+// mode (including 'approval-required'), so the owner gets in immediately while
+// everyone else waits for approval — no need to start in 'open'. See
+// docs/SETUP-GUIDE.md.
 
 import {
   createAuth,
