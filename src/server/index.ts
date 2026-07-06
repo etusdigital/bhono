@@ -4,7 +4,6 @@ import type { HonoEnv } from './types'
 import type { Env } from './env'
 import { getAuth } from './auth/setup'
 import { protectAccountOwner } from './auth/guards'
-import { requireSupportedAccountMembershipRole } from './auth/package-compat'
 import { requireSafeAuthRedirects } from './auth/redirects'
 import { api } from './routes'
 import { health } from './routes/health'
@@ -116,11 +115,6 @@ export function buildApp(env: Env): Hono<HonoEnv> {
   // Protect the account owner from being demoted by an admin — runs before
   // accountRoutes handles PATCH /accounts/:id/members/:userId.
   app.use('/accounts/:id/members/:userId', protectAccountOwner())
-
-  // Keep the boilerplate account-membership contract narrower than the current
-  // package defaults until @etus/auth owns multiTenant.roles/defaultRole.
-  app.use('/accounts/:id/members/invite', requireSupportedAccountMembershipRole(['POST']))
-  app.use('/accounts/:id/members/:userId', requireSupportedAccountMembershipRole(['PATCH']))
 
   // @etus/auth routes — OAuth flow, admin user management, accounts, invitations, audit
   app.use('/auth/*', requireSafeAuthRedirects())

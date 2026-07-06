@@ -32,7 +32,7 @@ import {
 } from '@etus/auth'
 import type { Env } from '../env'
 import { sendInvitationEmail } from '../lib/email'
-import { ACCOUNT_ROLE_MAP, PERMISSIONS_MATRIX, ROLE_HIERARCHY, ROLES, SCOPE_MAP } from './matrix'
+import { ACCOUNT_MEMBERSHIP_ROLES, ACCOUNT_ROLE_MAP, PERMISSIONS_MATRIX, ROLE_HIERARCHY, ROLES, SCOPE_MAP } from './matrix'
 
 function parseList(csv: string | undefined): string[] {
   return (csv ?? '')
@@ -81,6 +81,11 @@ function buildAuthConfig(env: Env): AuthConfig {
       // or a production list is missing/contains invalid addresses.
       admins: validateAdminEmails(env.ETUS_ADMIN_EMAILS, env.ENVIRONMENT),
       roles: [...ROLES],
+      // v0.11.0: assignableRoles is the subset handed out via the membership API
+      // (invite / PATCH) — excludes "owner" so it can't be assigned there. This
+      // replaces the old auth/package-compat.ts guard; product-level "owner"
+      // still lives on auth_users.role + the permission matrix.
+      assignableRoles: [...ACCOUNT_MEMBERSHIP_ROLES],
       // v0.5.0: invite without explicit role now uses defaultRole ?? "admin".
       // We pick "member" so new invitees can collaborate on resources without
       // jumping straight to admin or being stuck on read-only "guest".
@@ -117,7 +122,7 @@ function buildAuthConfig(env: Env): AuthConfig {
       // account administrator (PRIVILEGED_MEMBERSHIP_ROLE). Product-level
       // owner/admin/member/guest stays on auth_users.role and the permission
       // matrix; account membership writes are narrowed to admin/member/guest
-      // (drops "owner") by auth/package-compat.ts.
+      // (drops "owner") via access.assignableRoles above.
       creatorRole: 'admin',
       // Required when `mailer` is set — the package owns no routing knowledge,
       // so we map invitation → SPA accept URL here.
