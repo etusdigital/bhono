@@ -12,8 +12,8 @@ importers:
   .:
     dependencies:
       '@etus/auth':
-        specifier: ^0.9.1
-        version: 0.9.1(hono@4.12.21)(react@19.2.6)
+        specifier: ^0.10.0
+        version: 0.10.0(hono@4.12.21)(react@19.2.6)
       '@etus/seven-react':
         specifier: 0.1.0-beta.3
         version: 0.1.0-beta.3(@floating-ui/dom@1.7.6)(@tiptap/extension-code-block@3.23.6(@tiptap/core@3.23.6(@tiptap/pm@3.23.6))(@tiptap/pm@3.23.6))(@tiptap/extension-list@3.23.6(@tiptap/core@3.23.6(@tiptap/pm@3.23.6))(@tiptap/pm@3.23.6))(@tiptap/extensions@3.23.6(@tiptap/core@3.23.6(@tiptap/pm@3.23.6))(@tiptap/pm@3.23.6))(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(highlight.js@11.11.1)(lowlight@3.3.0)(react-dom@19.2.6(react@19.2.6))(react-is@17.0.2)(react@19.2.6)(redux@5.0.1)
@@ -1066,8 +1066,8 @@ packages:
     resolution: {integrity: sha512-rZAP3aVgB9ds9KOeUSL+zZ21hPmo8dh6fnIFwRQj5EAZl9gzR7wxYbYXYysAM8CTqGmUGyp2S4kUdV17MnGuWQ==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
 
-  '@etus/auth@0.9.1':
-    resolution: {integrity: sha512-G7iIu7uoLFD4NHbvM4JEEfYuIhC+VuHXHFr5AEeLapEMBJMjttZctts7Ciju1ZUHythLZWw7PgZPq6UvZsMD4Q==}
+  '@etus/auth@0.10.0':
+    resolution: {integrity: sha512-rgQD33rJyG0eLmE1fZXZF92jq4gKgCBcYHgoqXZV5NFC83NNNaWvIPOqvXQq+t03fgR600UrY4Xxr5bYJ/39LA==}
     hasBin: true
     peerDependencies:
       hono: '>=4.12.18 <5.0.0'
@@ -6359,7 +6359,7 @@ snapshots:
       '@eslint/core': 1.2.1
       levn: 0.4.1
 
-  '@etus/auth@0.9.1(hono@4.12.21)(react@19.2.6)':
+  '@etus/auth@0.10.0(hono@4.12.21)(react@19.2.6)':
     dependencies:
       '@clack/prompts': 1.4.0
       commander: 14.0.3

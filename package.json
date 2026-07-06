@@ -57,7 +57,7 @@
     "sync:template:check": "./scripts/sync-template.sh && git diff --exit-code packages/bhono-app/templates/"
   },
   "dependencies": {
-    "@etus/auth": "^0.9.1",
+    "@etus/auth": "^0.10.0",
     "@etus/seven-react": "0.1.0-beta.3",
     "@etus/tokens": "0.4.0-beta.8",
     "@etus/ui": "0.4.0-beta.10",
